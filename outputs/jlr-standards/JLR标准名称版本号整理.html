@@ -1,0 +1,2048 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JLR 标准名称与版本号整理</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172033;
+      --muted: #5b6678;
+      --line: #d7dee8;
+      --surface: #ffffff;
+      --soft: #f4f7fb;
+      --blue: #1f5f8f;
+      --blue-dark: #153f61;
+      --green: #2f7d62;
+      --amber: #9a6a16;
+      --shadow: 0 10px 28px rgba(23, 32, 51, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", Arial, sans-serif;
+      color: var(--ink);
+      background: #f3f6fa;
+    }
+
+    header {
+      background: #ffffff;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .wrap {
+      width: min(1280px, calc(100vw - 32px));
+      margin: 0 auto;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 18px 0 16px;
+    }
+
+    h1 {
+      margin: 0 0 5px;
+      font-size: 23px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .meta {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(96px, 1fr));
+      gap: 10px;
+      min-width: 330px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      padding: 10px 12px;
+      border-radius: 8px;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.2;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 20px;
+      line-height: 1.1;
+    }
+
+    main {
+      padding: 18px 0 28px;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: minmax(300px, 1.8fr) minmax(180px, 0.8fr) minmax(180px, 0.8fr) auto;
+      gap: 10px;
+      align-items: end;
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    input,
+    select,
+    button {
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--ink);
+      font: inherit;
+      font-size: 14px;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 0 11px;
+    }
+
+    button {
+      padding: 0 14px;
+      cursor: pointer;
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #fff;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    button:hover {
+      background: var(--blue-dark);
+    }
+
+    .table-shell {
+      overflow: auto;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      max-height: calc(100vh - 205px);
+    }
+
+    table {
+      width: 100%;
+      min-width: 1080px;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #204761;
+      color: #fff;
+      border-bottom: 1px solid #163750;
+      padding: 10px 9px;
+      text-align: left;
+      font-size: 13px;
+      line-height: 1.25;
+    }
+
+    th.sortable {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    th.sortable::after {
+      content: "↕";
+      float: right;
+      opacity: 0.75;
+      font-size: 11px;
+    }
+
+    th.sorted-asc::after { content: "↑"; }
+    th.sorted-desc::after { content: "↓"; }
+
+    tbody td {
+      border-top: 1px solid #e4eaf1;
+      padding: 9px;
+      vertical-align: top;
+      font-size: 13px;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    tbody tr:hover {
+      background: #eaf4f0;
+    }
+
+    .col-index { width: 68px; text-align: right; color: var(--muted); }
+    .col-category { width: 145px; }
+    .col-code { width: 155px; font-weight: 700; color: var(--blue-dark); }
+    .col-title { width: 520px; }
+    .col-version { width: 120px; color: var(--green); font-weight: 700; }
+    .col-date { width: 135px; }
+
+    thead th.col-index,
+    thead th.col-category,
+    thead th.col-code,
+    thead th.col-title,
+    thead th.col-version,
+    thead th.col-date {
+      color: #f7fbff;
+      font-weight: 700;
+    }
+
+    .title-zh {
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    .title-en {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .empty {
+      padding: 28px;
+      text-align: center;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+    }
+
+    mark {
+      background: #ffe58a;
+      color: #301c00;
+      padding: 0 2px;
+      border-radius: 2px;
+    }
+
+    @media (max-width: 900px) {
+      .topbar {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .summary {
+        min-width: 0;
+      }
+
+      .toolbar {
+        grid-template-columns: 1fr;
+      }
+
+      .table-shell {
+        max-height: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap topbar">
+      <div>
+        <h1>JLR 标准名称与版本号整理</h1>
+        <p class="meta">Excel：JLR标准名称版本号整理.xlsx。修改后重新运行同步脚本即可更新本页。</p>
+      </div>
+      <div class="summary" aria-label="统计">
+        <div class="metric"><span>总标准数</span><strong id="totalCount">0</strong></div>
+        <div class="metric"><span>当前显示</span><strong id="visibleCount">0</strong></div>
+        <div class="metric"><span>类别数</span><strong id="categoryCount">0</strong></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="toolbar" aria-label="筛选">
+      <label>
+        关键词搜索
+        <input id="searchInput" type="search" placeholder="输入标准编号、标准名称、类别或版本号">
+      </label>
+      <label>
+        类别
+        <select id="categoryFilter">
+          <option value="">全部类别</option>
+          <option value="CAD/工程图纸">CAD/工程图纸</option>
+<option value="EMC/电磁兼容">EMC/电磁兼容</option>
+<option value="HMI/开关/座舱">HMI/开关/座舱</option>
+<option value="VOC/气味/禁限物质">VOC/气味/禁限物质</option>
+<option value="光学/HUD/显示性能">光学/HUD/显示性能</option>
+<option value="其他参考">其他参考</option>
+<option value="噪声测试">噪声测试</option>
+<option value="外观/感知质量">外观/感知质量</option>
+<option value="整车/装配/试验准备">整车/装配/试验准备</option>
+<option value="材料性能测试">材料性能测试</option>
+<option value="环境可靠性测试">环境可靠性测试</option>
+<option value="电气/电子测试">电气/电子测试</option>
+<option value="电气/电子设计">电气/电子设计</option>
+<option value="管理/流程/通用规范">管理/流程/通用规范</option>
+<option value="结构/连接器/NVH">结构/连接器/NVH</option>
+<option value="软件/通信/网络安全">软件/通信/网络安全</option>
+        </select>
+      </label>
+      <label>
+        版本
+        <select id="versionFilter">
+          <option value="">全部版本</option>
+        </select>
+      </label>
+      <button id="resetButton" type="button">重置</button>
+    </section>
+
+    <section class="table-shell" aria-label="JLR 标准表">
+      <table>
+        <thead>
+          <tr>
+            <th class="sortable col-index" data-key="index">序号</th>
+            <th class="sortable col-category" data-key="category">类别</th>
+            <th class="sortable col-code" data-key="standard_code">标准编号</th>
+            <th class="sortable col-title" data-key="title_zh">标准名称（中 / 英）</th>
+            <th class="sortable col-version" data-key="version">版本号</th>
+            <th class="sortable col-date" data-key="date">日期</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </section>
+    <p id="emptyState" class="empty" hidden>没有匹配的标准。请调整搜索词或筛选条件。</p>
+  </main>
+
+  <script>
+    const standardsData = [
+  {
+    "index": "1",
+    "category": "环境可靠性测试",
+    "standard_code": "JLR-HTG-564459",
+    "title_zh": "环境试验选择矩阵",
+    "title_en": "Environmental Test Selection Matrix",
+    "version": "Issue 3",
+    "date": ""
+  },
+  {
+    "index": "2",
+    "category": "环境可靠性测试",
+    "standard_code": "STJLR.00.5180",
+    "title_zh": "整车耐腐蚀性",
+    "title_en": "Total Vehicle Corrosion Resistance",
+    "version": "Issue 4",
+    "date": "16 October 2021"
+  },
+  {
+    "index": "3",
+    "category": "环境可靠性测试",
+    "standard_code": "STJLR.00.5235",
+    "title_zh": "整车箱体腐蚀验证要求",
+    "title_en": "Requirements for Cabinet Corrosion Validation - Total Vehicle",
+    "version": "Issue 3",
+    "date": "16 May 2022"
+  },
+  {
+    "index": "4",
+    "category": "环境可靠性测试",
+    "standard_code": "STJLR.00.7001",
+    "title_zh": "车辆耐久寿命",
+    "title_en": "Vehicle Durability Life",
+    "version": "Issue 3",
+    "date": "15 September 2015"
+  },
+  {
+    "index": "5",
+    "category": "环境可靠性测试",
+    "standard_code": "STJLR.15.5031",
+    "title_zh": "驾驶员信息系统环境工作要求",
+    "title_en": "Driver Information Environmental Operation",
+    "version": "Issue 1",
+    "date": "10 Jan 2022"
+  },
+  {
+    "index": "6",
+    "category": "环境可靠性测试",
+    "standard_code": "STJLR.18.233",
+    "title_zh": "电气和电子部件环境要求",
+    "title_en": "Electrical and Electronic Component Environmental Requirements",
+    "version": "Issue 3",
+    "date": "21/01/2022"
+  },
+  {
+    "index": "7",
+    "category": "环境可靠性测试",
+    "standard_code": "TPJLR.00.065",
+    "title_zh": "高温气候评价",
+    "title_en": "Hot Climate Evaluation",
+    "version": "Issue 4",
+    "date": "17 February 2016"
+  },
+  {
+    "index": "8",
+    "category": "环境可靠性测试",
+    "standard_code": "TPJLR.00.141",
+    "title_zh": "全球12周整车加速腐蚀试验程序",
+    "title_en": "Global 12 Week Total Vehicle Accelerated Corrosion Test Test Procedure: TPJLR.00.141",
+    "version": "Issue 3",
+    "date": "13 March 2020 Page 1 of 15"
+  },
+  {
+    "index": "9",
+    "category": "环境可靠性测试",
+    "standard_code": "TPJLR.00.165",
+    "title_zh": "高日照负荷下座舱电气及MHEV系统热试验程序",
+    "title_en": "Thermal Test Procedure – Cabin Electrical and MHEV Systems High Solar Load",
+    "version": "Issue 4",
+    "date": "31 Jul 2020"
+  },
+  {
+    "index": "10",
+    "category": "环境可靠性测试",
+    "standard_code": "TPJLR.00.170",
+    "title_zh": "温带气候评价",
+    "title_en": "Temperate Climate Evaluation",
+    "version": "Issue 4",
+    "date": "02 March 2016"
+  },
+  {
+    "index": "11",
+    "category": "环境可靠性测试",
+    "standard_code": "TPJLR.01.126",
+    "title_zh": "仪表板和中控台总成扩展耐久试验",
+    "title_en": "Instrument Panel and Console Assembly Extended Durability Test Test Procedure: TPJLR.01.126",
+    "version": "Issue 6",
+    "date": "20 Aug 2021"
+  },
+  {
+    "index": "12",
+    "category": "环境可靠性测试",
+    "standard_code": "TPJLR.15.045",
+    "title_zh": "聚合物显示屏环境应力开裂试验",
+    "title_en": "Polymer Displays Environmental Stress Cracking (ESC)",
+    "version": "Issue 1",
+    "date": "22 September 2021"
+  },
+  {
+    "index": "13",
+    "category": "环境可靠性测试",
+    "standard_code": "TPJLR.18.125",
+    "title_zh": "电气和电子部件环境兼容性试验",
+    "title_en": "Electrical and Electronic Component Environmental Compatibility Test",
+    "version": "Issue 5",
+    "date": "24/01/2022"
+  },
+  {
+    "index": "14",
+    "category": "噪声测试",
+    "standard_code": "TPJLR.00.003",
+    "title_zh": "工作声音质量（整车级）试验程序",
+    "title_en": "Operational Sound Quality (Vehicle Level) Test Procedure: TPJLR.00.003",
+    "version": "Issue 4",
+    "date": "19 November 2014"
+  },
+  {
+    "index": "15",
+    "category": "噪声测试",
+    "standard_code": "TPJLR.00.029",
+    "title_zh": "标准车辆噪声与振动测量位置",
+    "title_en": "Standard Vehicle Noise and Vibration Measurement Positions",
+    "version": "Issue 3",
+    "date": "01 January 2018"
+  },
+  {
+    "index": "16",
+    "category": "噪声测试",
+    "standard_code": "TPJLR.00.187",
+    "title_zh": "部件或系统异响振动台试验",
+    "title_en": "Squeak and Rattle Shaker Tests for Components or Systems",
+    "version": "Issue 2",
+    "date": "24 October 2018"
+  },
+  {
+    "index": "17",
+    "category": "噪声测试",
+    "standard_code": "TPJLR.00.344",
+    "title_zh": "工作声音质量（部件级）",
+    "title_en": "Operational Sound Quality (Component Level)",
+    "version": "Issue 1",
+    "date": "08 October 2014"
+  },
+  {
+    "index": "18",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.01.5019",
+    "title_zh": "未喷漆塑料件外观质量",
+    "title_en": "Unpainted Plastic: Cosmetic Appearance",
+    "version": "Issue 5",
+    "date": "17 October 2019"
+  },
+  {
+    "index": "19",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.01.5020",
+    "title_zh": "内饰喷漆件外观质量",
+    "title_en": "Interior Paint: Cosmetic Appearance",
+    "version": "Issue 1",
+    "date": "09 August 2010"
+  },
+  {
+    "index": "20",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.01.5023",
+    "title_zh": "内饰饰件、模塑件或模塑喷漆件可见分缝",
+    "title_en": "Visible Split Lines – Interior Trim, Moulded or Mould and Paint",
+    "version": "Issue 2",
+    "date": "09 October 2019"
+  },
+  {
+    "index": "21",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.01.5026",
+    "title_zh": "外饰喷漆件外观质量",
+    "title_en": "Exterior Paint: Cosmetic Appearance",
+    "version": "Issue 5",
+    "date": "01 October 2018"
+  },
+  {
+    "index": "22",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.01.5195",
+    "title_zh": "注塑成型部件Moldflow分析",
+    "title_en": "Moldflow Analyses For Injection Moulded Components",
+    "version": "Issue 01",
+    "date": "09 January 2020"
+  },
+  {
+    "index": "23",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.50.5071",
+    "title_zh": "铝、镁或铁铸件制造的车辆部件",
+    "title_en": "Vehicle Components Manufactured as Aluminium, Magnesium or Iron Castings",
+    "version": "Issue 2",
+    "date": "11 October 2018"
+  },
+  {
+    "index": "24",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.50.5151",
+    "title_zh": "镀铬部件性能要求",
+    "title_en": "Performance Requirements of Chrome Title: Plated Components",
+    "version": "Issue 13",
+    "date": "31 January 2021"
+  },
+  {
+    "index": "25",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.50.5353",
+    "title_zh": "无铅焊料性能要求",
+    "title_en": "Lead-Free Solder Performance Requiremen ts",
+    "version": "Issue 5",
+    "date": "15 December 2020"
+  },
+  {
+    "index": "26",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.51.5006",
+    "title_zh": "内饰应用中胶粘剂性能表征",
+    "title_en": "Characterising the Performance of Adhesives in Trim Applications",
+    "version": "Issue 3",
+    "date": "18 March 2020"
+  },
+  {
+    "index": "27",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.51.5181",
+    "title_zh": "自粘胶带系统性能要求",
+    "title_en": "Performance Requirements of Self Adhesive Tape Systems",
+    "version": "Issue 8",
+    "date": "03 March 2021"
+  },
+  {
+    "index": "28",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.51.5182",
+    "title_zh": "标签和贴花性能要求",
+    "title_en": "Performance Requirements of Labels and Decals",
+    "version": "Issue 7",
+    "date": "5 February 2021"
+  },
+  {
+    "index": "29",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.51.5204",
+    "title_zh": "皮革材料性能",
+    "title_en": "Material Performance - Leather",
+    "version": "Issue 8",
+    "date": "17 June 2021"
+  },
+  {
+    "index": "30",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.51.5205",
+    "title_zh": "含胶原材料性能",
+    "title_en": "Material Performance – Collagen Containing Materials",
+    "version": "Issue 2",
+    "date": "25 June 2021"
+  },
+  {
+    "index": "31",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.51.5223",
+    "title_zh": "内饰临时保护系统",
+    "title_en": "Temporary Protection Sys tems for Trim",
+    "version": "Issue 4",
+    "date": "14 April 2021"
+  },
+  {
+    "index": "32",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.51.5224",
+    "title_zh": "包含柔性表皮材料的仪表板总成性能",
+    "title_en": "Instrument Panel Assembly Performance: Incorporating Flexible Cover Skin Material",
+    "version": "Issue 5",
+    "date": "16 March 2021"
+  },
+  {
+    "index": "33",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.51.5225",
+    "title_zh": "内饰总成性能规范",
+    "title_en": "Performance Specification: Interior Trim Assemblies",
+    "version": "Issue 6",
+    "date": "24 September 2020"
+  },
+  {
+    "index": "34",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.51.5226",
+    "title_zh": "生产材料标准要求",
+    "title_en": "Standard Requirements for Production Materials",
+    "version": "Issue 6",
+    "date": "28 September 2020"
+  },
+  {
+    "index": "35",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.51.5227",
+    "title_zh": "黑盒/灰盒件材料控制",
+    "title_en": "Material Control, Black/Grey Box Items",
+    "version": "Issue 8",
+    "date": "02 July 2021"
+  },
+  {
+    "index": "36",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.51.5228",
+    "title_zh": "缝纫线材料性能",
+    "title_en": "Material Performance - Sewing Thread",
+    "version": "Issue 5",
+    "date": "10 July 2020"
+  },
+  {
+    "index": "37",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.51.5229",
+    "title_zh": "内饰材料和部件环境质量要求",
+    "title_en": "Environmental Quality Requirements for Interior Materials and Components",
+    "version": "Issue 6",
+    "date": "01 April 2021"
+  },
+  {
+    "index": "38",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.51.5242",
+    "title_zh": "内饰油漆和清漆性能",
+    "title_en": "Paint and Lacquer Performance - Interior",
+    "version": "Issue 10",
+    "date": "30 July 2019"
+  },
+  {
+    "index": "39",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.51.5262",
+    "title_zh": "非装饰塑料件性能要求",
+    "title_en": "Performance Requirements of Non-Decorated Plastics",
+    "version": "Issue 9",
+    "date": "03 September 2020"
+  },
+  {
+    "index": "40",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.51.5270",
+    "title_zh": "聚合物中再生材料的使用",
+    "title_en": "Use of Recycled Material in Polymers",
+    "version": "Issue 1",
+    "date": "10 March 2021"
+  },
+  {
+    "index": "41",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.51.5281",
+    "title_zh": "聚合物薄膜材料性能",
+    "title_en": "Material Performance – Polymeric Foils",
+    "version": "Issue 9",
+    "date": "03 June 2021"
+  },
+  {
+    "index": "42",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.51.5282",
+    "title_zh": "非化石来源聚合物薄膜材料性能",
+    "title_en": "Material Performance – Polymeric Foils (Non-Fossil Derived)",
+    "version": "Issue 2",
+    "date": "17 June 2021"
+  },
+  {
+    "index": "43",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.51.5301",
+    "title_zh": "橡胶件性能要求",
+    "title_en": "Performance Requirements of Rubber Parts",
+    "version": "Issue 8",
+    "date": "08 April 2020"
+  },
+  {
+    "index": "44",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.51.5306",
+    "title_zh": "热塑性弹性体（TPE）性能要求",
+    "title_en": "Performance Requirements of Thermoplastic Elastomers ( TPEs)",
+    "version": "Issue 4",
+    "date": "02 February 2021"
+  },
+  {
+    "index": "45",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.51.5341",
+    "title_zh": "地毯材料性能",
+    "title_en": "Material Performance: Carpet",
+    "version": "Issue 7",
+    "date": "14 October 2021"
+  },
+  {
+    "index": "46",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.51.5361",
+    "title_zh": "轻载织物材料性能",
+    "title_en": "Material Performance – Light Duty Fabrics",
+    "version": "Issue 8",
+    "date": "21 May 2020"
+  },
+  {
+    "index": "47",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.51.5362",
+    "title_zh": "重载织物材料性能",
+    "title_en": "Material Performance - Heavy Duty Fabrics",
+    "version": "Issue 10",
+    "date": "16 June 2021"
+  },
+  {
+    "index": "48",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.51.5363",
+    "title_zh": "超细纤维织物材料性能",
+    "title_en": "Material Performance – Micro Fibre Fabrics",
+    "version": "Issue 8",
+    "date": "16 June 2021"
+  },
+  {
+    "index": "49",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.51.5366",
+    "title_zh": "内饰SVO附件用纺织品材料性能",
+    "title_en": "Material Performance: Textiles for Interior SVO Accessories",
+    "version": "Issue 2",
+    "date": "15 January 2021"
+  },
+  {
+    "index": "50",
+    "category": "材料性能测试",
+    "standard_code": "STJLR.51.5381",
+    "title_zh": "涂漆装饰内饰件（木饰面）",
+    "title_en": "Lacquered Decorative Finished Interior Trim Components (Veneers)",
+    "version": "Issue 6",
+    "date": "30 March 2020"
+  },
+  {
+    "index": "51",
+    "category": "材料性能测试",
+    "standard_code": "TPJLR.01.425",
+    "title_zh": "注塑成型部件Moldflow分析",
+    "title_en": "Moldflow Analyses For Injection Moulded Components",
+    "version": "Issue 01",
+    "date": "09 January 2020"
+  },
+  {
+    "index": "52",
+    "category": "材料性能测试",
+    "standard_code": "TPJLR.52.009",
+    "title_zh": "微划伤性能评估：线性磨耗法",
+    "title_en": "Assessment of Micro-Scratch Performance - Linear Abrasion Method",
+    "version": "Issue 4",
+    "date": "30 April 2020"
+  },
+  {
+    "index": "53",
+    "category": "材料性能测试",
+    "standard_code": "TPJLR.52.010",
+    "title_zh": "损伤性能评估：光泽评估方法",
+    "title_en": "Assessment of Mar Performa nce: Gloss Assessment M ethod",
+    "version": "Issue 4",
+    "date": "19 April 2021"
+  },
+  {
+    "index": "54",
+    "category": "材料性能测试",
+    "standard_code": "TPJLR.52.061",
+    "title_zh": "油漆附着力试验方法",
+    "title_en": "Paint Adhesion Test Method",
+    "version": "Issue 2",
+    "date": "30 April 2021"
+  },
+  {
+    "index": "55",
+    "category": "材料性能测试",
+    "standard_code": "TPJLR.52.155",
+    "title_zh": "汽车内饰液体斑渍试验",
+    "title_en": "Fluid Spotting of Automotive Trim",
+    "version": "Issue 3",
+    "date": "12 September 2021"
+  },
+  {
+    "index": "56",
+    "category": "材料性能测试",
+    "standard_code": "TPJLR.52.156",
+    "title_zh": "内饰耐汗液性：浸泡试验",
+    "title_en": "Resistance of Interior Trim to Perspiration – Immersion Test",
+    "version": "Issue 4",
+    "date": "29 January 2021"
+  },
+  {
+    "index": "57",
+    "category": "材料性能测试",
+    "standard_code": "TPJLR.52.165",
+    "title_zh": "内饰材料耐护肤霜、驱虫剂和车载插电香氛",
+    "title_en": "Trim Materials: Resistance to Skin Creams, Insect Repellent and Car Plug-in Air Freshener",
+    "version": "Issue 1",
+    "date": "30 July 2019"
+  },
+  {
+    "index": "58",
+    "category": "材料性能测试",
+    "standard_code": "TPJLR.52.209",
+    "title_zh": "白色无背衬乙烯基迁移污染耐受性",
+    "title_en": "Resistance to Migration Staining Using White, Unsupported Vinyl",
+    "version": "Issue 3",
+    "date": "17 March 2021"
+  },
+  {
+    "index": "59",
+    "category": "材料性能测试",
+    "standard_code": "TPJLR.52.210",
+    "title_zh": "内饰材料可清洁性试验",
+    "title_en": "Cleanability Test for Interior Trim Materials",
+    "version": "Issue 4",
+    "date": "10 March 2021"
+  },
+  {
+    "index": "60",
+    "category": "材料性能测试",
+    "standard_code": "TPJLR.52.351",
+    "title_zh": "耐湿性：通用要求",
+    "title_en": "Resistance to Humidity - General",
+    "version": "Issue 5",
+    "date": "02 November 2020"
+  },
+  {
+    "index": "61",
+    "category": "材料性能测试",
+    "standard_code": "TPJLR.52.352",
+    "title_zh": "耐热老化：通用要求",
+    "title_en": "Resistance to Heat Ageing - General",
+    "version": "Issue 3",
+    "date": "30 September 2020"
+  },
+  {
+    "index": "62",
+    "category": "材料性能测试",
+    "standard_code": "TPJLR.52.353",
+    "title_zh": "加速环境老化",
+    "title_en": "Accelerated Environmental Ageing",
+    "version": "Issue 4",
+    "date": "02 July 2019"
+  },
+  {
+    "index": "63",
+    "category": "材料性能测试",
+    "standard_code": "TPJLR.52.456",
+    "title_zh": "有机涂层刮擦附着力",
+    "title_en": "Scrape Adhesion of Organic Coatings",
+    "version": "Issue 2",
+    "date": "02 May 2019"
+  },
+  {
+    "index": "64",
+    "category": "材料性能测试",
+    "standard_code": "TPJLR.52.656",
+    "title_zh": "内饰喷漆表面水解试验",
+    "title_en": "Hydrolysis Test – Interior Painted Finishes",
+    "version": "Issue 2",
+    "date": "21 October 2020"
+  },
+  {
+    "index": "65",
+    "category": "VOC/气味/禁限物质",
+    "standard_code": "STJLR.01.5202",
+    "title_zh": "影响车内空气质量的车身部件环境质量要求",
+    "title_en": "Environmental Quality Requirements for Body Components Affecting Vehicle Interior Air Quality",
+    "version": "Issue 1",
+    "date": "02 August 2021"
+  },
+  {
+    "index": "66",
+    "category": "VOC/气味/禁限物质",
+    "standard_code": "STJLR.51.5232",
+    "title_zh": "内饰材料TÜV Toxproof认证要求",
+    "title_en": "TÜV Toxproof Ce rtification Requirements for Interior Materials",
+    "version": "Issue 3",
+    "date": "22 October 2018"
+  },
+  {
+    "index": "67",
+    "category": "VOC/气味/禁限物质",
+    "standard_code": "STJLR.99.9999",
+    "title_zh": "限用物质管理标准",
+    "title_en": "Restricted Substance Management Standard",
+    "version": "Issue 14",
+    "date": "01 April 2021"
+  },
+  {
+    "index": "68",
+    "category": "VOC/气味/禁限物质",
+    "standard_code": "TPJLR.52.104",
+    "title_zh": "内饰材料VOC释放量测定",
+    "title_en": "Determination of VOC Emissions from Interior Trim Materials",
+    "version": "Issue 4",
+    "date": "12 April 2019"
+  },
+  {
+    "index": "69",
+    "category": "VOC/气味/禁限物质",
+    "standard_code": "TPJLR.52.109",
+    "title_zh": "整车内饰VOC和醛类释放量测定",
+    "title_en": "Determination of VOC and Aldehyde Emissions for Vehicle Interiors",
+    "version": "Issue 4",
+    "date": "21 July 2021"
+  },
+  {
+    "index": "70",
+    "category": "VOC/气味/禁限物质",
+    "standard_code": "TPJLR.52.458",
+    "title_zh": "内饰材料、部件和总成气味测定与评估",
+    "title_en": "Determination and Assessment of Odour from Interior Trim Materials, Components, and Assemblies",
+    "version": "Issue 3",
+    "date": "19 July 2021"
+  },
+  {
+    "index": "71",
+    "category": "EMC/电磁兼容",
+    "standard_code": "JLR-EMC-CP",
+    "title_zh": "电气/电子部件和子系统EMC符合性程序",
+    "title_en": "EMC Compliance Procedure for Electrical/Electronic Components and Subsystems",
+    "version": "v1.5",
+    "date": "4 April 2022"
+  },
+  {
+    "index": "72",
+    "category": "EMC/电磁兼容",
+    "standard_code": "STJLR.18.084",
+    "title_zh": "整车EMC标准",
+    "title_en": "Whole Vehicle EMC Standard",
+    "version": "Issue 2",
+    "date": "28 November 2017"
+  },
+  {
+    "index": "73",
+    "category": "EMC/电磁兼容",
+    "standard_code": "STJLR.18.209",
+    "title_zh": "全屏蔽电源线高压交流或直流部件EMC要求",
+    "title_en": "EMC Requirements For High Voltage AC or DC Components That Have Fully Shielded Power Wiring",
+    "version": "Issue 1",
+    "date": "08 May 2018"
+  },
+  {
+    "index": "74",
+    "category": "光学/HUD/显示性能",
+    "standard_code": "STJLR.00.5104",
+    "title_zh": "人机界面（HMI）设计策略：通用色度颜色标准",
+    "title_en": "Human Machine Interface (HMI) Design Strategy: General Chromaticity Colour Standard",
+    "version": "Issue 1",
+    "date": "28 March 2012"
+  },
+  {
+    "index": "75",
+    "category": "光学/HUD/显示性能",
+    "standard_code": "STJLR.01.5018",
+    "title_zh": "整车视野范围",
+    "title_en": "Vehicle Level Fields of View",
+    "version": "Issue 2",
+    "date": "19 May 2011"
+  },
+  {
+    "index": "76",
+    "category": "光学/HUD/显示性能",
+    "standard_code": "STJLR.13.5007",
+    "title_zh": "抬头显示风挡玻璃要求",
+    "title_en": "Head-Up Display Windscreen Requirements",
+    "version": "Issue 2",
+    "date": "29 November 2017"
+  },
+  {
+    "index": "77",
+    "category": "光学/HUD/显示性能",
+    "standard_code": "STJLR.13.5009",
+    "title_zh": "抬头显示光学性能标准",
+    "title_en": "Head-Up Display Optical Performance Standard",
+    "version": "Issue 6",
+    "date": "24 November 2022"
+  },
+  {
+    "index": "78",
+    "category": "光学/HUD/显示性能",
+    "standard_code": "STJLR.13.5022",
+    "title_zh": "抬头显示（HUD）布置要求",
+    "title_en": "Head Up Display (HUD) Packaging Requirements",
+    "version": "Issue 1",
+    "date": "10 May 2022"
+  },
+  {
+    "index": "79",
+    "category": "光学/HUD/显示性能",
+    "standard_code": "STJLR.15.5018",
+    "title_zh": "显示均匀性标准",
+    "title_en": "Display Uniformity Standard",
+    "version": "Issue 2",
+    "date": "23 September 2021"
+  },
+  {
+    "index": "80",
+    "category": "光学/HUD/显示性能",
+    "standard_code": "STJLR.15.5019",
+    "title_zh": "显示屏本体最大畸变",
+    "title_en": "Display Body Maximum Distortion",
+    "version": "Issue 1",
+    "date": "30 January 2020"
+  },
+  {
+    "index": "81",
+    "category": "光学/HUD/显示性能",
+    "standard_code": "STJLR.15.5020",
+    "title_zh": "防反射涂层颜色和反射率",
+    "title_en": "Anti-Reflective Coating Colour \u0026 Reflectance",
+    "version": "Issue 1",
+    "date": "30 March 2020"
+  },
+  {
+    "index": "82",
+    "category": "光学/HUD/显示性能",
+    "standard_code": "STJLR.15.5023",
+    "title_zh": "显示器Zenbara标准",
+    "title_en": "Displays Zenbara Standard",
+    "version": "Issue 1",
+    "date": "23 July 2020"
+  },
+  {
+    "index": "83",
+    "category": "光学/HUD/显示性能",
+    "standard_code": "STJLR.15.5027",
+    "title_zh": "显示器和开关触控标准",
+    "title_en": "Displays and Switchgear Touch Standard",
+    "version": "Issue 1",
+    "date": "22 March 2022"
+  },
+  {
+    "index": "84",
+    "category": "光学/HUD/显示性能",
+    "standard_code": "STJLR.15.5028",
+    "title_zh": "通用电子显示性能标准",
+    "title_en": "Generic Electronic Display Performance Standard",
+    "version": "Issue 1",
+    "date": "21 March 2021"
+  },
+  {
+    "index": "85",
+    "category": "光学/HUD/显示性能",
+    "standard_code": "STJLR.15.5036",
+    "title_zh": "显示部件颗粒暴露要求",
+    "title_en": "Display Components Particle Exposure Requirements",
+    "version": "Issue 1",
+    "date": "27 October 2021"
+  },
+  {
+    "index": "86",
+    "category": "光学/HUD/显示性能",
+    "standard_code": "TPJLR.00.168",
+    "title_zh": "通用电子显示性能试验程序",
+    "title_en": "Test Procedure for Generic Electronic Display Performance",
+    "version": "Issue 2",
+    "date": "28 January 2020"
+  },
+  {
+    "index": "87",
+    "category": "光学/HUD/显示性能",
+    "standard_code": "TPJLR.13.001",
+    "title_zh": "抬头显示光学性能评估",
+    "title_en": "Head-Up Display Optical Performance Assessment",
+    "version": "Issue 3",
+    "date": "05 September 2022"
+  },
+  {
+    "index": "88",
+    "category": "光学/HUD/显示性能",
+    "standard_code": "TPJLR.13.002",
+    "title_zh": "整车级抬头显示光学性能评估",
+    "title_en": "Vehicle Level Head-Up Display Optical Performance Assessment",
+    "version": "Issue 2",
+    "date": "17 October 2017"
+  },
+  {
+    "index": "89",
+    "category": "光学/HUD/显示性能",
+    "standard_code": "TPJLR.13.004",
+    "title_zh": "抬头显示阳光可读性对策验证",
+    "title_en": "Head-Up Display Sunlight Readability Countermeasure Validation",
+    "version": "Issue 3",
+    "date": "05 September 2022"
+  },
+  {
+    "index": "90",
+    "category": "光学/HUD/显示性能",
+    "standard_code": "TPJLR.15.035",
+    "title_zh": "显示均匀性测量试验程序",
+    "title_en": "Display Uniformity Measurement Test Procedure",
+    "version": "Issue 1",
+    "date": "25 October 2019"
+  },
+  {
+    "index": "91",
+    "category": "光学/HUD/显示性能",
+    "standard_code": "TPJLR.15.051",
+    "title_zh": "显示部件颗粒暴露试验程序",
+    "title_en": "Display Components Particle Exposure Test Procedure",
+    "version": "Issue 1",
+    "date": "24 September 2021"
+  },
+  {
+    "index": "92",
+    "category": "电气/电子设计",
+    "standard_code": "STJLR.18.009",
+    "title_zh": "车载部件电子设计规范",
+    "title_en": "Design Practices for Electronics in Vehicle Components",
+    "version": "Issue 9",
+    "date": "15 April 2019"
+  },
+  {
+    "index": "93",
+    "category": "电气/电子设计",
+    "standard_code": "STJLR.18.241",
+    "title_zh": "48V及更高电压子系统部件电子设计规范",
+    "title_en": "Electronic Design Practices for 48 V and Higher Voltage Subsystem Components",
+    "version": "Issue 1",
+    "date": "21/07/2020"
+  },
+  {
+    "index": "94",
+    "category": "电气/电子测试",
+    "standard_code": "TPJLR.00.076",
+    "title_zh": "整车电气系统交互（含信息娱乐）评价",
+    "title_en": "Whole Vehicle Electrical Systems Interaction (Including Infotainment) Evaluation",
+    "version": "Issue 4",
+    "date": "08 February 2017"
+  },
+  {
+    "index": "95",
+    "category": "电气/电子测试",
+    "standard_code": "TPJLR.18.002",
+    "title_zh": "车辆静态电流测量试验程序",
+    "title_en": "Vehicle Quiescent Current Measurement Test Procedure: TPJLR 18.002 Issue 1",
+    "version": "Issue 1",
+    "date": "21 November 2005 Page 1 of 19"
+  },
+  {
+    "index": "96",
+    "category": "电气/电子测试",
+    "standard_code": "TPJLR.18.144",
+    "title_zh": "电气负载电压和电流数据测量程序",
+    "title_en": "Voltage and Current Data Measurement Procedure for Electrical Loads",
+    "version": "Issue 1",
+    "date": "01 September 2017"
+  },
+  {
+    "index": "97",
+    "category": "软件/通信/网络安全",
+    "standard_code": "STJLR.05.5003",
+    "title_zh": "传动系统控制模块标定和仪表通信协议标准",
+    "title_en": "Driveline Control Module Calibration and Instrumentation Communication Protocol Standard",
+    "version": "Issue 1",
+    "date": "28 January 2015"
+  },
+  {
+    "index": "98",
+    "category": "软件/通信/网络安全",
+    "standard_code": "STJLR.07.5003",
+    "title_zh": "TCM-AZG诊断工具接口工程标准",
+    "title_en": "TCM - AZG Diagnostic Tool Interface Engineering Standard",
+    "version": "Issue 1",
+    "date": "26 June 2014"
+  },
+  {
+    "index": "99",
+    "category": "软件/通信/网络安全",
+    "standard_code": "STJLR.07.5004",
+    "title_zh": "变速器控制模块标定和仪表XCP通信协议工程标准",
+    "title_en": "Transmission Control Module Calibration and Instrumentation Communication Protocol (XCP) Engineering Standard",
+    "version": "Issue 1",
+    "date": "26 June 2014"
+  },
+  {
+    "index": "100",
+    "category": "软件/通信/网络安全",
+    "standard_code": "STJLR.18.019",
+    "title_zh": "CAN网络管理部件规范",
+    "title_en": "CAN Network Management Component Specification",
+    "version": "Issue 005",
+    "date": "04 May 2012"
+  },
+  {
+    "index": "101",
+    "category": "软件/通信/网络安全",
+    "standard_code": "STJLR.18.039",
+    "title_zh": "供应商软件开发设计流程要求",
+    "title_en": "Supplier Software Development Design Process Requirements",
+    "version": "Issue 4",
+    "date": "12-Mar-2014"
+  },
+  {
+    "index": "102",
+    "category": "软件/通信/网络安全",
+    "standard_code": "STJLR.18.040",
+    "title_zh": "供应商软件开发设计稳健性（TGW）",
+    "title_en": "Supplier Software Development Design Robustness, (TGW)",
+    "version": "Issue 3",
+    "date": "18-Jan-2013"
+  },
+  {
+    "index": "103",
+    "category": "软件/通信/网络安全",
+    "standard_code": "STJLR.18.041",
+    "title_zh": "制造诊断实施要求补充",
+    "title_en": "Manufacturing Diagnostic Implementation Requirements Supplement",
+    "version": "Issue 3",
+    "date": "2 February 2021"
+  },
+  {
+    "index": "104",
+    "category": "软件/通信/网络安全",
+    "standard_code": "STJLR.18.082",
+    "title_zh": "AUTOSAR通信（COM）工程标准",
+    "title_en": "AUTOSAR Communication (COM) Engineering Standard",
+    "version": "Issue 3",
+    "date": "29 June 2017"
+  },
+  {
+    "index": "105",
+    "category": "软件/通信/网络安全",
+    "standard_code": "STJLR.18.089",
+    "title_zh": "Bootloader部件工程标准",
+    "title_en": "Bootloader Component Engineering Standard",
+    "version": "Issue 5",
+    "date": "18 March 2020"
+  },
+  {
+    "index": "106",
+    "category": "软件/通信/网络安全",
+    "standard_code": "STJLR.18.090",
+    "title_zh": "网络通信软件分区和内存管理工程标准",
+    "title_en": "Network Communication Software Partitioning \u0026 Memory Management Engineering Standard",
+    "version": "Issue 1",
+    "date": "11 October 2013"
+  },
+  {
+    "index": "107",
+    "category": "软件/通信/网络安全",
+    "standard_code": "STJLR.18.102",
+    "title_zh": "FOSS部件使用要求",
+    "title_en": "FOSS Component Usage Requirements",
+    "version": "Issue 2",
+    "date": "03-Aug-2016"
+  },
+  {
+    "index": "108",
+    "category": "软件/通信/网络安全",
+    "standard_code": "STJLR.18.105",
+    "title_zh": "JLR通用安全算法",
+    "title_en": "JLR Common Security Algorithm",
+    "version": "Issue 1",
+    "date": "03 February 2020"
+  },
+  {
+    "index": "109",
+    "category": "软件/通信/网络安全",
+    "standard_code": "STJLR.18.106",
+    "title_zh": "诊断服务实施要求",
+    "title_en": "Diagnostic Services Implementation Requirements",
+    "version": "Issue 3",
+    "date": "1 Oct 2020"
+  },
+  {
+    "index": "110",
+    "category": "软件/通信/网络安全",
+    "standard_code": "STJLR.18.107",
+    "title_zh": "诊断数据实施要求",
+    "title_en": "Diagnostic Data implementation Requirements",
+    "version": "Issue 2",
+    "date": "1 Oct 2020"
+  },
+  {
+    "index": "111",
+    "category": "软件/通信/网络安全",
+    "standard_code": "STJLR.18.108",
+    "title_zh": "软件交付格式",
+    "title_en": "Software Delivery Format",
+    "version": "Issue 3",
+    "date": "10 Febuary 2018"
+  },
+  {
+    "index": "112",
+    "category": "软件/通信/网络安全",
+    "standard_code": "STJLR.18.109",
+    "title_zh": "软件数据压缩标准",
+    "title_en": "Software Data Compression Standard",
+    "version": "Issue 1",
+    "date": "20 March 2019"
+  },
+  {
+    "index": "113",
+    "category": "软件/通信/网络安全",
+    "standard_code": "STJLR.18.124",
+    "title_zh": "软件下载顺序标准",
+    "title_en": "Software Download Sequence Standard",
+    "version": "Issue 6",
+    "date": "27 September 2020"
+  },
+  {
+    "index": "114",
+    "category": "软件/通信/网络安全",
+    "standard_code": "STJLR.18.184",
+    "title_zh": "以太网交换机软件下载工程标准",
+    "title_en": "Software Download to Ethernet Switch Engineering Standard",
+    "version": "Issue 1",
+    "date": "15 May 2017"
+  },
+  {
+    "index": "115",
+    "category": "软件/通信/网络安全",
+    "standard_code": "STJLR.18.188",
+    "title_zh": "开放诊断数据交换（ODX）编写规范",
+    "title_en": "Open Diagnostic Data Exchange (ODX) Authoring Specification",
+    "version": "Issue 1.0",
+    "date": "07th August 2020"
+  },
+  {
+    "index": "116",
+    "category": "软件/通信/网络安全",
+    "standard_code": "STJLR.18.195",
+    "title_zh": "网络安全卫生要求",
+    "title_en": "Cyber Sec urity Hygiene Requirements",
+    "version": "Issue 2",
+    "date": "1st July 2021"
+  },
+  {
+    "index": "117",
+    "category": "软件/通信/网络安全",
+    "standard_code": "STJLR.18.199",
+    "title_zh": "空中软件升级（SOTA）：目标ECU兼容性",
+    "title_en": "Software Over the Air (SOTA): Target ECU Compatibility",
+    "version": "Issue 3",
+    "date": "06 September 2018"
+  },
+  {
+    "index": "118",
+    "category": "软件/通信/网络安全",
+    "standard_code": "STJLR.18.223",
+    "title_zh": "SOTA能力车辆ECU的SOTA兼容性",
+    "title_en": "SOTA Compatibility of ECU fitted to SOTA Capable Vehicles",
+    "version": "Issue 1",
+    "date": "6 March 2019"
+  },
+  {
+    "index": "119",
+    "category": "软件/通信/网络安全",
+    "standard_code": "STJLR.18.226",
+    "title_zh": "ECU安全启动",
+    "title_en": "ECU Secure Boot",
+    "version": "Issue 2",
+    "date": "24 February 2020"
+  },
+  {
+    "index": "120",
+    "category": "软件/通信/网络安全",
+    "standard_code": "STJLR.18.250",
+    "title_zh": "软件质量要求",
+    "title_en": "Software Quality Requirements",
+    "version": "Issue 1",
+    "date": "31st March 2021"
+  },
+  {
+    "index": "121",
+    "category": "软件/通信/网络安全",
+    "standard_code": "TPJLR.00.479",
+    "title_zh": "诊断功能试验规范",
+    "title_en": "Diagnostic Functionality Test Specification",
+    "version": "Issue 1",
+    "date": "31st July 2018"
+  },
+  {
+    "index": "122",
+    "category": "软件/通信/网络安全",
+    "standard_code": "TPJLR.18.068",
+    "title_zh": "Bootloader部件设备级工程试验程序",
+    "title_en": "Device Level Engineering Test Procedure for Bootloader Component Test Procedure: TPJLR.18.068",
+    "version": "Issue 2",
+    "date": "29 January 2016"
+  },
+  {
+    "index": "123",
+    "category": "软件/通信/网络安全",
+    "standard_code": "TPJLR.18.070",
+    "title_zh": "AUTOSAR通信和网络层软件评审",
+    "title_en": "Software Review for AUTOSAR Communications \u0026 Network Layer",
+    "version": "Issue 3",
+    "date": "13 September 2017"
+  },
+  {
+    "index": "124",
+    "category": "软件/通信/网络安全",
+    "standard_code": "TPJLR.18.179",
+    "title_zh": "ECU软件签名试验程序",
+    "title_en": "ECU Software Signing Test Procedure",
+    "version": "Issue 1",
+    "date": "10 December 2019"
+  },
+  {
+    "index": "125",
+    "category": "软件/通信/网络安全",
+    "standard_code": "TPJLR.18.181",
+    "title_zh": "安全软件开发工程试验程序",
+    "title_en": "Secure Software Development Engineering Test Procedure",
+    "version": "Issue 2",
+    "date": "29 August 2019"
+  },
+  {
+    "index": "126",
+    "category": "软件/通信/网络安全",
+    "standard_code": "TPJLR.18.182",
+    "title_zh": "加密/认证",
+    "title_en": "Encryption/Authentication",
+    "version": "Issue 1",
+    "date": "10 October 2017"
+  },
+  {
+    "index": "127",
+    "category": "软件/通信/网络安全",
+    "standard_code": "TPJLR.18.184",
+    "title_zh": "运行安全加固",
+    "title_en": "Operational Security hardening",
+    "version": "Issue 1",
+    "date": "16 October 2017"
+  },
+  {
+    "index": "128",
+    "category": "软件/通信/网络安全",
+    "standard_code": "TPJLR.18.186",
+    "title_zh": "安全硬件开发试验程序",
+    "title_en": "Secure Hardware Development Test Procedure",
+    "version": "Issue 2",
+    "date": "17 October 2019"
+  },
+  {
+    "index": "129",
+    "category": "软件/通信/网络安全",
+    "standard_code": "TPJLR.18.199",
+    "title_zh": "空中软件升级（SOTA）：SOTA车辆ECU兼容性试验程序",
+    "title_en": "Software Over the Air (SOTA): Target ECU Compatibility – Test Procedure",
+    "version": "Issue 3",
+    "date": "06 September 2018"
+  },
+  {
+    "index": "130",
+    "category": "软件/通信/网络安全",
+    "standard_code": "TPJLR.18.200",
+    "title_zh": "SOTA能力车辆ECU的SOTA兼容性试验程序",
+    "title_en": "Test Procedure - SOTA Compatibility of ECU fitted to SOTA Capable Vehicles",
+    "version": "Issue 1",
+    "date": "6 March 2019"
+  },
+  {
+    "index": "131",
+    "category": "软件/通信/网络安全",
+    "standard_code": "TPJLR.18.202",
+    "title_zh": "ECU安全启动工程试验程序",
+    "title_en": "ECU Secure Boot Engineering Test Procedure",
+    "version": "Issue 2",
+    "date": "24th February 2020"
+  },
+  {
+    "index": "132",
+    "category": "CAD/工程图纸",
+    "standard_code": "CADJLR.01.01",
+    "title_zh": "技术产品文档：2D和3D CAD定义及修订",
+    "title_en": "Technical Product Documentation – 2D and 3D CAD Definition and Revisioning",
+    "version": "Issue 6",
+    "date": "28 September 2020"
+  },
+  {
+    "index": "133",
+    "category": "CAD/工程图纸",
+    "standard_code": "CADJLR.01.02",
+    "title_zh": "技术产品文档：字体、缩写和符号",
+    "title_en": "Technical Product Documentation – Lettering, Abbreviation and Symbols",
+    "version": "Issue 3",
+    "date": "19 Feburary 2020"
+  },
+  {
+    "index": "134",
+    "category": "CAD/工程图纸",
+    "standard_code": "CADJLR.02.01",
+    "title_zh": "工程内容",
+    "title_en": "Engineering Content",
+    "version": "Issue 5",
+    "date": "19 February 2020"
+  },
+  {
+    "index": "135",
+    "category": "CAD/工程图纸",
+    "standard_code": "CADJLR.02.02",
+    "title_zh": "工程内容：品牌标识和编码",
+    "title_en": "Engineering Content – Branding and coding",
+    "version": "Issue 3",
+    "date": "04 May 2021"
+  },
+  {
+    "index": "136",
+    "category": "CAD/工程图纸",
+    "standard_code": "CADJLR.02.03",
+    "title_zh": "工程内容：标准注释",
+    "title_en": "Engineering Content – Standard Notes",
+    "version": "Issue 3",
+    "date": "28 September 2020"
+  },
+  {
+    "index": "137",
+    "category": "CAD/工程图纸",
+    "standard_code": "CADJLR.03.01",
+    "title_zh": "数字CAD和3D模型要求",
+    "title_en": "Digital CAD and 3D Model Requirements",
+    "version": "Issue 23",
+    "date": "01 August 201619 February 2020"
+  },
+  {
+    "index": "138",
+    "category": "CAD/工程图纸",
+    "standard_code": "CADJLR.04.01",
+    "title_zh": "几何产品规范（GPS）和尺寸标注",
+    "title_en": "Geometrical Product Specification (GPS) and Dimensioning",
+    "version": "Issue 3",
+    "date": "19 February 2020"
+  },
+  {
+    "index": "139",
+    "category": "HMI/开关/座舱",
+    "standard_code": "STJLR.00.5107",
+    "title_zh": "人机界面（HMI）设计策略：座舱显示",
+    "title_en": "Human Machine Interface (HMI) Design Strategy: Cockpit Displays",
+    "version": "Issue 1",
+    "date": "10 April 2012"
+  },
+  {
+    "index": "140",
+    "category": "HMI/开关/座舱",
+    "standard_code": "TPJLR.00.252",
+    "title_zh": "车辆开关内饰评审方法",
+    "title_en": "Method for Conducting Interior Review of Vehicle Switchgear",
+    "version": "Issue 2",
+    "date": "04 July 2018"
+  },
+  {
+    "index": "141",
+    "category": "HMI/开关/座舱",
+    "standard_code": "TPJLR.01.119",
+    "title_zh": "仪表板和中控台关键寿命试验",
+    "title_en": "Key Life Test Instrument Panel and Console",
+    "version": "Issue 5",
+    "date": "05 Nov 2019"
+  },
+  {
+    "index": "142",
+    "category": "外观/感知质量",
+    "standard_code": "STJLR.01.5021",
+    "title_zh": "镀铬和亮饰件外观质量",
+    "title_en": "Chrome and Bright Work: Cosmetic Appearance",
+    "version": "Issue 1",
+    "date": "09 August 2013"
+  },
+  {
+    "index": "143",
+    "category": "外观/感知质量",
+    "standard_code": "STJLR.01.5041",
+    "title_zh": "车辆安全玻璃外观质量",
+    "title_en": "Vehicle Safety Glass: Cosmetic Appearance",
+    "version": "Issue 1",
+    "date": "04 January 2011"
+  },
+  {
+    "index": "144",
+    "category": "外观/感知质量",
+    "standard_code": "STJLR.01.5042",
+    "title_zh": "内饰漆面装饰木饰件外观质量",
+    "title_en": "Interior Lacquered Decorative Veneers: Cosmetic Appearance",
+    "version": "Issue 1",
+    "date": "08 November 2010"
+  },
+  {
+    "index": "145",
+    "category": "外观/感知质量",
+    "standard_code": "STJLR.01.5043",
+    "title_zh": "漆面碳纤维部件外观质量",
+    "title_en": "Lacquered Carbon Fibre Components: Cosmetic Appearance",
+    "version": "Issue 1",
+    "date": "14 March 2011"
+  },
+  {
+    "index": "146",
+    "category": "外观/感知质量",
+    "standard_code": "STJLR.18.031",
+    "title_zh": "质量因素（QF）",
+    "title_en": "Quality Factors (QF)",
+    "version": "Issue 001",
+    "date": "01 August 2011"
+  },
+  {
+    "index": "147",
+    "category": "外观/感知质量",
+    "standard_code": "TPJLR.00.201",
+    "title_zh": "车辆和属性客户评分系统",
+    "title_en": "Vehicle and Attribute Customer Rating System",
+    "version": "Issue 2",
+    "date": "29 October 2013"
+  },
+  {
+    "index": "148",
+    "category": "外观/感知质量",
+    "standard_code": "TPJLR.18.026",
+    "title_zh": "质量因素评审试验程序",
+    "title_en": "Quality Factor Review Test Procedure: TPJLR.18.026",
+    "version": "Issue 001",
+    "date": "05 August 2011"
+  },
+  {
+    "index": "149",
+    "category": "整车/装配/试验准备",
+    "standard_code": "TPJLR.00.068",
+    "title_zh": "试验车辆准备和试车检查程序",
+    "title_en": "Test Vehicle Preparation and Shakedown Test Procedure: TPJLR.00.068",
+    "version": "Issue 3",
+    "date": "26 January 2012"
+  },
+  {
+    "index": "150",
+    "category": "整车/装配/试验准备",
+    "standard_code": "TPJLR.00.071",
+    "title_zh": "整车系统稳健性",
+    "title_en": "Whole Vehicle Systems Robustness",
+    "version": "Issue 4",
+    "date": "17 February 2016"
+  },
+  {
+    "index": "151",
+    "category": "结构/连接器/NVH",
+    "standard_code": "TPJLR.00.087",
+    "title_zh": "试验项目中螺栓连接装配和监控",
+    "title_en": "Assembly and Monitoring of Bolted Joints During Test Programmes",
+    "version": "Issue 3",
+    "date": "11 January 2017"
+  },
+  {
+    "index": "152",
+    "category": "结构/连接器/NVH",
+    "standard_code": "TPJLR.01.229",
+    "title_zh": "仪表板和中控台最大挠度及品质感",
+    "title_en": "Instrument Panel and Centre Console Max Deflection For Quality Feel",
+    "version": "Issue 3",
+    "date": "11 Dec 2018"
+  },
+  {
+    "index": "153",
+    "category": "结构/连接器/NVH",
+    "standard_code": "TPJLR.01.273",
+    "title_zh": "CAE准静态载荷施加程序",
+    "title_en": "CAE Quasi Static Load Applicator Procedure",
+    "version": "Issue 1",
+    "date": "7th September 2017"
+  },
+  {
+    "index": "154",
+    "category": "结构/连接器/NVH",
+    "standard_code": "TPJLR.18.242",
+    "title_zh": "连接器壳体分离检查（CAD）",
+    "title_en": "Connector Housing Separation Check [CAD]",
+    "version": "Issue 1",
+    "date": "28 July 2021"
+  },
+  {
+    "index": "155",
+    "category": "结构/连接器/NVH",
+    "standard_code": "TPJLR.18.243",
+    "title_zh": "连接器壳体配合检查及NVH/ME批准（部件/台架）",
+    "title_en": "Connector Housing Mating Checks And NVH/ME Approval [COMPONENT/BUCK]",
+    "version": "Issue 1",
+    "date": "28 July 2021"
+  },
+  {
+    "index": "156",
+    "category": "结构/连接器/NVH",
+    "standard_code": "TPJLR.18.244",
+    "title_zh": "连接器壳体公差叠加分离检查（CAD/图纸）",
+    "title_en": "Connector Housing Tolerance Stack Separation Check [CAD/DRAWING]",
+    "version": "Issue 1",
+    "date": "28 July 2021"
+  },
+  {
+    "index": "157",
+    "category": "管理/流程/通用规范",
+    "standard_code": "STJLR.00.5083",
+    "title_zh": "能源管理标准",
+    "title_en": "Energy Management Standard",
+    "version": "Issue 3",
+    "date": "20/08/2020"
+  },
+  {
+    "index": "158",
+    "category": "管理/流程/通用规范",
+    "standard_code": "STJLR.18.047",
+    "title_zh": "配置MIM和规则集约束",
+    "title_en": "Configuration MIMs and Ruleset Constraints",
+    "version": "Issue 1",
+    "date": "27 June 2013"
+  },
+  {
+    "index": "159",
+    "category": "管理/流程/通用规范",
+    "standard_code": "STJLR.18.059",
+    "title_zh": "系统安全工作说明",
+    "title_en": "System Safety Statement of Work",
+    "version": "Issue 2",
+    "date": "22 October 2018"
+  },
+  {
+    "index": "160",
+    "category": "管理/流程/通用规范",
+    "standard_code": "STJLR.18.146",
+    "title_zh": "车载清单数据块",
+    "title_en": "On-Board Inventory Data Block",
+    "version": "Issue 1",
+    "date": "10 March 2015"
+  },
+  {
+    "index": "161",
+    "category": "管理/流程/通用规范",
+    "standard_code": "STJLR.18.215",
+    "title_zh": "可靠性开发接口协议",
+    "title_en": "Dependability Development Interface Agreement",
+    "version": "Issue 5",
+    "date": "23rd June 2022"
+  },
+  {
+    "index": "162",
+    "category": "管理/流程/通用规范",
+    "standard_code": "STJLR.AD.5005",
+    "title_zh": "部件条码分配",
+    "title_en": "Component Barcode Allocation",
+    "version": "Issue 4",
+    "date": "15th June 2021"
+  },
+  {
+    "index": "163",
+    "category": "管理/流程/通用规范",
+    "standard_code": "TPJLR.18.036",
+    "title_zh": "配置MIM和规则集约束试验程序",
+    "title_en": "Configuration MIMs and Ruleset Constraints Test Procedure: TPJLR.18.036",
+    "version": "Issue 1",
+    "date": "17 March 2015"
+  },
+  {
+    "index": "164",
+    "category": "其他参考",
+    "standard_code": "STJLR.00.5164",
+    "title_zh": "车辆区域定义",
+    "title_en": "Vehicle Zone Definition",
+    "version": "Issue 3",
+    "date": "07 November 2018"
+  },
+  {
+    "index": "165",
+    "category": "其他参考",
+    "standard_code": "STJLR.01.5022",
+    "title_zh": "外饰可见分缝",
+    "title_en": "Visible Split Lines – Exterior Trim",
+    "version": "Issue 2",
+    "date": "09 October 2019"
+  },
+  {
+    "index": "166",
+    "category": "其他参考",
+    "standard_code": "STJLR.01.5027",
+    "title_zh": "外饰外露紧固件",
+    "title_en": "Exposed Fasteners - Exterior",
+    "version": "Issue 2",
+    "date": "09 October 2019"
+  },
+  {
+    "index": "167",
+    "category": "其他参考",
+    "standard_code": "STJLR.01.5029",
+    "title_zh": "外饰可见点焊",
+    "title_en": "Visible Spot Welds - Exterior",
+    "version": "Issue 2",
+    "date": "09 October 2019"
+  },
+  {
+    "index": "168",
+    "category": "其他参考",
+    "standard_code": "STJLR.01.5030",
+    "title_zh": "外饰可见注射点",
+    "title_en": "Visible Injection Point - Exterior",
+    "version": "Issue 2",
+    "date": "09 October 2019"
+  },
+  {
+    "index": "169",
+    "category": "其他参考",
+    "standard_code": "STJLR.01.5031",
+    "title_zh": "外饰透视性",
+    "title_en": "See Through - Exterior",
+    "version": "Issue 3",
+    "date": "07 July 2021"
+  },
+  {
+    "index": "170",
+    "category": "其他参考",
+    "standard_code": "STJLR.18.259",
+    "title_zh": "CCCM视频接口物理层规范",
+    "title_en": "CCCM Video Interface Physical Layer Specification",
+    "version": "Issue 1",
+    "date": "21 January 2022"
+  },
+  {
+    "index": "171",
+    "category": "其他参考",
+    "standard_code": "TPJLR.15.054",
+    "title_zh": "显示器运输保护试验程序",
+    "title_en": "Displays Shipping Protection Test Procedure",
+    "version": "Issue 1",
+    "date": "24 January 2022"
+  },
+  {
+    "index": "172",
+    "category": "其他参考",
+    "standard_code": "TPJLR.18.139",
+    "title_zh": "结露试验",
+    "title_en": "Dewing Test",
+    "version": "Issue 2.0",
+    "date": "12 May 2016"
+  }
+];
+
+    const state = {
+      query: "",
+      category: "",
+      version: "",
+      sortKey: "index",
+      sortDirection: "asc",
+    };
+
+    const fields = [
+      "index",
+      "category",
+      "standard_code",
+      "title_zh",
+      "title_en",
+      "version",
+      "date",
+    ];
+
+    const searchInput = document.getElementById("searchInput");
+    const categoryFilter = document.getElementById("categoryFilter");
+    const versionFilter = document.getElementById("versionFilter");
+    const resetButton = document.getElementById("resetButton");
+    const tableBody = document.getElementById("tableBody");
+    const emptyState = document.getElementById("emptyState");
+    const totalCount = document.getElementById("totalCount");
+    const visibleCount = document.getElementById("visibleCount");
+    const categoryCount = document.getElementById("categoryCount");
+    const headers = Array.from(document.querySelectorAll("th.sortable"));
+
+    function normalize(value) {
+      return String(value ?? "").toLowerCase();
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function highlight(value) {
+      const text = escapeHtml(value);
+      const query = state.query.trim();
+      if (!query) return text;
+      const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return text.replace(new RegExp(`(${escapedQuery})`, "ig"), "<mark>$1</mark>");
+    }
+
+    function compareRows(left, right) {
+      const key = state.sortKey;
+      const a = left[key] ?? "";
+      const b = right[key] ?? "";
+      const numeric = key === "index";
+      let result;
+      if (numeric) {
+        result = (Number(a) || 0) - (Number(b) || 0);
+      } else {
+        result = String(a).localeCompare(String(b), "zh-Hans-CN", { numeric: true, sensitivity: "base" });
+      }
+      return state.sortDirection === "asc" ? result : -result;
+    }
+
+    function filteredRows() {
+      const query = normalize(state.query.trim());
+      return standardsData
+        .filter((row) => !state.category || row.category === state.category)
+        .filter((row) => !state.version || row.version === state.version)
+        .filter((row) => {
+          if (!query) return true;
+          return fields.some((field) => normalize(row[field]).includes(query));
+        })
+        .sort(compareRows);
+    }
+
+    function render() {
+      const rows = filteredRows();
+      tableBody.innerHTML = rows.map((row, rowIndex) => {
+        const rowNumber = rowIndex + 1;
+        return `
+        <tr>
+          <td class="col-index">${highlight(rowNumber)}</td>
+          <td class="col-category">${highlight(row.category)}</td>
+          <td class="col-code">${highlight(row.standard_code)}</td>
+          <td class="col-title">
+            <div class="title-zh">${highlight(row.title_zh)}</div>
+            <div class="title-en">${highlight(row.title_en)}</div>
+          </td>
+          <td class="col-version">${highlight(row.version)}</td>
+          <td class="col-date">${highlight(row.date)}</td>
+        </tr>
+      `;
+      }).join("");
+
+      visibleCount.textContent = String(rows.length);
+      emptyState.hidden = rows.length !== 0;
+      headers.forEach((header) => {
+        header.classList.toggle("sorted-asc", header.dataset.key === state.sortKey && state.sortDirection === "asc");
+        header.classList.toggle("sorted-desc", header.dataset.key === state.sortKey && state.sortDirection === "desc");
+      });
+    }
+
+    function populateVersionFilter() {
+      const versions = Array.from(new Set(standardsData.map((row) => row.version).filter(Boolean)))
+        .sort((a, b) => a.localeCompare(b, "zh-Hans-CN", { numeric: true, sensitivity: "base" }));
+      versionFilter.insertAdjacentHTML(
+        "beforeend",
+        versions.map((version) => `<option value="${escapeHtml(version)}">${escapeHtml(version)}</option>`).join("")
+      );
+    }
+
+    searchInput.addEventListener("input", (event) => {
+      state.query = event.target.value;
+      render();
+    });
+
+    categoryFilter.addEventListener("change", (event) => {
+      state.category = event.target.value;
+      render();
+    });
+
+    versionFilter.addEventListener("change", (event) => {
+      state.version = event.target.value;
+      render();
+    });
+
+    resetButton.addEventListener("click", () => {
+      state.query = "";
+      state.category = "";
+      state.version = "";
+      searchInput.value = "";
+      categoryFilter.value = "";
+      versionFilter.value = "";
+      render();
+      searchInput.focus();
+    });
+
+    headers.forEach((header) => {
+      header.addEventListener("click", () => {
+        const key = header.dataset.key;
+        if (state.sortKey === key) {
+          state.sortDirection = state.sortDirection === "asc" ? "desc" : "asc";
+        } else {
+          state.sortKey = key;
+          state.sortDirection = "asc";
+        }
+        render();
+      });
+    });
+
+    totalCount.textContent = String(standardsData.length);
+    categoryCount.textContent = String(new Set(standardsData.map((row) => row.category).filter(Boolean)).size);
+    populateVersionFilter();
+    render();
+  </script>
+</body>
+</html>
