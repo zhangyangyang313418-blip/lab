@@ -1,6 +1,6 @@
 # MLA 费用交接
 
-更新时间：2026-04-28
+更新时间：2026-05-02
 
 ## 新线程使用方式
 
@@ -26,6 +26,12 @@ npm run build
 ```text
 http://127.0.0.1:5173/environment-outline
 ```
+
+Git 状态：
+
+- 仓库已在项目根目录完成 `git init`。
+- 第一版功能保存点：`8f04e6d Initial project snapshot`。
+- 新线程接手后先运行 `git status --short`，确认是否有旧线程遗留改动。
 
 ## 已确认口径
 
