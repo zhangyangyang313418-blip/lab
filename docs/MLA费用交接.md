@@ -1,6 +1,6 @@
 # MLA 费用交接
 
-更新时间：2026-05-02
+更新时间：2026-05-06
 
 ## 新线程使用方式
 
@@ -31,7 +31,19 @@ Git 状态：
 
 - 仓库已在项目根目录完成 `git init`。
 - 第一版功能保存点：`8f04e6d Initial project snapshot`。
+- MLA 交接文档保存点：`53dfb63 docs: update MLA handoff`。
 - 新线程接手后先运行 `git status --short`，确认是否有旧线程遗留改动。
+
+## 2026-05-06 保存点
+
+- 已修复“网页打不开”的本地开发环境问题：原因是 `5173` 端口没有 dev server 监听。
+- `vite.config.ts` 已接入 `src/config/devServerConfig.ts`，固定本地服务为 `127.0.0.1:5173`，并固定 HMR 连接到同一端点。
+- `tsconfig.node.json` 已包含 dev server 配置文件，并将 node 构建输出放到 `.tsbuild-node/`，避免在 `src/config` 旁生成 `.js/.d.ts`。
+- `.gitignore` 已忽略 `.tsbuild-node/`。
+- 新增 `src/tests/viteConfig.test.ts`，覆盖 dev server 端口、host、strictPort 和 HMR 配置。
+- 今日验证：
+  - `npm run test:run -- src/tests/viteConfig.test.ts` 通过，1 个测试通过。
+  - `npm run build` 通过，TypeScript + Vite 构建成功。
 
 ## 已确认口径
 

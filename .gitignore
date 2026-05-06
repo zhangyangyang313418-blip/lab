@@ -7,6 +7,7 @@ build/
 
 # TypeScript incremental build cache
 *.tsbuildinfo
+.tsbuild-node/
 vite.config.js
 vite.config.d.ts
 
