@@ -3,7 +3,7 @@ import type { EditableTestItem, TestDomain } from "../types/testing";
 import type { EnvironmentPlanSheet } from "../types/environmentPlan";
 
 export const PROJECT_DRAFT_STORAGE_KEY = "project_draft";
-export const ENVIRONMENT_PLAN_TEMPLATE_VERSION = 28;
+export const ENVIRONMENT_PLAN_TEMPLATE_VERSION = 29;
 
 export interface ProjectDraft {
   projectSetup: ProjectSetup;

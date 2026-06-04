@@ -504,6 +504,47 @@ describe("local draft persistence", () => {
       "Operating Noise & Transient Noise",
     );
   });
+
+  it("refreshes stale EMA drafts to the shared MLA fee template results", () => {
+    const state = createSeedAppState();
+    const emaDraft = appReducer(state, {
+      type: "applyProjectSetup",
+      updates: {
+        platform: "EMA",
+        steeringSides: ["LHD"],
+        projectCode: "L481",
+        reuseEnvironmentTemplate: true,
+        reuseMaterialTemplate: false,
+        reuseEmcTemplate: false,
+      },
+    });
+
+    saveProjectDraft({
+      ...emaDraft,
+      environmentPlan: {
+        ...emaDraft.environmentPlan,
+        phases: emaDraft.environmentPlan.phases.map((phase) => ({
+          ...phase,
+          summary: { ...phase.summary, totalCost: "" },
+          groups: phase.groups.map((group) => ({
+            ...group,
+            totalCost: "",
+            rows: group.rows.map((row) => ({ ...row, fee: "" })),
+          })),
+        })),
+      },
+      environmentPlanVersion: 28,
+    });
+
+    const hydrated = createInitialAppState();
+    const dvPhase = hydrated.environmentPlan.phases.find((phase) => phase.id === "dv");
+    const groupA = dvPhase?.groups.find((group) => group.id === "ema-group-a");
+    const groupE2 = dvPhase?.groups.find((group) => group.id === "ema-group-e2");
+
+    expect(groupA?.rows.find((row) => row.id === "ea-k1")?.fee).toBe("720");
+    expect(groupE2?.rows.find((row) => row.id === "ee2-item")?.fee).toBe("42500");
+    expect(dvPhase?.summary.totalCost).not.toBe("");
+  });
 });
 
 describe("app state reducer", () => {

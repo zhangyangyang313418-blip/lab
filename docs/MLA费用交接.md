@@ -30,7 +30,7 @@ http://127.0.0.1:5173/environment-outline
 当前本地草稿模板版本：
 
 ```text
-ENVIRONMENT_PLAN_TEMPLATE_VERSION = 28
+ENVIRONMENT_PLAN_TEMPLATE_VERSION = 29
 ```
 
 Git 状态：
@@ -44,9 +44,19 @@ Git 状态：
 ## 当前状态
 
 - `MLA / LHD` 已确认可作为当前锁定模板继续使用。
+- `EMA` 费用已临时复用当前已锁定的 `MLA` 费用模板；EMA 自身环境大纲、测试时间、样本范围和 LHD/RHD 分组差异不改。
 - 当前工作重点已经从“逐条试错确认”切到“文档化、交接、后续小范围维护”。
 - 页面中涉及 LHD 的默认环境大纲、费用按钮、费用弹窗、本地草稿迁移已经一致。
 - 如果用户后续说“刷新后还是旧值”，优先检查是否需要再升 `ENVIRONMENT_PLAN_TEMPLATE_VERSION`。
+
+## 2026-06-04 EMA 费用临时复用 MLA 模板
+
+用户确认 EMA 费用先按当前已锁定的 MLA 费用模板计算：
+
+- EMA 保留自己的环境大纲、测试时间、样本范围、LHD/RHD 分组差异
+- 费用单价、三家实验室报价、中值取费、特殊项目公式暂时复用 MLA 当前实现
+- 当前不导入新的 Excel 费用规则；用户后续会先修改 Excel，再由代码导回价格规则
+- 已将 `ENVIRONMENT_PLAN_TEMPLATE_VERSION` 升到 `29`，用于刷新旧 EMA 草稿中的空费用
 
 ## 2026-06-03 Excel 导回费用口径
 
@@ -283,7 +293,7 @@ Git 状态：
 - `src/services/environmentFeeDetail.ts`：费用明细计算主逻辑。
 - `src/pages/EnvironmentOutlinePage.tsx`：环境大纲页面和费用计算弹窗展示。
 - `src/store/appState.tsx`：环境大纲编辑状态更新；手动新增测试项完整名称匹配逻辑在这里。
-- `src/services/localStore.ts`：本地草稿版本号，当前 `ENVIRONMENT_PLAN_TEMPLATE_VERSION = 28`。
+- `src/services/localStore.ts`：本地草稿版本号，当前 `ENVIRONMENT_PLAN_TEMPLATE_VERSION = 29`。
 - `src/tests/environmentFeeDetail.test.ts`：费用规则回归测试。
 - `src/tests/environmentPlan.test.ts`：模板结构与默认时间回归测试。
 - `src/tests/localStore.test.ts`：旧草稿迁移回归测试。

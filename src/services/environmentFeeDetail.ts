@@ -90,12 +90,24 @@ function isOpticalTestRow(row: EnvironmentPlanRow) {
   return /Optical Test/i.test(row.label);
 }
 
-function isMlaBaselineOpticalRow(group: EnvironmentPlanGroup, row: EnvironmentPlanRow) {
-  return group.id === "mla-group-a" && row.id === "a-optical";
+function isSharedFeeTemplateGroup(group: EnvironmentPlanGroup) {
+  return group.id.startsWith("mla-group-") || group.id.startsWith("ema-group-") || group.id.startsWith("ema-rhd-group-");
 }
 
-function isMlaBaselineL1L4Row(group: EnvironmentPlanGroup, row: EnvironmentPlanRow) {
-  return group.id === "mla-group-a" && row.id === "a-l1l4";
+function isBaselineOpticalRow(group: EnvironmentPlanGroup, row: EnvironmentPlanRow) {
+  return (group.id === "mla-group-a" && row.id === "a-optical")
+    || (group.id === "ema-group-a" && row.id === "ea-optical")
+    || (group.id === "ema-rhd-group-a" && row.id === "ea-optical");
+}
+
+function isBaselineL1L4Row(group: EnvironmentPlanGroup, row: EnvironmentPlanRow) {
+  return (group.id === "mla-group-a" && row.id === "a-l1l4")
+    || (group.id === "ema-group-a" && row.id === "ea-l1l4")
+    || (group.id === "ema-rhd-group-a" && row.id === "ea-l1l4");
+}
+
+function isMlaBaselineOpticalRow(group: EnvironmentPlanGroup, row: EnvironmentPlanRow) {
+  return group.id === "mla-group-a" && row.id === "a-optical";
 }
 
 function getPreTestSampleTotal(phase: EnvironmentPlanPhase) {
@@ -539,7 +551,7 @@ export function getEnvironmentSpecialFeeBreakdown(
     return getParticleExposureBreakdown(phase, group, getQuantity(row, group, phase));
   }
 
-  if (isMlaOpticalSpecialRow(group, row)) {
+  if (isSharedOpticalSpecialRow(group, row)) {
     return getMlaOpticalBreakdown(phase, group, row, getQuantity(row, group, phase));
   }
 
@@ -553,12 +565,12 @@ export function getEnvironmentSpecialFeeBreakdown(
   return getComponentFeeBreakdown(findPricingRule(row), feeBasis);
 }
 
-function isMlaOpticalSpecialRow(group: EnvironmentPlanGroup, row: EnvironmentPlanRow) {
-  if (!group.id.startsWith("mla-group-") || !isOpticalTestRow(row)) {
+function isSharedOpticalSpecialRow(group: EnvironmentPlanGroup, row: EnvironmentPlanRow) {
+  if (!isSharedFeeTemplateGroup(group) || !isOpticalTestRow(row)) {
     return false;
   }
 
-  return isMlaBaselineOpticalRow(group, row)
+  return isBaselineOpticalRow(group, row)
     || mlaOpticalGroupsWithOne51Point.has(group.title)
     || group.title === "Group D-8";
 }
@@ -631,7 +643,7 @@ export function calculateFeeAmount(
 }
 
 function getQuantity(row: EnvironmentPlanRow, group: EnvironmentPlanGroup, phase: EnvironmentPlanPhase): number | null {
-  if (isMlaBaselineL1L4Row(group, row)) {
+  if (isBaselineL1L4Row(group, row)) {
     const sampleTotal = getPreTestSampleTotal(phase);
     return sampleTotal > 0 ? sampleTotal : null;
   }
@@ -766,8 +778,8 @@ function createDetailRow(
     batchCount: getBatchCount(row),
   };
   const shouldKeepConfirmedSpecialBasis = isMlaParticleExposureRow(group, row)
-    || isMlaOpticalSpecialRow(group, row)
-    || isMlaBaselineL1L4Row(group, row)
+    || isSharedOpticalSpecialRow(group, row)
+    || isBaselineL1L4Row(group, row)
     || (isL6InternalInspectionRow(row) && isL6InternalOnlyInspectionRow(row));
   const feeBasis = applyUserFeeBasisOverrides(
     row,
@@ -777,7 +789,7 @@ function createDetailRow(
   );
   const { testHours, quantity, batchCount } = feeBasis;
   const particleBreakdown = isMlaParticleExposureRow(group, row) ? getParticleExposureBreakdown(phase, group, outlineBasis.quantity) : null;
-  const specialOpticalFee = isMlaOpticalSpecialRow(group, row) ? calculateMlaOpticalFee(phase, group, row, outlineBasis.quantity) : null;
+  const specialOpticalFee = isSharedOpticalSpecialRow(group, row) ? calculateMlaOpticalFee(phase, group, row, outlineBasis.quantity) : null;
   const rule = findPricingRule(row);
   const componentBreakdown = getComponentFeeBreakdown(rule, { testHours, quantity, batchCount });
 

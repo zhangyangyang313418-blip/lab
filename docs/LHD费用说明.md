@@ -14,6 +14,11 @@
 - `信测` 不参与当前版本报价展示和中值计算
 - 后续若有修改，应先更新本文件，再改代码
 
+补充结论：
+
+- EMA 费用已临时复用当前 MLA 费用模板；EMA 自身测试时间、样本范围和 RHD/LHD 分组不改
+- 后续如果用户修改 Excel 费用规则，应按新 Excel 导回价格，再决定继续共享价格表还是拆分 EMA 独立规则
+
 ## 代码入口
 
 - 模板结构与默认测试时间：
@@ -290,7 +295,7 @@
 当前：
 
 ```text
-ENVIRONMENT_PLAN_TEMPLATE_VERSION = 28
+ENVIRONMENT_PLAN_TEMPLATE_VERSION = 29
 ```
 
 这个版本已覆盖的刷新目标包括：
@@ -300,6 +305,7 @@ ENVIRONMENT_PLAN_TEMPLATE_VERSION = 28
 - `K26` 新组合费用
 - `D-3 / L6-photo&xray = 3d`
 - 三家实验室报价口径：仅 `SGS / 华测 / 苏勃` 参与展示与中值计算
+- EMA 费用临时复用当前 MLA 费用模板
 
 ## 修改后的最少验证
 
