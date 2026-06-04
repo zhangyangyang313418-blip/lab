@@ -14,6 +14,7 @@ import { seedMaterialItems } from "../data/seed/materialTemplates";
 import { seedPlatformTemplates } from "../data/seed/platformTemplates";
 import { defaultProjectSetup } from "../data/seed/project";
 import { calculateItemCost } from "../services/calculationEngine";
+import { applyEnvironmentFeeDetailsToPhase } from "../services/environmentFeeDetail";
 import {
   ENVIRONMENT_PLAN_TEMPLATE_VERSION,
   loadProjectDraft,
@@ -65,6 +66,14 @@ export type AppAction =
       groupId: string;
       rowId: string;
       field: "label" | "testHours" | "sampleRange";
+      value: string;
+    }
+  | {
+      type: "updateEnvironmentPlanRowFeeBasis";
+      phaseId: string;
+      groupId: string;
+      rowId: string;
+      basis: "hour" | "quantity" | "batch";
       value: string;
     }
   | {
@@ -244,10 +253,15 @@ function mergeEnvironmentPlanRow(
   templateRow?: EnvironmentPlanRow,
   refreshTimings = false,
 ): EnvironmentPlanRow {
+  const shouldRefreshLabel = refreshTimings
+    && templateRow
+    && (/L6|Internal Inspection/i.test(draftRow.label) || /L6|Internal Inspection/i.test(templateRow.label));
+
   return {
     ...draftRow,
     ...(templateRow?.sampleRange && !draftRow.sampleRange ? { sampleRange: templateRow.sampleRange } : {}),
     ...(templateRow?.fee && !draftRow.fee ? { fee: templateRow.fee } : {}),
+    ...(shouldRefreshLabel ? { label: templateRow.label } : {}),
     ...(refreshTimings && templateRow ? { testHours: templateRow.testHours } : {}),
     ...(refreshTimings && templateRow ? { fee: templateRow.fee } : {}),
   };
@@ -340,6 +354,65 @@ function recalculateEnvironmentPlanPhaseSummary(phase: EnvironmentPlanPhase): En
       totalSampleQty: String(totalSampleQty),
     },
   };
+}
+
+function isManualEnvironmentPlanRow(row: EnvironmentPlanRow): boolean {
+  return row.id.startsWith("manual-");
+}
+
+function normalizeEnvironmentPlanLabel(label: string): string {
+  return label.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function findExistingEnvironmentPlanRowByLabel(
+  groups: EnvironmentPlanGroup[],
+  targetRowId: string,
+  label: string,
+): EnvironmentPlanRow | undefined {
+  const normalizedLabel = normalizeEnvironmentPlanLabel(label);
+
+  if (!normalizedLabel) {
+    return undefined;
+  }
+
+  return groups
+    .flatMap((group) => group.rows)
+    .find((row) =>
+      row.id !== targetRowId
+      && !isManualEnvironmentPlanRow(row)
+      && normalizeEnvironmentPlanLabel(row.label) === normalizedLabel);
+}
+
+function applyKnownEnvironmentPlanRowMatch(
+  phase: EnvironmentPlanPhase,
+  groupId: string,
+  rowId: string,
+  field: "label" | "testHours" | "sampleRange",
+  value: string,
+): EnvironmentPlanPhase {
+  const targetRow = phase.groups.find((group) => group.id === groupId)?.rows.find((row) => row.id === rowId);
+  const matchingRow = field === "label" && targetRow && isManualEnvironmentPlanRow(targetRow)
+    ? findExistingEnvironmentPlanRowByLabel(phase.groups, rowId, value)
+    : undefined;
+  const nextPhase = {
+    ...phase,
+    groups: phase.groups.map((group) =>
+      group.id === groupId
+        ? {
+            ...group,
+            rows: group.rows.map((row) =>
+              row.id === rowId
+                ? {
+                    ...row,
+                    [field]: value,
+                    ...(matchingRow ? { testHours: matchingRow.testHours } : {}),
+                  }
+                : row),
+          }
+        : group),
+  };
+
+  return matchingRow ? applyEnvironmentFeeDetailsToPhase(nextPhase) : nextPhase;
 }
 
 function createStateFromDraft(draft?: ProjectDraft | null): AppState {
@@ -512,6 +585,18 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           ...state.environmentPlan,
           phases: state.environmentPlan.phases.map((phase) =>
             phase.id === action.phaseId
+              ? applyKnownEnvironmentPlanRowMatch(phase, action.groupId, action.rowId, action.field, action.value)
+              : phase),
+        },
+      };
+    case "updateEnvironmentPlanRowFeeBasis":
+      return {
+        ...state,
+        lastEnvironmentPlan: state.environmentPlan,
+        environmentPlan: {
+          ...state.environmentPlan,
+          phases: state.environmentPlan.phases.map((phase) =>
+            phase.id === action.phaseId
               ? {
                   ...phase,
                   groups: phase.groups.map((group) =>
@@ -519,7 +604,15 @@ export function appReducer(state: AppState, action: AppAction): AppState {
                       ? {
                           ...group,
                           rows: group.rows.map((row) =>
-                            row.id === action.rowId ? { ...row, [action.field]: action.value } : row),
+                            row.id === action.rowId
+                              ? {
+                                  ...row,
+                                  feeBasisOverrides: {
+                                    ...(row.feeBasisOverrides ?? {}),
+                                    [action.basis]: action.value,
+                                  },
+                                }
+                              : row),
                         }
                       : group),
                 }

@@ -19,6 +19,11 @@ export interface EnvironmentPlanRow {
   testHours: string;
   sampleRange?: string;
   fee?: string;
+  feeBasisOverrides?: {
+    hour?: string;
+    quantity?: string;
+    batch?: string;
+  };
 }
 
 export interface EnvironmentPlanGroup {

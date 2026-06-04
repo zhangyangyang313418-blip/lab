@@ -28,3 +28,7 @@ pnpm-debug.log*
 Thumbs.db
 .idea/
 .vscode/
+dist-export/
+
+# WPS / draw.io temporary backup files
+.$*.bkp

@@ -735,6 +735,7 @@ dd {
 .fee-calculation-editor {
   grid-column: 1 / -1;
   width: 100%;
+  min-width: 0;
   margin-top: 8px;
   border: 1px solid #b7c6d6;
   border-radius: 8px;
@@ -742,6 +743,12 @@ dd {
   padding: 10px;
   color: #102b46;
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+.fee-calculation-editor--compact {
+  margin-top: 4px;
+  padding: 5px;
+  border-radius: 7px;
 }
 
 .fee-calculation-editor__header {
@@ -752,11 +759,21 @@ dd {
   margin-bottom: 8px;
 }
 
+.fee-calculation-editor--compact .fee-calculation-editor__header {
+  gap: 5px;
+  margin-bottom: 3px;
+}
+
 .fee-calculation-editor__header h3 {
   margin: 0;
   font-size: 11px;
   line-height: 1.2;
   color: #102b46;
+}
+
+.fee-calculation-editor--compact .fee-calculation-editor__header h3 {
+  font-size: 9px;
+  line-height: 1.1;
 }
 
 .fee-calculation-editor__close {
@@ -771,55 +788,99 @@ dd {
   cursor: pointer;
 }
 
-.fee-calculation-editor__grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-  align-items: end;
+.fee-calculation-editor--compact .fee-calculation-editor__close {
+  width: 20px;
+  height: 20px;
+  font-size: 15px;
 }
 
-.fee-calculation-editor__grid label {
-  display: grid;
-  gap: 4px;
-  font-size: 9px;
-  font-weight: 800;
+.fee-calculation-editor__summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
 }
 
-.fee-calculation-editor__grid select,
-.fee-calculation-editor__grid input {
+.fee-calculation-editor__summary-item {
   min-width: 0;
-  height: 28px;
+  min-height: 26px;
   border: 1px solid #c6d3df;
   border-radius: 6px;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 3px 7px;
+  color: #102b46;
+  font-size: 10px;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.fee-calculation-editor__summary-item span {
+  color: #5c7085;
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.fee-calculation-editor__summary-item strong {
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.fee-calculation-editor__summary-item input {
+  width: 48px;
+  min-width: 0;
+  height: 18px;
+  border: 1px solid #c6d3df;
+  border-radius: 4px;
   background: #fff;
   color: #102b46;
   font: inherit;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 4px 6px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  padding: 1px 4px;
 }
 
-.fee-calculation-editor__formula {
-  grid-column: 1 / -1;
-  min-width: 0;
-  min-height: 28px;
-  border: 1px solid #c6d3df;
-  border-radius: 6px;
-  background: #fff;
-  display: flex;
-  align-items: center;
-  padding: 4px 8px;
-  font-size: 11px;
+.fee-calculation-editor__summary-item em {
+  color: #5c7085;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.fee-calculation-editor__basis-breakdown {
+  color: #51657a;
+  font-size: 9px;
   font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
 }
 
 .fee-calculation-editor__stack {
   display: grid;
   gap: 8px;
+  max-height: 420px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 2px;
+}
+
+.fee-calculation-editor--compact .fee-calculation-editor__stack {
+  gap: 3px;
+  padding-right: 0;
+}
+
+.fee-calculation-editor__stack--horizontal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
 }
 
 .fee-calculation-editor__split-line,
@@ -842,36 +903,149 @@ dd {
   word-break: break-word;
 }
 
-.fee-calculation-editor__split-line--lab {
-  grid-template-columns: 96px minmax(0, 1fr) 140px;
-  align-items: start;
+.fee-calculation-editor__stack--horizontal .fee-calculation-editor__split-line {
+  flex: 1 1 480px;
+  grid-template-columns: minmax(120px, 1fr) 44px minmax(80px, auto) minmax(118px, auto);
+  gap: 8px;
+  min-height: 44px;
+  align-content: center;
+  min-width: 0;
 }
 
-.fee-calculation-editor__split-line--lab span:nth-child(2) {
-  white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+.fee-calculation-editor--compact .fee-calculation-editor__stack--horizontal .fee-calculation-editor__split-line {
+  flex-basis: 100%;
+  grid-template-columns: minmax(0, 1fr) 24px minmax(52px, auto);
+  gap: 4px;
+  min-height: 24px;
+  padding: 3px 6px;
+  font-size: 9px;
+  line-height: 1.1;
 }
 
-.fee-calculation-editor__split-line--lab strong {
+.fee-calculation-editor__split-item {
+  min-width: 0;
+  font-weight: 800;
+}
+
+.fee-calculation-editor__split-value,
+.fee-calculation-editor__split-meta {
+  color: #51657a;
+  white-space: nowrap;
+}
+
+.fee-calculation-editor--compact .fee-calculation-editor__split-meta {
   justify-self: end;
-  text-align: right;
 }
 
-@media (max-width: 720px) {
-  .fee-calculation-editor__split-line--lab {
-    grid-template-columns: 1fr;
-  }
+.fee-calculation-editor--compact .fee-calculation-editor__stack--horizontal .fee-calculation-editor__split-line strong {
+  display: none;
+}
 
-  .fee-calculation-editor__split-line--lab strong {
-    justify-self: start;
-    text-align: left;
-  }
+.fee-calculation-editor__stack--horizontal .fee-calculation-editor__split-line strong {
+  justify-self: end;
+  white-space: nowrap;
 }
 
 .fee-calculation-editor__split-line strong,
 .fee-calculation-editor__total {
   font-weight: 800;
+}
+
+.fee-calculation-editor__lab-breakdown {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.fee-calculation-editor__lab-title {
+  font-size: 10px;
+  font-weight: 800;
+  color: #17324d;
+}
+
+.fee-calculation-editor__lab-card {
+  min-width: 0;
+  min-height: 38px;
+  border: 1px solid #d2deea;
+  border-radius: 6px;
+  background: #fff;
+  padding: 5px 6px;
+  display: grid;
+  grid-template-columns: minmax(32px, max-content) minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.fee-calculation-editor__lab-card--selected {
+  border-color: #7aa5cf;
+  background: #f2f7fc;
+}
+
+.fee-calculation-editor__lab-name {
+  min-width: 0;
+  font-size: 9px;
+  line-height: 1.15;
+  font-weight: 800;
+  color: #102b46;
+  overflow-wrap: anywhere;
+}
+
+.fee-calculation-editor__lab-total {
+  min-width: 0;
+  justify-self: end;
+  font-size: 9px;
+  line-height: 1.15;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fee-calculation-editor__lab-total--sgs {
+  color: #1d4ed8;
+}
+
+.fee-calculation-editor__lab-total--cti {
+  color: #047857;
+}
+
+.fee-calculation-editor__lab-total--sumei {
+  color: #b45309;
+}
+
+.fee-calculation-editor__lab-total--xince {
+  color: #7c3aed;
+}
+
+.fee-calculation-editor__lab-formula {
+  min-width: 0;
+  font-size: 9px;
+  line-height: 1.1;
+  font-weight: 650;
+  color: #51657a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fee-calculation-editor__lab-formula--compact-lines {
+  display: grid;
+  gap: 1px;
+  font-size: 9px;
+  line-height: 1.08;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .fee-calculation-editor__lab-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .fee-calculation-editor__lab-formula {
+    grid-column: 1 / -1;
+    justify-self: center;
+    text-align: center;
+  }
 }
 
 .fee-calculation-editor__note {
@@ -882,6 +1056,35 @@ dd {
   font-size: 11px;
   font-weight: 700;
   color: #102b46;
+}
+
+.fee-calculation-editor__median-summary {
+  min-height: 36px;
+  border: 1px solid #c6d3df;
+  border-radius: 6px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 10px;
+  color: #102b46;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.fee-calculation-editor__median-summary span {
+  min-width: 0;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.fee-calculation-editor__median-summary strong {
+  flex: none;
+  font-size: 12px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .fee-calculation-editor__formula-block {
@@ -914,6 +1117,18 @@ dd {
 .fee-calculation-editor__total {
   grid-template-columns: 1fr;
   justify-items: end;
+}
+
+.fee-calculation-editor__stack--horizontal .fee-calculation-editor__total {
+  flex: 1 0 100%;
+  min-height: 36px;
+}
+
+.fee-calculation-editor--compact .fee-calculation-editor__stack--horizontal .fee-calculation-editor__total {
+  min-height: 24px;
+  padding: 3px 8px;
+  font-size: 10px;
+  line-height: 1.1;
 }
 
 .fee-detail {

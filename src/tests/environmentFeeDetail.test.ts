@@ -25,7 +25,7 @@ describe("environment fee detail calculations", () => {
     expect(calculateFeeAmount(5000, "batch", { testHours: 24, quantity: 12, batchCount: 2 })).toBe(10000);
   });
 
-  it("uses updated MLA medians that include Xince quotes", () => {
+  it("uses the Excel-confirmed three-lab MLA medians without Xince quotes", () => {
     const phase: EnvironmentPlanPhase = {
       id: "pv",
       title: "PV",
@@ -61,13 +61,13 @@ describe("environment fee detail calculations", () => {
 
     const [groupA] = createEnvironmentFeeDetailSections(phase);
 
-    expect(groupA?.rows.find((row) => row.outlineRowId === "a-k6")?.medianUnitPrice).toBe(45);
-    expect(groupA?.rows.find((row) => row.outlineRowId === "a-k6")?.estimatedItemFee).toBe(10800);
-    expect(groupA?.rows.find((row) => row.outlineRowId === "a-k17")?.medianUnitPrice).toBe(4000);
-    expect(groupA?.rows.find((row) => row.outlineRowId === "a-k17")?.estimatedItemFee).toBe(144000);
+    expect(groupA?.rows.find((row) => row.outlineRowId === "a-k6")?.medianUnitPrice).toBe(30);
+    expect(groupA?.rows.find((row) => row.outlineRowId === "a-k6")?.estimatedItemFee).toBe(7200);
+    expect(groupA?.rows.find((row) => row.outlineRowId === "a-k17")?.medianUnitPrice).toBe(10000);
+    expect(groupA?.rows.find((row) => row.outlineRowId === "a-k17")?.estimatedItemFee).toBe(120000);
   });
 
-  it("uses approved component fee composition for K17, K18, and K22", () => {
+  it("uses approved component fee composition for K17, K18, K22, and K26", () => {
     const phase: EnvironmentPlanPhase = {
       id: "pv",
       title: "PV",
@@ -109,39 +109,61 @@ describe("environment fee detail calculations", () => {
             { id: "b-k18", label: "K18 Connector and lead/lock strength", testHours: "7", sampleRange: "15-26" },
           ],
         },
+        {
+          id: "mla-group-c",
+          title: "Group C",
+          totalSampleLabel: "Total样机数量",
+          totalSampleQty: "6",
+          totalDurationLabel: "组测试时间(天)",
+          totalDurationDays: "56",
+          totalCostLabel: "组费用",
+          totalCost: "",
+          rows: [{ id: "c-k26", label: "K26 Mechanical Wear-Out", testHours: "23", sampleRange: "27-32" }],
+        },
       ],
     };
 
-    const [groupA, groupB] = createEnvironmentFeeDetailSections(phase);
+    const [groupA, groupB, groupC] = createEnvironmentFeeDetailSections(phase);
     const k17 = groupA?.rows.find((row) => row.outlineRowId === "a-k17");
     const k22 = groupB?.rows.find((row) => row.outlineRowId === "b-k22");
     const k18 = groupB?.rows.find((row) => row.outlineRowId === "b-k18");
+    const k26 = groupC?.rows.find((row) => row.outlineRowId === "c-k26");
 
-    expect(k17?.estimatedItemFee).toBe(144000);
-    expect(k17?.notes).toContain("3 个方向");
+    expect(k17?.estimatedItemFee).toBe(120000);
+    expect(k17?.notes).toContain("三个方向");
     expect(k17?.labs.find((lab) => lab.lab === "SGS")?.itemFee).toBe(144000);
-    expect(k17?.labs.find((lab) => lab.lab === "信测")?.itemFee).toBe(144000);
+    expect(k17?.labs.find((lab) => lab.lab === "华测")?.itemFee).toBe(120000);
+    expect(k17?.labs.find((lab) => lab.lab === "苏劢")?.itemFee).toBe(36000);
+    expect(k17?.labs.find((lab) => lab.lab === "信测")).toBeUndefined();
 
     expect(k22?.testHours).toBe(72);
     expect(k22?.quantity).toBe(15);
-    expect(k22?.estimatedItemFee).toBe(6300);
+    expect(k22?.estimatedItemFee).toBe(11190);
     expect(k22?.notes).toContain("15 种试剂");
-    expect(k22?.notes).toContain("试剂数量 × 试剂单价 + 测试时间 × 时间单价");
+    expect(k22?.notes).toContain("试剂数量 × 各实验室试剂单价 + 测试时间 × 时间单价");
     expect(k22?.labs.find((lab) => lab.lab === "SGS")?.unitPrice).toBe(20);
-    expect(k22?.labs.find((lab) => lab.lab === "SGS")?.itemFee).toBe(5940);
+    expect(k22?.labs.find((lab) => lab.lab === "SGS")?.itemFee).toBe(11190);
     expect(k22?.labs.find((lab) => lab.lab === "华测")?.unitPrice).toBe(25);
-    expect(k22?.labs.find((lab) => lab.lab === "华测")?.itemFee).toBe(6300);
+    expect(k22?.labs.find((lab) => lab.lab === "华测")?.itemFee).toBe(12300);
     expect(k22?.labs.find((lab) => lab.lab === "苏劢")?.unitPrice).toBe(30);
     expect(k22?.labs.find((lab) => lab.lab === "苏劢")?.itemFee).toBe(6660);
-    expect(k22?.labs.find((lab) => lab.lab === "信测")?.unitPrice).toBe(20);
-    expect(k22?.labs.find((lab) => lab.lab === "信测")?.itemFee).toBe(5940);
+    expect(k22?.labs.find((lab) => lab.lab === "信测")).toBeUndefined();
 
-    expect(k18?.estimatedItemFee).toBe(15600);
-    expect(k18?.notes).toContain("K18.1-K18.4");
-    expect(k18?.labs.find((lab) => lab.lab === "SGS")?.itemFee).toBe(15600);
-    expect(k18?.labs.find((lab) => lab.lab === "华测")?.itemFee).toBe(9600);
-    expect(k18?.labs.find((lab) => lab.lab === "苏劢")?.itemFee).toBe(6000);
-    expect(k18?.labs.find((lab) => lab.lab === "信测")?.itemFee).toBe(24000);
+    expect(k18?.estimatedItemFee).toBe(19000);
+    expect(k18?.notes).toBe("K18.1-K18.4 四项 × 12 台样机 × 单价 + K18.1 微应力费用");
+    expect(k18?.notes).not.toContain("信测");
+    expect(k18?.labs.find((lab) => lab.lab === "SGS")?.itemFee).toBe(19000);
+    expect(k18?.labs.find((lab) => lab.lab === "华测")?.itemFee).toBe(27500);
+    expect(k18?.labs.find((lab) => lab.lab === "苏劢")?.itemFee).toBe(9500);
+    expect(k18?.labs.find((lab) => lab.lab === "信测")).toBeUndefined();
+
+    expect(k26?.testHours).toBe(500);
+    expect(k26?.estimatedItemFee).toBe(7158);
+    expect(k26?.notes).toContain("334h 常温 + 83h 低温 + 83h 高温");
+    expect(k26?.labs.find((lab) => lab.lab === "SGS")?.itemFee).toBe(7158);
+    expect(k26?.labs.find((lab) => lab.lab === "华测")?.itemFee).toBe(6488);
+    expect(k26?.labs.find((lab) => lab.lab === "苏劢")?.itemFee).toBe(11660);
+    expect(k26?.labs.find((lab) => lab.lab === "信测")).toBeUndefined();
   });
 
   it("uses the L460-L coefficient-table hours instead of the displayed flow-chart days for K1 fees", () => {
@@ -179,7 +201,231 @@ describe("environment fee detail calculations", () => {
     const k1 = groupA?.rows[0];
 
     expect(k1?.testHours).toBe(24);
-    expect(k1?.estimatedItemFee).toBe(960);
+    expect(k1?.estimatedItemFee).toBe(720);
+  });
+
+  it("lets user-entered fee basis values override locked coefficient defaults without changing charge rules", () => {
+    const phase: EnvironmentPlanPhase = {
+      id: "pv",
+      title: "PV",
+      summary: {
+        projectLabel: "项目",
+        projectCode: "L460-L",
+        phaseLabel: "阶段",
+        phaseValue: "PV",
+        totalSampleLabel: "样本总数量",
+        totalSampleQty: "12",
+        longestDurationLabel: "最长测试时间(天)",
+        longestDurationDays: "101",
+        totalCostLabel: "总费用",
+        totalCost: "",
+      },
+      groups: [
+        {
+          id: "mla-group-a",
+          title: "Group A",
+          totalSampleLabel: "Total样机数量",
+          totalSampleQty: "12",
+          totalDurationLabel: "组测试时间(天)",
+          totalDurationDays: "101",
+          totalCostLabel: "组费用",
+          totalCost: "",
+          rows: [
+            {
+              id: "a-k1",
+              label: "K1 Low Temperature Exposure",
+              testHours: "2",
+              sampleRange: "1-12",
+              feeBasisOverrides: { hour: "48" },
+            },
+            {
+              id: "a-k13",
+              label: "K13 Dust Ingress",
+              testHours: "5",
+              sampleRange: "1-12",
+              feeBasisOverrides: { batch: "5" },
+            },
+          ],
+        },
+      ],
+    };
+
+    const [groupA] = createEnvironmentFeeDetailSections(phase);
+    const k1 = groupA?.rows.find((row) => row.outlineRowId === "a-k1");
+    const k13 = groupA?.rows.find((row) => row.outlineRowId === "a-k13");
+
+    expect(k1?.chargeBasis).toBe("hour");
+    expect(k1?.testHours).toBe(48);
+    expect(k1?.medianUnitPrice).toBe(30);
+    expect(k1?.estimatedItemFee).toBe(1440);
+
+    expect(k13?.chargeBasis).toBe("batch");
+    expect(k13?.batchCount).toBe(5);
+    expect(k13?.medianUnitPrice).toBe(1500);
+    expect(k13?.estimatedItemFee).toBe(7500);
+  });
+
+  it("uses small chamber prices when sample quantity is six or below", () => {
+    const phase: EnvironmentPlanPhase = {
+      id: "pv",
+      title: "PV",
+      summary: {
+        projectLabel: "项目",
+        projectCode: "L460-L",
+        phaseLabel: "阶段",
+        phaseValue: "PV",
+        totalSampleLabel: "样本总数量",
+        totalSampleQty: "6",
+        longestDurationLabel: "最长测试时间(天)",
+        longestDurationDays: "101",
+        totalCostLabel: "总费用",
+        totalCost: "",
+      },
+      groups: [
+        {
+          id: "mla-group-a",
+          title: "Group A",
+          totalSampleLabel: "Total样机数量",
+          totalSampleQty: "6",
+          totalDurationLabel: "组测试时间(天)",
+          totalDurationDays: "101",
+          totalCostLabel: "组费用",
+          totalCost: "",
+          rows: [{ id: "a-k1-small", label: "K1 Low Temperature Exposure", testHours: "2", sampleRange: "1-6" }],
+        },
+      ],
+    };
+
+    const [groupA] = createEnvironmentFeeDetailSections(phase);
+    const k1 = groupA?.rows[0];
+
+    expect(k1?.quantity).toBe(6);
+    expect(k1?.medianUnitPrice).toBe(23);
+    expect(k1?.estimatedItemFee).toBe(552);
+  });
+
+  it("calculates K15 vibration basis from sample quantity and 6-sample fixture capacity", () => {
+    const phase: EnvironmentPlanPhase = {
+      id: "pv",
+      title: "PV",
+      summary: {
+        projectLabel: "项目",
+        projectCode: "L460-L",
+        phaseLabel: "阶段",
+        phaseValue: "PV",
+        totalSampleLabel: "样本总数量",
+        totalSampleQty: "18",
+        longestDurationLabel: "最长测试时间(天)",
+        longestDurationDays: "101",
+        totalCostLabel: "总费用",
+        totalCost: "",
+      },
+      groups: [
+        {
+          id: "mla-group-a",
+          title: "Group A",
+          totalSampleLabel: "Total样机数量",
+          totalSampleQty: "12",
+          totalDurationLabel: "组测试时间(天)",
+          totalDurationDays: "101",
+          totalCostLabel: "组费用",
+          totalCost: "",
+          rows: [
+            { id: "a-k15-12", label: "K15 Vibration", testHours: "7", sampleRange: "1-12" },
+            { id: "a-k15-6", label: "K15 Vibration", testHours: "7", sampleRange: "1-6" },
+          ],
+        },
+        {
+          id: "mla-group-c",
+          title: "Group C",
+          totalSampleLabel: "Total样机数量",
+          totalSampleQty: "6",
+          totalDurationLabel: "组测试时间(天)",
+          totalDurationDays: "56",
+          totalCostLabel: "组费用",
+          totalCost: "",
+          rows: [{ id: "c-k15", label: "K15 Vibartion", testHours: "4", sampleRange: "13-18" }],
+        },
+      ],
+    };
+
+    const sections = createEnvironmentFeeDetailSections(phase);
+    const groupAK15For12Samples = sections.find((section) => section.groupTitle === "Group A")?.rows[0];
+    const groupAK15For6Samples = sections.find((section) => section.groupTitle === "Group A")?.rows[1];
+    const groupCK15 = sections.find((section) => section.groupTitle === "Group C")?.rows[0];
+
+    expect(groupAK15For12Samples?.testHours).toBe(48);
+    expect(groupAK15For12Samples?.estimatedItemFee).toBe(24000);
+    expect(groupAK15For6Samples?.testHours).toBe(24);
+    expect(groupAK15For6Samples?.estimatedItemFee).toBe(12000);
+    expect(groupCK15?.testHours).toBe(24);
+    expect(groupCK15?.estimatedItemFee).toBe(12000);
+  });
+
+  it("calculates K13 dust-ingress batches from sample quantity and 3-sample fixture capacity", () => {
+    const phase: EnvironmentPlanPhase = {
+      id: "pv",
+      title: "PV",
+      summary: {
+        projectLabel: "项目",
+        projectCode: "L460-L",
+        phaseLabel: "阶段",
+        phaseValue: "PV",
+        totalSampleLabel: "样本总数量",
+        totalSampleQty: "18",
+        longestDurationLabel: "最长测试时间(天)",
+        longestDurationDays: "101",
+        totalCostLabel: "总费用",
+        totalCost: "",
+      },
+      groups: [
+        {
+          id: "mla-group-a",
+          title: "Group A",
+          totalSampleLabel: "Total样机数量",
+          totalSampleQty: "12",
+          totalDurationLabel: "组测试时间(天)",
+          totalDurationDays: "101",
+          totalCostLabel: "组费用",
+          totalCost: "",
+          rows: [
+            { id: "a-k13-12", label: "K13 Dust Ingress", testHours: "5", sampleRange: "1-12" },
+            { id: "a-k13-6", label: "K13 Dust Ingress", testHours: "5", sampleRange: "1-6" },
+          ],
+        },
+        {
+          id: "mla-group-c",
+          title: "Group C",
+          totalSampleLabel: "Total样机数量",
+          totalSampleQty: "6",
+          totalDurationLabel: "组测试时间(天)",
+          totalDurationDays: "56",
+          totalCostLabel: "组费用",
+          totalCost: "",
+          rows: [{ id: "c-k13", label: "K13 Dust Ingress", testHours: "2", sampleRange: "13-18" }],
+        },
+      ],
+    };
+
+    const sections = createEnvironmentFeeDetailSections(phase);
+    const groupAK13For12Samples = sections.find((section) => section.groupTitle === "Group A")?.rows[0];
+    const groupAK13For6Samples = sections.find((section) => section.groupTitle === "Group A")?.rows[1];
+    const groupCK13 = sections.find((section) => section.groupTitle === "Group C")?.rows[0];
+
+    expect(groupAK13For12Samples?.batchCount).toBe(4);
+    expect(groupAK13For12Samples?.medianUnitPrice).toBe(1500);
+    expect(groupAK13For12Samples?.estimatedItemFee).toBe(6000);
+    expect(groupAK13For12Samples?.labs.find((lab) => lab.lab === "SGS")?.unitPrice).toBe(1500);
+    expect(groupAK13For12Samples?.labs.find((lab) => lab.lab === "SGS")?.itemFee).toBe(6000);
+    expect(groupAK13For12Samples?.labs.find((lab) => lab.lab === "华测")?.unitPrice).toBe(1500);
+    expect(groupAK13For12Samples?.labs.find((lab) => lab.lab === "华测")?.itemFee).toBe(6000);
+    expect(groupAK13For12Samples?.labs.find((lab) => lab.lab === "苏劢")?.unitPrice).toBe(1800);
+    expect(groupAK13For12Samples?.labs.find((lab) => lab.lab === "苏劢")?.itemFee).toBe(7200);
+    expect(groupAK13For12Samples?.labs.map((lab) => lab.lab)).toEqual(["SGS", "华测", "苏劢"]);
+    expect(groupAK13For6Samples?.batchCount).toBe(2);
+    expect(groupAK13For6Samples?.estimatedItemFee).toBe(3000);
+    expect(groupCK13?.batchCount).toBe(2);
+    expect(groupCK13?.estimatedItemFee).toBe(3000);
   });
 
   it("marks pending special rows as unpriced and keeps them out of fee totals", () => {
@@ -220,7 +466,7 @@ describe("environment fee detail calculations", () => {
 
     expect(groupA?.rows.find((row) => row.outlineRowId === "a-particle")?.status).toBe("priced");
     expect(groupA?.rows.find((row) => row.outlineRowId === "a-particle")?.estimatedItemFee).toBe(24000);
-    expect(groupA?.rows.find((row) => row.outlineRowId === "a-k1")?.estimatedItemFee).toBe(960);
+    expect(groupA?.rows.find((row) => row.outlineRowId === "a-k1")?.estimatedItemFee).toBe(720);
   });
 
   it("uses particle-exposure lab total medians and reduces C group to batch-only when A exists in the same phase", () => {
@@ -278,7 +524,7 @@ describe("environment fee detail calculations", () => {
     expect(groupC?.rows[0]?.labs.find((lab) => lab.lab === "苏劢")?.itemFee).toBe(13000);
   });
 
-  it("prices K14 through the designated Guoce quote", () => {
+  it("prices K14 through the designated Guoce batch quote and 3-sample fixture capacity", () => {
     const phase: EnvironmentPlanPhase = {
       id: "pv",
       title: "PV",
@@ -288,7 +534,7 @@ describe("environment fee detail calculations", () => {
         phaseLabel: "阶段",
         phaseValue: "PV",
         totalSampleLabel: "样本总数量",
-        totalSampleQty: "12",
+        totalSampleQty: "18",
         longestDurationLabel: "最长测试时间(天)",
         longestDurationDays: "5",
         totalCostLabel: "总费用",
@@ -304,18 +550,82 @@ describe("environment fee detail calculations", () => {
           totalDurationDays: "5",
           totalCostLabel: "组费用",
           totalCost: "",
-          rows: [{ id: "a-k14", label: "K14 Dust Blowing Test", testHours: "5", sampleRange: "1-12" }],
+          rows: [
+            { id: "a-k14-12", label: "K14 Dust Blowing Test", testHours: "5", sampleRange: "1-12" },
+            { id: "a-k14-6", label: "K14 Dust Blowing Test", testHours: "5", sampleRange: "1-6" },
+          ],
         },
       ],
     };
 
     const [groupA] = createEnvironmentFeeDetailSections(phase);
-    const k14 = groupA?.rows[0];
+    const k14For12Samples = groupA?.rows[0];
+    const k14For6Samples = groupA?.rows[1];
 
-    expect(k14?.status).toBe("priced");
-    expect(k14?.medianUnitPrice).toBe(3000);
-    expect(k14?.estimatedItemFee).toBe(36000);
-    expect(k14?.notes).toContain("国测");
+    expect(k14For12Samples?.status).toBe("priced");
+    expect(k14For12Samples?.chargeBasis).toBe("batch");
+    expect(k14For12Samples?.batchCount).toBe(4);
+    expect(k14For12Samples?.medianUnitPrice).toBe(3000);
+    expect(k14For12Samples?.estimatedItemFee).toBe(12000);
+    expect(k14For12Samples?.notes).toContain("国测");
+
+    expect(k14For6Samples?.chargeBasis).toBe("batch");
+    expect(k14For6Samples?.batchCount).toBe(2);
+    expect(k14For6Samples?.medianUnitPrice).toBe(3000);
+    expect(k14For6Samples?.estimatedItemFee).toBe(6000);
+  });
+
+  it("prices L6 internal and external inspection rows separately", () => {
+    const phase: EnvironmentPlanPhase = {
+      id: "pv",
+      title: "PV",
+      summary: {
+        projectLabel: "项目",
+        projectCode: "L460-L",
+        phaseLabel: "阶段",
+        phaseValue: "PV",
+        totalSampleLabel: "样本总数量",
+        totalSampleQty: "8",
+        longestDurationLabel: "最长测试时间(天)",
+        longestDurationDays: "20",
+        totalCostLabel: "总费用",
+        totalCost: "",
+      },
+      groups: [
+        {
+          id: "mla-group-d3",
+          title: "Group D-3",
+          totalSampleLabel: "Total样机数量",
+          totalSamplePrefix: "PCBA",
+          totalSampleQty: "8",
+          totalDurationLabel: "组测试时间(天)",
+          totalDurationDays: "68",
+          totalCostLabel: "组费用",
+          totalCost: "",
+          rows: [
+            { id: "d3-post-l6-internal", label: "L6-photo&xray", testHours: "20", sampleRange: "1-8" },
+            { id: "d3-post-l6-external", label: "L6-SEM&SECTION", testHours: "20", sampleRange: "1-8" },
+          ],
+        },
+      ],
+    };
+
+    const [groupD3] = createEnvironmentFeeDetailSections(phase);
+    const l6Internal = groupD3?.rows[0];
+    const l6External = groupD3?.rows[1];
+
+    expect(l6Internal?.quantity).toBe(8);
+    expect(l6Internal?.medianUnitPrice).toBe(400);
+    expect(l6Internal?.estimatedItemFee).toBe(3200);
+    expect(l6Internal?.testName).toBe("L6-photo&xray");
+    expect(l6Internal?.labs).toEqual([]);
+    expect(l6Internal?.notes).toContain("固定单价");
+
+    expect(l6External?.quantity).toBe(33);
+    expect(l6External?.testName).toBe("L6-SEM&SECTION");
+    expect(l6External?.medianUnitPrice).toBe(650);
+    expect(l6External?.estimatedItemFee).toBe(21450);
+    expect(l6External?.notes).toContain("委外");
   });
 
   it("prices E group restricted substance and operating noise using approved rules", () => {
@@ -362,10 +672,63 @@ describe("environment fee detail calculations", () => {
 
     const [groupE1, groupE2] = createEnvironmentFeeDetailSections(phase);
 
-    expect(groupE1?.rows[0]?.estimatedItemFee).toBe(21500);
+    expect(groupE1?.rows[0]?.estimatedItemFee).toBe(20000);
     expect(groupE1?.rows[0]?.notes).toContain("1500");
     expect(groupE2?.rows[0]?.estimatedItemFee).toBe(42500);
     expect(groupE2?.rows[0]?.medianUnitPrice).toBe(1700);
+    expect(groupE2?.rows[0]?.priceLabel).toBe("参考单价");
+    expect(groupE2?.rows[0]?.hideUnavailableLabQuotes).toBe(true);
+  });
+
+  it("prices the five K28 HALT subtests as 8h items with the approved HALT lab quotes", () => {
+    const phase: EnvironmentPlanPhase = {
+      id: "pv",
+      title: "PV",
+      summary: {
+        projectLabel: "项目",
+        projectCode: "L460-L",
+        phaseLabel: "阶段",
+        phaseValue: "PV",
+        totalSampleLabel: "样本总数量",
+        totalSampleQty: "15",
+        longestDurationLabel: "最长测试时间(天)",
+        longestDurationDays: "14",
+        totalCostLabel: "总费用",
+        totalCost: "",
+      },
+      groups: [
+        {
+          id: "mla-group-d8",
+          title: "Group D-8",
+          totalSampleLabel: "Total样机数量",
+          totalSampleQty: "15",
+          totalDurationLabel: "组测试时间(天)",
+          totalDurationDays: "14",
+          totalCostLabel: "组费用",
+          totalCost: "",
+          rows: [
+            { id: "d8-cold", label: "K28 HALT Cold", testHours: "8h", sampleRange: "1-15" },
+            { id: "d8-hot", label: "K28 HALT Hot", testHours: "8h", sampleRange: "1-15" },
+            { id: "d8-tst", label: "K28 HALT Thermal Shock", testHours: "8h", sampleRange: "1-15" },
+            { id: "d8-vibration", label: "K28 HALT Vibration", testHours: "8h", sampleRange: "1-15" },
+            { id: "d8-mix", label: "K28 HALT TST & Vibration", testHours: "8h", sampleRange: "1-15" },
+          ],
+        },
+      ],
+    };
+
+    const [groupD8] = createEnvironmentFeeDetailSections(phase);
+
+    expect(groupD8?.rows).toHaveLength(5);
+    for (const row of groupD8?.rows ?? []) {
+      expect(row.chargeBasis).toBe("hour");
+      expect(row.testHours).toBe(8);
+      expect(row.medianUnitPrice).toBe(800);
+      expect(row.estimatedItemFee).toBe(6400);
+      expect(row.labs.find((lab) => lab.lab === "SGS")?.itemFee).toBe(6400);
+      expect(row.labs.find((lab) => lab.lab === "华测")?.itemFee).toBe(4800);
+      expect(row.labs.find((lab) => lab.lab === "苏劢")?.itemFee).toBe(12000);
+    }
   });
 
   it("applies the MLA D-8 optical rule as full 19-point pricing", () => {

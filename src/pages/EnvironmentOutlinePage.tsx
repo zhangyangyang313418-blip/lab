@@ -1,10 +1,10 @@
 import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { EnvironmentFeeDetailTable } from "../components/environment/EnvironmentFeeDetailTable";
-import { calculateFeeAmount, createEnvironmentFeeDetailSections, getEnvironmentSpecialFeeBreakdown } from "../services/environmentFeeDetail";
+import { createEnvironmentFeeDetailSections, getEnvironmentSpecialFeeBreakdown } from "../services/environmentFeeDetail";
 import { AppLayout } from "../components/layout/AppLayout";
 import { useAppState } from "../store/appState";
-import type { EnvironmentFeeChargeBasis, EnvironmentFeeDetailRow } from "../types/environmentFeeDetail";
+import type { EnvironmentFeeChargeBasis, EnvironmentFeeDetailRow, EnvironmentFeeLabQuote } from "../types/environmentFeeDetail";
 import type { EnvironmentPlanGroup, EnvironmentPlanPhase, EnvironmentPlanRow } from "../types/environmentPlan";
 
 function formatCurrency(value: string) {
@@ -28,6 +28,32 @@ function formatCurrencyAmount(value: number, maximumFractionDigits = 2) {
     minimumFractionDigits: maximumFractionDigits,
     maximumFractionDigits,
   }).format(value);
+}
+
+function formatLabPriceValue(value: EnvironmentFeeLabQuote["unitPrice"]) {
+  if (value === "N/A" || value === "") {
+    return value;
+  }
+
+  return new Intl.NumberFormat("zh-CN", {
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatLabItemFee(value: EnvironmentFeeLabQuote["itemFee"]) {
+  if (value === "N/A") {
+    return "N/A";
+  }
+
+  if (value === null) {
+    return "待确认";
+  }
+
+  return formatCurrencyAmount(value, 0);
+}
+
+function formatLabName(lab: string) {
+  return lab === "苏劢" ? "苏勃" : lab;
 }
 
 function sanitizeCurrencyInput(value: string) {
@@ -190,11 +216,6 @@ function createBaselineManualRow(
 }
 
 type EnvironmentGroupSection = "sequence" | "d" | "e";
-type FeeOverride = {
-  chargeBasis: EnvironmentFeeChargeBasis;
-  unitPrice: string;
-  baseValue: string;
-};
 type FeeRenderer = (
   group: EnvironmentPlanGroup,
   row: EnvironmentPlanRow,
@@ -205,20 +226,11 @@ type FeeRenderer = (
 };
 
 const chargeBasisLabels: Record<EnvironmentFeeChargeBasis, string> = {
-  hour: "按小时",
+  hour: "按 h",
   quantity: "按数量",
   batch: "按批次",
   pending: "待确认",
 };
-
-function parseFeeNumber(value: string) {
-  if (value.trim() === "") {
-    return null;
-  }
-
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
-}
 
 function getDetailBaseValue(row: EnvironmentFeeDetailRow | undefined, basis: EnvironmentFeeChargeBasis) {
   if (!row || basis === "pending") {
@@ -229,43 +241,199 @@ function getDetailBaseValue(row: EnvironmentFeeDetailRow | undefined, basis: Env
   return value === null ? "" : String(value);
 }
 
-function createFeeOverride(row: EnvironmentFeeDetailRow | undefined): FeeOverride {
-  const chargeBasis = row?.chargeBasis ?? "pending";
+function getChargeBasisUnitLabel(basis: EnvironmentFeeChargeBasis) {
+  if (basis === "hour") {
+    return "h";
+  }
 
-  return {
-    chargeBasis,
-    unitPrice: row?.medianUnitPrice === null || row?.medianUnitPrice === undefined ? "" : String(row.medianUnitPrice),
-    baseValue: getDetailBaseValue(row, chargeBasis),
-  };
+  if (basis === "batch") {
+    return "批";
+  }
+
+  if (basis === "quantity") {
+    return "台样机";
+  }
+
+  return "";
 }
 
-function calculateOverrideFee(override: FeeOverride) {
-  const unitPrice = parseFeeNumber(override.unitPrice);
-  const baseValue = parseFeeNumber(override.baseValue);
+function isL6ExternalSemSection(label: string) {
+  return /L6-SEM&SECTION/i.test(label);
+}
 
-  return calculateFeeAmount(unitPrice, override.chargeBasis, {
-    testHours: override.chargeBasis === "hour" ? baseValue : null,
-    quantity: override.chargeBasis === "quantity" ? baseValue : null,
-    batchCount: override.chargeBasis === "batch" ? baseValue : null,
-  });
+function getDisplayBaseLabel(row: EnvironmentFeeDetailRow, basis: EnvironmentFeeChargeBasis) {
+  if (isL6ExternalSemSection(row.testName) && basis === "quantity") {
+    return "3 样品 × 11 点位";
+  }
+
+  const baseValue = getDetailBaseValue(row, basis);
+  const unitLabel = getChargeBasisUnitLabel(basis);
+
+  return unitLabel ? `${baseValue} ${unitLabel}` : baseValue;
+}
+
+function getLabQuoteFormula(row: EnvironmentFeeDetailRow, lab: EnvironmentFeeLabQuote) {
+  if (lab.itemFee === "N/A") {
+    return "无报价 / 无能力";
+  }
+
+  if (lab.itemFee === null || lab.unitPrice === "" || lab.unitPrice === "N/A" || row.chargeBasis === "pending") {
+    return "费用待确认";
+  }
+
+  const baseLabel = getDisplayBaseLabel(row, row.chargeBasis);
+
+  return `${formatLabPriceValue(lab.unitPrice)} × ${baseLabel}`;
+}
+
+function getLabToneClass(lab: string) {
+  if (lab === "SGS") {
+    return "fee-calculation-editor__lab-total--sgs";
+  }
+
+  if (lab === "华测") {
+    return "fee-calculation-editor__lab-total--cti";
+  }
+
+  if (lab === "苏劢" || lab === "苏勃") {
+    return "fee-calculation-editor__lab-total--sumei";
+  }
+
+  if (lab === "信测") {
+    return "fee-calculation-editor__lab-total--xince";
+  }
+
+  return "";
+}
+
+function LabQuoteBreakdown({
+  label,
+  lines,
+  selectedLabel,
+}: {
+  label: string;
+  lines: Array<{ lab: string; formula: string; formulaLines?: string[]; total: string }>;
+  selectedLabel?: string | undefined;
+}) {
+  if (lines.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="fee-calculation-editor__lab-breakdown" aria-label={`${label} 实验室报价明细`}>
+      <div className="fee-calculation-editor__lab-title">实验室报价明细</div>
+      {lines.map((line) => {
+        const isSelected = selectedLabel === line.lab;
+        const displayLab = formatLabName(line.lab);
+        const labLabel = isSelected ? `${displayLab}（中值）` : displayLab;
+
+        return (
+          <div key={line.lab} className={`fee-calculation-editor__lab-card${isSelected ? " fee-calculation-editor__lab-card--selected" : ""}`}>
+            <span className="fee-calculation-editor__lab-name">{labLabel}</span>
+            <div className={`fee-calculation-editor__lab-formula${line.formulaLines ? " fee-calculation-editor__lab-formula--compact-lines" : ""}`}>
+              {line.formulaLines
+                ? line.formulaLines.map((formulaLine) => <span key={formulaLine}>{formulaLine}</span>)
+                : line.formula}
+            </div>
+            <strong className={`fee-calculation-editor__lab-total ${getLabToneClass(line.lab)}`}>{line.total}</strong>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function DetailLabQuoteBreakdown({ row }: { row: EnvironmentFeeDetailRow | undefined }) {
+  if (!row) {
+    return null;
+  }
+
+  const visibleLabs = row.hideUnavailableLabQuotes
+    ? row.labs.filter((lab) => typeof lab.itemFee === "number" && typeof lab.unitPrice === "number")
+    : row.labs;
+  const selectedLab = row.priceLabel
+    ? undefined
+    : visibleLabs.find((lab) => typeof lab.itemFee === "number" && lab.itemFee === row.estimatedItemFee)?.lab;
+  const lines = visibleLabs.map((lab) => ({
+    lab: lab.lab,
+    formula: getLabQuoteFormula(row, lab),
+    total: formatLabItemFee(lab.itemFee),
+  }));
+
+  return <LabQuoteBreakdown label={row.testName} lines={lines} selectedLabel={selectedLab} />;
+}
+
+function SpecialLabQuoteBreakdown({
+  row,
+  breakdown,
+}: {
+  row: EnvironmentPlanRow;
+  breakdown: ReturnType<typeof getEnvironmentSpecialFeeBreakdown>;
+}) {
+  if (!breakdown || !("lines" in breakdown)) {
+    return null;
+  }
+
+  const getSpecialLabFormula = (line: (typeof breakdown.lines)[number]) => {
+    if (/Particle Exposure/i.test(row.label)) {
+      return line.formula ?? `报价 ${formatCurrencyAmount(line.total, 0)}`;
+    }
+
+    if (/K26\b|Mechanical Wear-Out/i.test(row.label) && line.unitPriceSummary) {
+      return line.unitPriceSummary;
+    }
+
+    if (line.formula?.includes("单价")) {
+      return line.formula;
+    }
+
+    return `报价 ${formatCurrencyAmount(line.total, 0)}`;
+  };
+
+  const lines = breakdown.lines.map((line) => ({
+    lab: line.label,
+    formula: getSpecialLabFormula(line),
+    ...(/K26\b|Mechanical Wear-Out/i.test(row.label) && line.unitPriceSummaryLines ? { formulaLines: line.unitPriceSummaryLines } : {}),
+    total: formatCurrencyAmount(line.total, 0),
+  }));
+
+  return <LabQuoteBreakdown label={row.label} lines={lines} selectedLabel={breakdown.selectedLabel} />;
+}
+
+function MedianFeeSummary({
+  label,
+  total,
+}: {
+  label: string | undefined;
+  total: number;
+}) {
+  return (
+    <div className="fee-calculation-editor__median-summary">
+      <span>{label ? `中值（${formatLabName(label)}）` : "中值"}</span>
+      <strong>{formatCurrencyAmount(total, 0)}</strong>
+    </div>
+  );
 }
 
 function FeeCalculationEditor({
   row,
-  override,
-  onChange,
+  detailRow,
+  onBasisChange,
   onClose,
 }: {
   row: EnvironmentPlanRow;
-  override: FeeOverride;
-  onChange: (field: keyof FeeOverride, value: string) => void;
+  detailRow?: EnvironmentFeeDetailRow | undefined;
+  onBasisChange: (basis: Exclude<EnvironmentFeeChargeBasis, "pending">, value: string) => void;
   onClose: () => void;
 }) {
-  const result = calculateOverrideFee(override);
-  const formula =
-    result === null
-      ? "当前费用待确认"
-      : `${override.unitPrice || "0"} × ${override.baseValue || "0"} = ${formatCurrencyAmount(result, 0)}`;
+  const chargeBasis = detailRow?.chargeBasis ?? "pending";
+  const unitPrice = detailRow?.medianUnitPrice ?? null;
+  const baseValue = getDetailBaseValue(detailRow, chargeBasis);
+  const baseUnit = getChargeBasisUnitLabel(chargeBasis);
+  const displayBaseLabel = detailRow ? getDisplayBaseLabel(detailRow, chargeBasis) : "";
+  const shouldShowBaseBreakdown = Boolean(detailRow && displayBaseLabel && displayBaseLabel !== (baseUnit ? `${baseValue} ${baseUnit}` : baseValue));
+  const basisOverrideKey = chargeBasis === "pending" ? null : chargeBasis;
+  const basisInputValue = basisOverrideKey ? row.feeBasisOverrides?.[basisOverrideKey] ?? baseValue : baseValue;
 
   return (
     <div className="fee-calculation-editor">
@@ -275,41 +443,34 @@ function FeeCalculationEditor({
           ×
         </button>
       </div>
-      <div className="fee-calculation-editor__grid">
-        <label>
+      <div className="fee-calculation-editor__summary" aria-label={`${row.label} 计费摘要`}>
+        <div className="fee-calculation-editor__summary-item">
           <span>计费方式</span>
-          <select
-            aria-label={`${row.label} 计费方式`}
-            value={override.chargeBasis}
-            onChange={(event) => onChange("chargeBasis", event.target.value)}
-          >
-            {(Object.keys(chargeBasisLabels) as EnvironmentFeeChargeBasis[]).map((basis) => (
-              <option key={basis} value={basis}>
-                {chargeBasisLabels[basis]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>中位单价</span>
-          <input
-            aria-label={`${row.label} 中位单价`}
-            inputMode="decimal"
-            value={override.unitPrice}
-            onChange={(event) => onChange("unitPrice", sanitizeCurrencyInput(event.target.value))}
-          />
-        </label>
-        <label>
+          <strong>{chargeBasisLabels[chargeBasis]}</strong>
+        </div>
+        <div className="fee-calculation-editor__summary-item">
+          <span>{detailRow?.priceLabel ?? "中值单价"}</span>
+          <strong>{unitPrice === null ? "" : formatLabPriceValue(unitPrice)}</strong>
+        </div>
+        <div className="fee-calculation-editor__summary-item">
           <span>计费基数</span>
-          <input
-            aria-label={`${row.label} 计费基数`}
-            inputMode="decimal"
-            value={override.baseValue}
-            onChange={(event) => onChange("baseValue", sanitizeCurrencyInput(event.target.value))}
-          />
-        </label>
-        <div className="fee-calculation-editor__formula">{formula}</div>
+          {basisOverrideKey ? (
+            <>
+              <input
+                aria-label={`${row.label} 计费基数`}
+                inputMode="decimal"
+                value={basisInputValue}
+                onChange={(event) => onBasisChange(basisOverrideKey, sanitizeCurrencyInput(event.target.value))}
+              />
+              {baseUnit ? <em>{baseUnit}</em> : null}
+              {shouldShowBaseBreakdown ? <strong className="fee-calculation-editor__basis-breakdown">{displayBaseLabel}</strong> : null}
+            </>
+          ) : (
+            <strong>{shouldShowBaseBreakdown ? displayBaseLabel : baseValue && baseUnit ? `${baseValue} ${baseUnit}` : baseValue}</strong>
+          )}
+        </div>
       </div>
+      <DetailLabQuoteBreakdown row={detailRow} />
     </div>
   );
 }
@@ -328,18 +489,19 @@ function OpticalFeeCalculationEditor({
   }
 
   return (
-    <div className="fee-calculation-editor">
+    <div className="fee-calculation-editor fee-calculation-editor--compact">
       <div className="fee-calculation-editor__header">
         <h3>{row.label} 费用计算</h3>
         <button type="button" className="fee-calculation-editor__close" aria-label={`关闭 ${row.label} 费用计算`} onClick={onClose}>
           ×
         </button>
       </div>
-      <div className="fee-calculation-editor__stack">
+      <div className="fee-calculation-editor__stack fee-calculation-editor__stack--horizontal">
         {breakdown.lines.map((line) => (
           <div key={line.label} className="fee-calculation-editor__split-line">
-            <span>{`${line.label} ${line.quantity}`}</span>
-            <span>{`单价 ${line.unitPrice}`}</span>
+            <span className="fee-calculation-editor__split-item">{line.label}</span>
+            <span className="fee-calculation-editor__split-value">{line.quantity}</span>
+            <span className="fee-calculation-editor__split-meta">{`单价 ${line.unitPrice}`}</span>
             <strong>{`总价 ${formatCurrencyAmount(line.total, 0)}`}</strong>
           </div>
         ))}
@@ -379,11 +541,8 @@ function ParticleFeeCalculationEditor({
         </button>
       </div>
       <div className="fee-calculation-editor__stack">
-        {breakdown.selectedLabel ? <div className="fee-calculation-editor__note">{`中值（${breakdown.selectedLabel}）`}</div> : null}
-        <div className="fee-calculation-editor__formula-block">
-          <div className="fee-calculation-editor__formula-text">{selectedLine.formula}</div>
-          <div className="fee-calculation-editor__formula-total">{`合计 ${formatCurrencyAmount(selectedLine.total, 0)}`}</div>
-        </div>
+        <MedianFeeSummary label={breakdown.selectedLabel} total={selectedLine.total} />
+        <SpecialLabQuoteBreakdown row={row} breakdown={breakdown} />
         {breakdown.note ? <div className="fee-calculation-editor__note">{breakdown.note}</div> : null}
       </div>
     </div>
@@ -420,11 +579,8 @@ function ComponentFeeCalculationEditor({
         </button>
       </div>
       <div className="fee-calculation-editor__stack">
-        {breakdown.selectedLabel ? <div className="fee-calculation-editor__note">{`中值（${breakdown.selectedLabel}）`}</div> : null}
-        <div className="fee-calculation-editor__formula-block">
-          <div className="fee-calculation-editor__formula-text">{selectedLine.formula}</div>
-          <div className="fee-calculation-editor__formula-total">{`合计 ${formatCurrencyAmount(selectedLine.total, 0)}`}</div>
-        </div>
+        <MedianFeeSummary label={breakdown.selectedLabel} total={selectedLine.total} />
+        <SpecialLabQuoteBreakdown row={row} breakdown={breakdown} />
         {breakdown.note ? <div className="fee-calculation-editor__note">{breakdown.note}</div> : null}
       </div>
     </div>
@@ -1105,7 +1261,6 @@ function OtherTestCard({
 function PhaseSection({ phase, editable }: { phase: EnvironmentPlanPhase; editable: boolean }) {
   const { dispatch } = useAppState();
   const [expandedFeeKey, setExpandedFeeKey] = useState<string | null>(null);
-  const [feeOverrides, setFeeOverrides] = useState<Record<string, FeeOverride>>({});
   const sequenceGroups = phase.groups.filter(isSequenceGroup);
   const dGroups = phase.groups.filter(isDGroup);
   const eGroups = phase.groups.filter(isEGroup);
@@ -1129,44 +1284,25 @@ function PhaseSection({ phase, editable }: { phase: EnvironmentPlanPhase; editab
     const feeKey = `${group.id}:${row.id}`;
     const detailRow = feeDetailsByRowId.get(feeKey);
     const specialBreakdown = getEnvironmentSpecialFeeBreakdown(phase, group, row);
-    const override = feeOverrides[feeKey];
-    const overrideFee = override ? calculateOverrideFee(override) : null;
     const displayedFee = specialBreakdown
-      ? formatFee(row.fee)
-      : overrideFee === null
+      ? formatCurrencyAmount(specialBreakdown.total)
+      : detailRow?.estimatedItemFee === null || detailRow?.estimatedItemFee === undefined
         ? formatFee(row.fee)
-        : formatCurrencyAmount(overrideFee);
+        : formatCurrencyAmount(detailRow.estimatedItemFee);
     const ariaLabel = `${phase.title} / ${group.title} / ${row.label} 费用 ${displayedFee}`;
 
     function openFeeEditor() {
-      if (specialBreakdown) {
-        setExpandedFeeKey(feeKey);
-        return;
-      }
-
       setExpandedFeeKey(feeKey);
-      setFeeOverrides((current) => ({
-        ...current,
-        [feeKey]: current[feeKey] ?? createFeeOverride(detailRow),
-      }));
     }
 
-    function updateOverride(field: keyof FeeOverride, value: string) {
-      setFeeOverrides((current) => {
-        const baseOverride = current[feeKey] ?? createFeeOverride(detailRow);
-        const nextOverride =
-          field === "chargeBasis"
-            ? {
-                ...baseOverride,
-                chargeBasis: value as EnvironmentFeeChargeBasis,
-                baseValue: getDetailBaseValue(detailRow, value as EnvironmentFeeChargeBasis),
-              }
-            : { ...baseOverride, [field]: value };
-
-        return {
-          ...current,
-          [feeKey]: nextOverride,
-        };
+    function updateFeeBasis(basis: Exclude<EnvironmentFeeChargeBasis, "pending">, value: string) {
+      dispatch({
+        type: "updateEnvironmentPlanRowFeeBasis",
+        phaseId: phase.id,
+        groupId: group.id,
+        rowId: row.id,
+        basis,
+        value,
       });
     }
 
@@ -1194,8 +1330,8 @@ function PhaseSection({ phase, editable }: { phase: EnvironmentPlanPhase; editab
           ) : (
             <FeeCalculationEditor
               row={row}
-              override={override ?? createFeeOverride(detailRow)}
-              onChange={updateOverride}
+              detailRow={detailRow}
+              onBasisChange={updateFeeBasis}
               onClose={() => setExpandedFeeKey(null)}
             />
           )
@@ -1257,13 +1393,7 @@ function PhaseSection({ phase, editable }: { phase: EnvironmentPlanPhase; editab
               <input
                 className="value flow-inline-input flow-inline-input--metric"
                 value={formatCurrency(phase.summary.totalCost)}
-                onChange={(event) =>
-                  dispatch({
-                    type: "updateEnvironmentPlanSummary",
-                    phaseId: phase.id,
-                    field: "totalCost",
-                    value: sanitizeCurrencyInput(event.target.value),
-                  })}
+                readOnly
               />
             </label>
           </div>

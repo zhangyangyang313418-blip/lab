@@ -162,7 +162,7 @@ describe("local draft persistence", () => {
     const pvPhase = hydrated.environmentPlan.phases.find((phase) => phase.id === "pv");
     const groupA = pvPhase?.groups.find((group) => group.id === "mla-group-a");
 
-    expect(groupA?.rows.find((row) => row.id === "a-k1")?.fee).toBe("960");
+    expect(groupA?.rows.find((row) => row.id === "a-k1")?.fee).toBe("720");
   });
 
   it("refreshes version 19 drafts saved before the K22 additive component fee update", () => {
@@ -197,7 +197,84 @@ describe("local draft persistence", () => {
     const pvPhase = hydrated.environmentPlan.phases.find((phase) => phase.id === "pv");
     const groupB = pvPhase?.groups.find((group) => group.id === "mla-group-b");
 
-    expect(groupB?.rows.find((row) => row.id === "b-k22")?.fee).toBe("6300");
+    expect(groupB?.rows.find((row) => row.id === "b-k22")?.fee).toBe("11190");
+  });
+
+  it("refreshes version 21 drafts saved before the K26 composite fee update", () => {
+    const state = createSeedAppState();
+    const mlaDraft = appReducer(state, {
+      type: "applyProjectSetup",
+      updates: {
+        platform: "MLA",
+        projectCode: "L463",
+        reuseEnvironmentTemplate: true,
+        reuseMaterialTemplate: false,
+        reuseEmcTemplate: false,
+      },
+    });
+
+    saveProjectDraft({
+      ...mlaDraft,
+      environmentPlanVersion: 21,
+      environmentPlan: {
+        ...mlaDraft.environmentPlan,
+        phases: mlaDraft.environmentPlan.phases.map((phase) => ({
+          ...phase,
+          groups: phase.groups.map((group) => ({
+            ...group,
+            rows: group.rows.map((row) => (row.id === "c-k26" ? { ...row, fee: "15000" } : row)),
+          })),
+        })),
+      },
+    });
+
+    const hydrated = createInitialAppState();
+    const pvPhase = hydrated.environmentPlan.phases.find((phase) => phase.id === "pv");
+    const groupC = pvPhase?.groups.find((group) => group.id === "mla-group-c");
+
+    expect(groupC?.rows.find((row) => row.id === "c-k26")?.fee).toBe("7158");
+  });
+
+  it("refreshes version 22 drafts saved before the D-3 internal L6 duration fix", () => {
+    const state = createSeedAppState();
+    const mlaDraft = appReducer(state, {
+      type: "applyProjectSetup",
+      updates: {
+        platform: "MLA",
+        projectCode: "L463",
+        reuseEnvironmentTemplate: true,
+        reuseMaterialTemplate: false,
+        reuseEmcTemplate: false,
+      },
+    });
+
+    saveProjectDraft({
+      ...mlaDraft,
+      environmentPlanVersion: 22,
+      environmentPlan: {
+        ...mlaDraft.environmentPlan,
+        phases: mlaDraft.environmentPlan.phases.map((phase) => ({
+          ...phase,
+          groups: phase.groups.map((group) => ({
+            ...group,
+            rows: group.rows.map((row) =>
+              row.id === "d3-post-l6-internal" || row.id === "ed3-post-l6-internal"
+                ? { ...row, testHours: "20" }
+                : row,
+            ),
+          })),
+        })),
+      },
+    });
+
+    const hydrated = createInitialAppState();
+    const dvPhase = hydrated.environmentPlan.phases.find((phase) => phase.id === "dv");
+    const pvPhase = hydrated.environmentPlan.phases.find((phase) => phase.id === "pv");
+    const dvGroupD3 = dvPhase?.groups.find((group) => group.id === "mla-group-d3");
+    const pvGroupD3 = pvPhase?.groups.find((group) => group.id === "mla-group-d3");
+
+    expect(dvGroupD3?.rows.find((row) => row.id === "d3-post-l6-internal")?.testHours).toBe("3");
+    expect(pvGroupD3?.rows.find((row) => row.id === "d3-post-l6-internal")?.testHours).toBe("3");
   });
 
   it("drops obsolete environment rows when the template has been simplified", () => {
@@ -291,6 +368,57 @@ describe("local draft persistence", () => {
     expect(groupA?.rows.find((row) => row.id === "a-k7")?.testHours).toBe("6");
     expect(groupD1?.rows.find((row) => row.id === "d1-k21")?.testHours).toBe("16");
     expect(groupE2?.rows.find((row) => row.id === "e2-item")?.testHours).toBe("20");
+  });
+
+  it("refreshes stale L6 labels and durations from the latest template", () => {
+    const state = createSeedAppState();
+    const mlaDraft = appReducer(state, {
+      type: "applyProjectSetup",
+      updates: {
+        platform: "MLA",
+        projectCode: "L463",
+        reuseEnvironmentTemplate: true,
+        reuseMaterialTemplate: false,
+        reuseEmcTemplate: false,
+      },
+    });
+
+    saveProjectDraft({
+      ...mlaDraft,
+      environmentPlanVersion: 20,
+      environmentPlan: {
+        ...mlaDraft.environmentPlan,
+        phases: mlaDraft.environmentPlan.phases.map((phase) => ({
+          ...phase,
+          groups: phase.groups.map((group) => ({
+            ...group,
+            rows: group.rows.map((row) =>
+              row.id.endsWith("post-l6") || row.id === "d3-post-l6-internal" || row.id === "d3-post-l6-external"
+                ? {
+                    ...row,
+                    label: "L6 Internal Inspection",
+                    testHours: "1",
+                  }
+                : row,
+            ),
+          })),
+        })),
+      },
+    });
+
+    const hydrated = createInitialAppState();
+    const dvPhase = hydrated.environmentPlan.phases.find((phase) => phase.id === "dv");
+    const groupB = dvPhase?.groups.find((group) => group.id === "mla-group-b");
+    const groupC = dvPhase?.groups.find((group) => group.id === "mla-group-c");
+    const groupD3 = dvPhase?.groups.find((group) => group.id === "mla-group-d3");
+
+    expect(groupB?.rows.find((row) => row.id === "b-post-l6")?.label).toBe("L6-photo&xray");
+    expect(groupB?.rows.find((row) => row.id === "b-post-l6")?.testHours).toBe("7");
+    expect(groupC?.rows.find((row) => row.id === "c-post-l6")?.label).toBe("L6-photo&xray");
+    expect(groupC?.rows.find((row) => row.id === "c-post-l6")?.testHours).toBe("3");
+    expect(groupD3?.rows.find((row) => row.id === "d3-post-l6-internal")?.label).toBe("L6-photo&xray");
+    expect(groupD3?.rows.find((row) => row.id === "d3-post-l6-internal")?.testHours).toBe("3");
+    expect(groupD3?.rows.find((row) => row.id === "d3-post-l6-external")?.label).toBe("L6-SEM&SECTION");
   });
 
   it("removes obsolete seed groups when hydrating an older RHD draft", () => {
@@ -521,6 +649,51 @@ describe("app state reducer", () => {
     expect(rebuilt.environmentPlan.phases.find((phase) => phase.id === "dv-lhd")?.groups.some((group) => group.id === "ema-group-b")).toBe(true);
     expect(rebuilt.environmentPlan.phases.find((phase) => phase.id === "dv-rhd")?.groups.some((group) => group.id === "ema-group-b")).toBe(false);
     expect(rebuilt.environmentPlan.phases.find((phase) => phase.id === "dv-rhd")?.groups.some((group) => group.id === "ema-rhd-group-f2")).toBe(true);
+  });
+
+  it("fills manual environment rows from an existing full test label", () => {
+    const state = appReducer(createSeedAppState(), {
+      type: "applyProjectSetup",
+      updates: {
+        platform: "MLA",
+        projectCode: "L463",
+        reuseEnvironmentTemplate: false,
+        reuseMaterialTemplate: false,
+        reuseEmcTemplate: false,
+      },
+    });
+    const inserted = appReducer(state, {
+      type: "addEnvironmentPlanRow",
+      phaseId: "dv",
+      groupId: "mla-group-a",
+      afterRowId: "a-k1",
+      row: {
+        id: "manual-dv-Group A-a-k1",
+        label: "新测试项",
+        testHours: "1",
+        sampleRange: "1-12",
+      },
+    });
+
+    const updated = appReducer(inserted, {
+      type: "updateEnvironmentPlanRow",
+      phaseId: "dv",
+      groupId: "mla-group-a",
+      rowId: "manual-dv-Group A-a-k1",
+      field: "label",
+      value: "K6 Power Thermal Cycle",
+    });
+    const row = updated.environmentPlan.phases
+      .find((phase) => phase.id === "dv")
+      ?.groups.find((group) => group.id === "mla-group-a")
+      ?.rows.find((item) => item.id === "manual-dv-Group A-a-k1");
+
+    expect(row).toMatchObject({
+      label: "K6 Power Thermal Cycle",
+      testHours: "11",
+      sampleRange: "1-12",
+      fee: "7200",
+    });
   });
 
   it("rebuilds recommended environment and EMC items for change projects", () => {

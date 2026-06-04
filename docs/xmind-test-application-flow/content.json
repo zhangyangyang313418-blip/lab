@@ -1,0 +1,294 @@
+[
+  {
+    "id": "sheet-test-application-flow",
+    "class": "sheet",
+    "title": "测试申请流程示意图",
+    "rootTopic": {
+      "id": "root-test-application-flow",
+      "class": "topic",
+      "title": "测试申请流程示意图",
+      "children": {
+        "attached": [
+          {
+            "id": "step-1-application",
+            "class": "topic",
+            "title": "第一步：申请测试",
+            "children": {
+              "attached": [
+                {
+                  "id": "purpose-single",
+                  "class": "topic",
+                  "title": "摸底测试（研发使用）- 单项",
+                  "children": {
+                    "attached": [
+                      {
+                        "id": "single-custom",
+                        "class": "topic",
+                        "title": "可人为自行编写测试条件及要求"
+                      },
+                      {
+                        "id": "single-filter",
+                        "class": "topic",
+                        "title": "可通过测试项目筛选找到需要的测试项目"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "purpose-multiple",
+                  "class": "topic",
+                  "title": "摸底测试（研发使用）- 多项",
+                  "children": {
+                    "attached": [
+                      {
+                        "id": "multiple-template",
+                        "class": "topic",
+                        "title": "一般参考测试 Test Flow"
+                      },
+                      {
+                        "id": "multiple-edit",
+                        "class": "topic",
+                        "title": "提供对应 Test Flow 模板，申请者可编辑修改"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "purpose-dvpv",
+                  "class": "topic",
+                  "title": "DV / PV（产品测试工程师使用）",
+                  "children": {
+                    "attached": [
+                      {
+                        "id": "dvpv-template",
+                        "class": "topic",
+                        "title": "使用固定 Test Flow 模板"
+                      },
+                      {
+                        "id": "dvpv-edit",
+                        "class": "topic",
+                        "title": "可根据当前客户需求修改"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "purpose-type-test",
+                  "class": "topic",
+                  "title": "型式试验测试（质量工程师使用）",
+                  "children": {
+                    "attached": [
+                      {
+                        "id": "type-template",
+                        "class": "topic",
+                        "title": "使用固定 Test Flow 模板"
+                      },
+                      {
+                        "id": "type-edit",
+                        "class": "topic",
+                        "title": "可根据当前客户需求修改"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "purpose-change",
+                  "class": "topic",
+                  "title": "变更测试",
+                  "children": {
+                    "attached": [
+                      {
+                        "id": "change-users",
+                        "class": "topic",
+                        "title": "研发 / 产品测试工程师 / 质量工程师 / 采购工程师使用"
+                      },
+                      {
+                        "id": "change-template",
+                        "class": "topic",
+                        "title": "使用变更测试模板"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "application-output",
+                  "class": "topic",
+                  "title": "输出：形成测试项目 / Test Flow",
+                  "children": {
+                    "attached": [
+                      {
+                        "id": "step-2-filter",
+                        "class": "topic",
+                        "title": "第二步：系统筛选测试项目",
+                        "children": {
+                          "attached": [
+                            {
+                              "id": "internal-flow-in",
+                              "class": "topic",
+                              "title": "必须内部测试",
+                              "children": {
+                                "attached": [
+                                  {
+                                    "id": "dg-lab-owner",
+                                    "class": "topic",
+                                    "title": "流入东莞实验室负责人",
+                                    "children": {
+                                      "attached": [
+                                        {
+                                          "id": "step-3a-internal",
+                                          "class": "topic",
+                                          "title": "第三步 A：内部测试资源确认",
+                                          "children": {
+                                            "attached": [
+                                              {
+                                                "id": "internal-resource-check",
+                                                "class": "topic",
+                                                "title": "东莞实验室负责人确认资源是否满足"
+                                              },
+                                              {
+                                                "id": "internal-accept",
+                                                "class": "topic",
+                                                "title": "资源满足：接受申请",
+                                                "children": {
+                                                  "attached": [
+                                                    {
+                                                      "id": "step-4a-internal-execution",
+                                                      "class": "topic",
+                                                      "title": "第四步 A：内部测试执行与报告",
+                                                      "children": {
+                                                        "attached": [
+                                                          {
+                                                            "id": "resource-board",
+                                                            "class": "topic",
+                                                            "title": "东莞实验室测试人员更新资源看板"
+                                                          },
+                                                          {
+                                                            "id": "raw-record",
+                                                            "class": "topic",
+                                                            "title": "编辑原始记录"
+                                                          },
+                                                          {
+                                                            "id": "draft-report",
+                                                            "class": "topic",
+                                                            "title": "生成草稿报告"
+                                                          },
+                                                          {
+                                                            "id": "applicant-confirm-internal",
+                                                            "class": "topic",
+                                                            "title": "申请人确认草稿报告无误"
+                                                          },
+                                                          {
+                                                            "id": "formal-report-internal",
+                                                            "class": "topic",
+                                                            "title": "上传正式报告至流程"
+                                                          },
+                                                          {
+                                                            "id": "process-end-internal",
+                                                            "class": "topic",
+                                                            "title": "流程结束"
+                                                          }
+                                                        ]
+                                                      }
+                                                    }
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "id": "internal-return",
+                                                "class": "topic",
+                                                "title": "资源不满足：退回申请人需求"
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                ]
+                              }
+                            },
+                            {
+                              "id": "external-flow-in",
+                              "class": "topic",
+                              "title": "委外测试",
+                              "children": {
+                                "attached": [
+                                  {
+                                    "id": "purchase-owner",
+                                    "class": "topic",
+                                    "title": "流入测试采购人员",
+                                    "children": {
+                                      "attached": [
+                                        {
+                                          "id": "step-3b-external",
+                                          "class": "topic",
+                                          "title": "第三步 B：委外测试资源确认",
+                                          "children": {
+                                            "attached": [
+                                              {
+                                                "id": "external-price",
+                                                "class": "topic",
+                                                "title": "采购人员进行比价"
+                                              },
+                                              {
+                                                "id": "external-resource",
+                                                "class": "topic",
+                                                "title": "确认第三方实验室资源",
+                                                "children": {
+                                                  "attached": [
+                                                    {
+                                                      "id": "step-4b-external-execution",
+                                                      "class": "topic",
+                                                      "title": "第四步 B：委外测试执行与报告",
+                                                      "children": {
+                                                        "attached": [
+                                                          {
+                                                            "id": "applicant-follow-third-party",
+                                                            "class": "topic",
+                                                            "title": "申请人自行跟进第三方实验室"
+                                                          },
+                                                          {
+                                                            "id": "applicant-confirm-external",
+                                                            "class": "topic",
+                                                            "title": "申请人确认第三方实验室报告"
+                                                          },
+                                                          {
+                                                            "id": "formal-report-external",
+                                                            "class": "topic",
+                                                            "title": "上传正式报告至流程"
+                                                          },
+                                                          {
+                                                            "id": "process-end-external",
+                                                            "class": "topic",
+                                                            "title": "流程结束"
+                                                          }
+                                                        ]
+                                                      }
+                                                    }
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "structureClass": "org.xmind.ui.org-chart.down"
+  }
+]

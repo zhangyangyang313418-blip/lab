@@ -43,6 +43,10 @@ function formatNumber(value: number | null) {
   }).format(value);
 }
 
+function formatLabName(lab: string) {
+  return lab === "苏劢" ? "苏勃" : lab;
+}
+
 export function EnvironmentFeeDetailTable({ phase }: { phase: EnvironmentPlanPhase }) {
   const sections = createEnvironmentFeeDetailSections(phase);
 
@@ -74,10 +78,8 @@ export function EnvironmentFeeDetailTable({ phase }: { phase: EnvironmentPlanPha
               <th>SGS 单项费用</th>
               <th>华测 单价</th>
               <th>华测 单项费用</th>
-              <th>苏劢 单价</th>
-              <th>苏劢 单项费用</th>
-              <th>信测 单价</th>
-              <th>信测 单项费用</th>
+              <th>苏勃 单价</th>
+              <th>苏勃 单项费用</th>
               <th>状态</th>
             </tr>
           </thead>
@@ -98,9 +100,9 @@ export function EnvironmentFeeDetailTable({ phase }: { phase: EnvironmentPlanPha
                   <td>{formatUnitPrice(row.medianUnitPrice)}</td>
                   <td>{formatCurrency(row.estimatedItemFee)}</td>
                   {row.labs.map((lab) => (
-                    <Fragment key={lab.lab}>
-                      <td key={`${lab.lab}-unit`}>{formatUnitPrice(lab.unitPrice)}</td>
-                      <td key={`${lab.lab}-fee`}>{formatCurrency(lab.itemFee)}</td>
+                    <Fragment key={formatLabName(lab.lab)}>
+                      <td>{formatUnitPrice(lab.unitPrice)}</td>
+                      <td>{formatCurrency(lab.itemFee)}</td>
                     </Fragment>
                   ))}
                   <td className={row.status === "priced" ? "fee-detail__status" : "fee-detail__status fee-detail__status--pending"}>

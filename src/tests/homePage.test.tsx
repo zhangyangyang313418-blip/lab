@@ -14,6 +14,10 @@ function getFlowItemTime(ariaLabel: string) {
   return (screen.getByLabelText(ariaLabel) as HTMLInputElement).value;
 }
 
+function getFlowItemFee(ariaLabel: string) {
+  return screen.getByLabelText(ariaLabel).closest(".flow-item")?.querySelector(".fee-display-button")?.textContent?.trim();
+}
+
 function countExactSampleBadges(text: string) {
   return Array.from(document.querySelectorAll(".d-mini"))
     .filter((node) => {
@@ -196,7 +200,7 @@ describe("app bootstrap", () => {
 
     expect(screen.getByRole("heading", { name: "环境测试大纲", level: 1 })).toBeInTheDocument();
     expect(screen.getByDisplayValue("108")).toBeInTheDocument();
-    expect(screen.getAllByDisplayValue("¥949,266.00").length).toBeGreaterThan(0);
+    expect(screen.getAllByDisplayValue("¥988,638.00").length).toBeGreaterThan(0);
     expect(screen.getAllByDisplayValue("111").length).toBeGreaterThan(0);
     expect(screen.getAllByText("• 以上时间为测试时间，实际测试执行时，需考虑样品流转时间，会增加约 20d").length).toBeGreaterThan(0);
     expect(screen.getByLabelText("DV Baseline Optical Test 样品")).toHaveValue("68");
@@ -236,13 +240,16 @@ describe("app bootstrap", () => {
     expect(getFlowItemSample("dv-Group C-c-particle-label")).toBe("27-32");
     expect(screen.getByLabelText("dv-Group A-a-post-l1l4-label")).toBeInTheDocument();
     expect(screen.getByLabelText("dv-Group A-a-post-optical-label")).toBeInTheDocument();
-    expect(screen.getByLabelText("dv-Group A-a-post-l6-label")).toBeInTheDocument();
+    expect(screen.getByLabelText("dv-Group A-a-post-l6-label")).toHaveValue("L6-photo&xray");
+    expect(getFlowItemTime("dv-Group A-a-post-l6-hours")).toBe("7");
     expect(screen.getByLabelText("dv-Group B-b-post-l1l4-label")).toBeInTheDocument();
     expect(screen.getByLabelText("dv-Group B-b-post-optical-label")).toBeInTheDocument();
-    expect(screen.getByLabelText("dv-Group B-b-post-l6-label")).toBeInTheDocument();
+    expect(screen.getByLabelText("dv-Group B-b-post-l6-label")).toHaveValue("L6-photo&xray");
+    expect(getFlowItemTime("dv-Group B-b-post-l6-hours")).toBe("7");
     expect(screen.getByLabelText("dv-Group C-c-post-l1l4-label")).toBeInTheDocument();
     expect(screen.getByLabelText("dv-Group C-c-post-optical-label")).toBeInTheDocument();
-    expect(screen.getByLabelText("dv-Group C-c-post-l6-label")).toBeInTheDocument();
+    expect(screen.getByLabelText("dv-Group C-c-post-l6-label")).toHaveValue("L6-photo&xray");
+    expect(getFlowItemTime("dv-Group C-c-post-l6-hours")).toBe("3");
     expect(screen.getAllByDisplayValue("K26 Mechanical Wear-Out")).toHaveLength(2);
     expect(getFlowItemTime("dv-Group A-a-particle-hours")).toBe("5");
     expect(getFlowItemTime("dv-Group A-a-k7-hours")).toBe("6");
@@ -276,10 +283,13 @@ describe("app bootstrap", () => {
     expect(getComputedStyle(dSubgroupCode as Element).fontWeight).toBe(getComputedStyle(aGroupHead as Element).fontWeight);
     expect(screen.getByLabelText("dv-Group D-1-d1-post-l1l4-label")).toBeInTheDocument();
     expect(screen.getByLabelText("dv-Group D-1-d1-post-optical-label")).toBeInTheDocument();
-    expect(screen.getByLabelText("dv-Group D-1-d1-post-l6-label")).toBeInTheDocument();
+    expect(screen.getByLabelText("dv-Group D-1-d1-post-l6-label")).toHaveValue("L6-photo&xray");
+    expect(getFlowItemTime("dv-Group D-1-d1-post-l6-hours")).toBe("3");
     expect(screen.getByLabelText("dv-Group D-3-d3-post-l1l4-label")).toBeInTheDocument();
     expect(screen.queryByLabelText("dv-Group D-3-d3-post-optical-label")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("dv-Group D-3-d3-post-l6-label")).toBeInTheDocument();
+    expect(screen.getByLabelText("dv-Group D-3-d3-post-l6-internal-label")).toHaveValue("L6-photo&xray");
+    expect(getFlowItemTime("dv-Group D-3-d3-post-l6-internal-hours")).toBe("3");
+    expect(screen.getByLabelText("dv-Group D-3-d3-post-l6-external-label")).toHaveValue("L6-SEM&SECTION");
     expect((screen.getByLabelText("pv-Group D-8-d8-cold-hours") as HTMLInputElement).value).toBe("8h");
     expect((screen.getByLabelText("pv-Group D-8-d8-hot-hours") as HTMLInputElement).value).toBe("8h");
     expect((screen.getByLabelText("pv-Group D-8-d8-tst-hours") as HTMLInputElement).value).toBe("8h");
@@ -386,6 +396,13 @@ describe("app bootstrap", () => {
 
     expect(screen.getByLabelText("dv-Group A-manual-dv-Group A-a-k1-2-label")).toHaveValue("新测试项");
 
+    const insertedAfterK1 = screen.getByLabelText("dv-Group A-manual-dv-Group A-a-k1-2-label");
+    await user.clear(insertedAfterK1);
+    await user.type(insertedAfterK1, "K6 Power Thermal Cycle");
+
+    expect(screen.getByLabelText("dv-Group A-manual-dv-Group A-a-k1-2-hours")).toHaveValue("11");
+    expect(getFlowItemFee("dv-Group A-manual-dv-Group A-a-k1-2-label")).toBe("¥7,200.00");
+
     await user.click(screen.getByRole("button", { name: "删除 DV / Group A / K1 Low Temperature Exposure" }));
 
     expect(screen.queryByLabelText("dv-Group A-a-k1-label")).not.toBeInTheDocument();
@@ -394,7 +411,7 @@ describe("app bootstrap", () => {
     await clickUndoButton(user);
 
     expect(screen.getByLabelText("dv-Group A-a-k1-label")).toHaveValue("K1 Low Temperature Exposure");
-  });
+  }, 10000);
 
   it("lets a non-fully-reused new project insert and delete whole environment groups", async () => {
     const user = userEvent.setup();
@@ -551,6 +568,7 @@ describe("app bootstrap", () => {
     expect((screen.getByLabelText("pv-Group D-8-ed8-post-l1l4-hours") as HTMLInputElement).value).toBe("3");
     expect((screen.getByLabelText("pv-Group D-8-ed8-post-optical-hours") as HTMLInputElement).value).toBe("3");
     expect((screen.getByLabelText("pv-Group D-8-ed8-post-l6-hours") as HTMLInputElement).value).toBe("3");
+    expect(screen.getByLabelText("pv-Group D-8-ed8-post-l6-label")).toHaveValue("L6-photo&xray");
     expect((screen.getByLabelText("dv-Group E-2-ee2-item-hours") as HTMLInputElement).value).toBe("10");
     expect(screen.queryByLabelText("dv-Group D-9-d9-k52-label")).not.toBeInTheDocument();
   });

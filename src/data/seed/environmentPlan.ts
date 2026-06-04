@@ -16,6 +16,26 @@ function createNamedRow(id: string, code: string, name: string, testHours: strin
   return createRow(id, `${code} ${name}`.trim(), testHours, sampleRange);
 }
 
+function getSampleRangeQuantity(sampleRange: string | undefined): number | null {
+  const match = sampleRange?.match(/^(\d+)-(\d+)$/);
+  if (!match) {
+    return null;
+  }
+
+  return Number(match[2]) - Number(match[1]) + 1;
+}
+
+function createL6InternalRow(id: string, testHours: string, sampleRange?: string): EnvironmentPlanRow {
+  const quantity = getSampleRangeQuantity(sampleRange);
+  const durationDays = quantity === 12 ? "7" : quantity === 6 ? "3" : testHours;
+
+  return createRow(id, "L6-photo&xray", durationDays, sampleRange);
+}
+
+function createL6ExternalRow(id: string, testHours: string, sampleRange?: string): EnvironmentPlanRow {
+  return createRow(id, "L6-SEM&SECTION", testHours, sampleRange);
+}
+
 function formatCurrency(value: number): string {
   return value > 0 ? String(Math.round(value)) : "";
 }
@@ -222,7 +242,7 @@ function createMlaPlan(environmentItems: EditableTestItem[], projectCode: string
       createNamedRow("a-k14", "K14", "Dust Blowing Test", "5", "1-12"),
       createRow("a-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "3", "1-12"),
       createRow("a-post-optical", "Optical Test", "2", "1-12"),
-      createRow("a-post-l6", "L6 Internal Inspection", "7", "1-12"),
+      createL6InternalRow("a-post-l6", "7", "1-12"),
     ], { totalDurationDays: "101" }),
     createGroup("mla-group-b", "Group B", groupBItems, withRowsWhenItemsExist(groupBItems, [
       createRow("b-optical", "Optical Test", "7"),
@@ -231,7 +251,7 @@ function createMlaPlan(environmentItems: EditableTestItem[], projectCode: string
       createNamedRow("b-k18", "K18", "Connector and lead/lock strength", "7"),
       createRow("b-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "3"),
       createRow("b-post-optical", "Optical Test", "2"),
-      createRow("b-post-l6", "L6 Internal Inspection", "4"),
+      createL6InternalRow("b-post-l6", "7"),
     ]), { totalDurationDays: "21" }),
     createGroup("mla-group-c", "Group C", groupCItems, [
       createRow("c-optical", "Optical Test", "7"),
@@ -244,7 +264,7 @@ function createMlaPlan(environmentItems: EditableTestItem[], projectCode: string
       createNamedRow("c-k26", "K26", "Mechanical Wear-Out", "23"),
       createRow("c-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "2"),
       createRow("c-post-optical", "Optical Test", "1"),
-      createRow("c-post-l6", "L6 Internal Inspection", "3"),
+      createL6InternalRow("c-post-l6", "3"),
     ], { totalDurationDays: "56" }),
     createGroup("mla-group-d1", "Group D-1", groupD1Items, withRowsWhenItemsExist(groupD1Items, [
       createRow("d1-optical", "Optical Test", "7"),
@@ -252,7 +272,7 @@ function createMlaPlan(environmentItems: EditableTestItem[], projectCode: string
       createNamedRow("d1-k21", "K21", "Corrosive Gases", "16"),
       createRow("d1-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "2"),
       createRow("d1-post-optical", "Optical Test", "1"),
-      createRow("d1-post-l6", "L6 Internal Inspection", "3"),
+      createL6InternalRow("d1-post-l6", "3"),
     ]), { totalDurationDays: "22" }),
     createGroup("mla-group-d2", "Group D-2", groupD2Items, withRowsWhenItemsExist(groupD2Items, [
       createRow("d2-optical", "Optical Test", "7"),
@@ -260,21 +280,22 @@ function createMlaPlan(environmentItems: EditableTestItem[], projectCode: string
       createNamedRow("d2-k20", "K20", "Solar Radiation", "32"),
       createRow("d2-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "2"),
       createRow("d2-post-optical", "Optical Test", "1"),
-      createRow("d2-post-l6", "L6 Internal Inspection", "3"),
+      createL6InternalRow("d2-post-l6", "3"),
     ]), { totalDurationDays: "38" }),
     createGroup("mla-group-d3", "Group D-3", groupD3Items, [
       createRow("d3-optical", "Optical Test", "7"),
       createRow("d3-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "3"),
       createNamedRow("d3-k23", "K23", "Thermal Shock Endurance", "46"),
       createRow("d3-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "2"),
-      createRow("d3-post-l6", "L6 Internal Inspection", "20"),
+      createL6InternalRow("d3-post-l6-internal", "3"),
+      createL6ExternalRow("d3-post-l6-external", "20"),
     ], { totalSamplePrefix: "PCBA", totalSampleQty: "8", totalDurationDays: "68" }),
     createGroup("mla-group-d4", "Group D-4", groupD4Items, [
       createRow("d4-optical", "Optical Test", "7"),
       createRow("d4-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "3"),
       createNamedRow("d4-k8", "K8", "Dewing Test", "2"),
       createRow("d4-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "2"),
-      createRow("d4-post-l6", "L6 Internal Inspection", "3"),
+      createL6InternalRow("d4-post-l6", "3"),
     ], { totalSamplePrefix: "PCBA", totalDurationDays: "7" }),
     createGroup("mla-group-d5", "Group D-5", groupD5Items, withRowsWhenItemsExist(groupD5Items, [
       createRow("d5-optical", "Optical Test", "7"),
@@ -282,14 +303,14 @@ function createMlaPlan(environmentItems: EditableTestItem[], projectCode: string
       createNamedRow("d5-k24", "K24", "High Temperature Endurance", "42"),
       createRow("d5-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "2"),
       createRow("d5-post-optical", "Optical Test", "1"),
-      createRow("d5-post-l6", "L6 Internal Inspection", "3"),
+      createL6InternalRow("d5-post-l6", "3"),
     ]), { totalDurationDays: "48" }),
     createGroup("mla-group-d6", "Group D-6", groupD6Items, withRowsWhenItemsExist(groupD6Items, [
       createRow("d6-optical", "Optical Test", "7"),
       createRow("d6-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "3"),
       createNamedRow("d6-k27", "K27", "85/85 High Temperature -High Humidity Endurance", "42"),
       createRow("d6-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "2"),
-      createRow("d6-post-l6", "L6 Internal Inspection", "3"),
+      createL6InternalRow("d6-post-l6", "3"),
     ]), { totalDurationDays: "47" }),
     createGroup("mla-group-d7", "Group D-7", groupD7Items, withRowsWhenItemsExist(groupD7Items, [
       createRow("d7-optical", "Optical Test", "7"),
@@ -297,7 +318,7 @@ function createMlaPlan(environmentItems: EditableTestItem[], projectCode: string
       createNamedRow("d7-k27", "K27", "60/95 High Temperature -High Humidity Endurance", "46"),
       createRow("d7-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "2"),
       createRow("d7-post-optical", "Optical Test", "1"),
-      createRow("d7-post-l6", "L6 Internal Inspection", "3"),
+      createL6InternalRow("d7-post-l6", "3"),
     ]), { totalDurationDays: "52" }),
     createGroup("mla-group-d8", "Group D-8", groupD8Items, withRowsWhenItemsExist(groupD8Items, [
       createRow("d8-optical", "Optical Test", "7"),
@@ -309,7 +330,7 @@ function createMlaPlan(environmentItems: EditableTestItem[], projectCode: string
       createNamedRow("d8-mix", "K28", "HALT TST & Vibration", "8h"),
       createRow("d8-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "3"),
       createRow("d8-post-optical", "Optical Test", "3"),
-      createRow("d8-post-l6", "L6 Internal Inspection", "3"),
+      createL6InternalRow("d8-post-l6", "3"),
     ]), { totalSampleQty: "15", totalDurationDays: "14" }),
     createGroup("mla-group-d9", "Group D-9", groupD9Items, [
       createRow("d9-optical", "Optical Test", "7"),
@@ -317,7 +338,7 @@ function createMlaPlan(environmentItems: EditableTestItem[], projectCode: string
       createNamedRow("d9-k52", "K52.351", "Condensing humidity", "7"),
       createRow("d9-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "2"),
       createRow("d9-post-optical", "Optical Test", "1"),
-      createRow("d9-post-l6", "L6 Internal Inspection", "3"),
+      createL6InternalRow("d9-post-l6", "3"),
     ], { totalDurationDays: "13" }),
     createGroup(
       "mla-group-e1",
@@ -387,7 +408,7 @@ function createMlaRhdPlan(environmentItems: EditableTestItem[], projectCode: str
       createNamedRow("a-k14", "K14", "Dust Blowing Test", "5", "1-12"),
       createRow("a-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "3", "1-12"),
       createRow("a-post-optical", "Optical Test", "2", "1-12"),
-      createRow("a-post-l6", "L6 Internal Inspection", "7", "1-12"),
+      createL6InternalRow("a-post-l6", "7", "1-12"),
     ], { totalSampleQty: "14", totalDurationDays: "101" }),
     createGroup("mla-rhd-group-c", "Group C", groupCItems, [
       createNamedRow("c-k7", "K7", "Thermal Shock in Air", "14", "15-20"),
@@ -398,23 +419,24 @@ function createMlaRhdPlan(environmentItems: EditableTestItem[], projectCode: str
       createNamedRow("c-k26", "K26", "Mechanical Wear-Out", "23", "15-20"),
       createRow("c-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "2", "15-20"),
       createRow("c-post-optical", "Optical Test", "1", "15-20"),
-      createRow("c-post-l6", "L6 Internal Inspection", "3", "15-20"),
+      createL6InternalRow("c-post-l6", "3", "15-20"),
     ], { totalSampleQty: "6", totalDurationDays: "56" }),
     createGroup("mla-rhd-group-d3", "Group D-3", groupD3Items, [
       createNamedRow("d3-k23", "K23", "Thermal Shock Endurance", "46", "21-28"),
       createRow("d3-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "2", "21-28"),
-      createRow("d3-post-l6", "L6 Internal Inspection", "20", "21-28"),
+      createL6InternalRow("d3-post-l6-internal", "20", "21-28"),
+      createL6ExternalRow("d3-post-l6-external", "20", "21-28"),
     ], { totalSamplePrefix: "PCBA", totalSampleQty: "8", totalDurationDays: "68" }),
     createGroup("mla-rhd-group-d4", "Group D-4", groupD4Items, [
       createNamedRow("d4-k8", "K8", "Dewing Test", "2", "29-34"),
       createRow("d4-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "2", "29-34"),
-      createRow("d4-post-l6", "L6 Internal Inspection", "3", "29-34"),
+      createL6InternalRow("d4-post-l6", "3", "29-34"),
     ], { totalSamplePrefix: "PCBA", totalSampleQty: "6", totalDurationDays: "7" }),
     createGroup("mla-rhd-group-d9", "Group D-9", groupD9Items, [
       createNamedRow("d9-k52", "K52.351", "Condensing humidity", "7", "35-40"),
       createRow("d9-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "2", "35-40"),
       createRow("d9-post-optical", "Optical Test", "1", "35-40"),
-      createRow("d9-post-l6", "L6 Internal Inspection", "3", "35-40"),
+      createL6InternalRow("d9-post-l6", "3", "35-40"),
     ], { totalSampleQty: "6", totalDurationDays: "13" }),
     createGroup(
       "mla-rhd-group-e2",
@@ -461,7 +483,7 @@ function createEmaPlan(environmentItems: EditableTestItem[], projectCode: string
       createNamedRow("ea-k13", "K13", "Dust Ingress", "5", "1-12"),
       createRow("ea-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "3", "1-12"),
       createRow("ea-post-optical", "Optical Test", "2", "1-12"),
-      createRow("ea-post-l6", "L6 Internal Inspection", "7", "1-12"),
+      createL6InternalRow("ea-post-l6", "7", "1-12"),
     ], { totalSampleQty: "14", totalDurationDays: "94", totalCost: "" }),
     createGroup("ema-group-b", "Group B", environmentItems, [
       createRow("eb-optical", "Optical Test", "7"),
@@ -470,7 +492,7 @@ function createEmaPlan(environmentItems: EditableTestItem[], projectCode: string
       createNamedRow("eb-k18", "K18", "Connector and lead/lock strength", "7", "15-26"),
       createRow("eb-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "3", "15-26"),
       createRow("eb-post-optical", "Optical Test", "2", "15-26"),
-      createRow("eb-post-l6", "L6 Internal Inspection", "4", "15-26"),
+      createL6InternalRow("eb-post-l6", "4", "15-26"),
     ], { totalSampleQty: "12", totalDurationDays: "21", totalCost: "" }),
     createGroup("ema-group-c", "Group C", environmentItems, [
       createRow("ec-optical", "Optical Test", "7"),
@@ -481,7 +503,7 @@ function createEmaPlan(environmentItems: EditableTestItem[], projectCode: string
       createNamedRow("ec-k26", "K26", "Mechanical Wear-Out", "23", "27-32"),
       createRow("ec-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "2", "27-32"),
       createRow("ec-post-optical", "Optical Test", "1", "27-32"),
-      createRow("ec-post-l6", "L6 Internal Inspection", "3", "27-32"),
+      createL6InternalRow("ec-post-l6", "3", "27-32"),
     ], { totalSampleQty: "6", totalDurationDays: "49", totalCost: "" }),
     createGroup("ema-group-d1", "Group D-1", environmentItems, [
       createRow("ed1-optical", "Optical Test", "7"),
@@ -489,7 +511,7 @@ function createEmaPlan(environmentItems: EditableTestItem[], projectCode: string
       createNamedRow("ed1-k21", "K21", "Corrosive Gases", "42", "33-38"),
       createRow("ed1-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "2", "33-38"),
       createRow("ed1-post-optical", "Optical Test", "1", "33-38"),
-      createRow("ed1-post-l6", "L6 Internal Inspection", "3", "33-38"),
+      createL6InternalRow("ed1-post-l6", "3", "33-38"),
     ], { totalSampleQty: "6", totalDurationDays: "48", totalCost: "" }),
     createGroup("ema-group-d2", "Group D-2", environmentItems, [
       createRow("ed2-optical", "Optical Test", "7"),
@@ -497,19 +519,20 @@ function createEmaPlan(environmentItems: EditableTestItem[], projectCode: string
       createNamedRow("ed2-k20", "K20", "Solar Radiation", "2", "39-44"),
       createRow("ed2-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "2", "39-44"),
       createRow("ed2-post-optical", "Optical Test", "1", "39-44"),
-      createRow("ed2-post-l6", "L6 Internal Inspection", "3", "39-44"),
+      createL6InternalRow("ed2-post-l6", "3", "39-44"),
     ], { totalSampleQty: "6", totalDurationDays: "8", totalCost: "" }),
     createGroup("ema-group-d3", "Group D-3", environmentItems, [
       createRow("ed3-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "3"),
       createNamedRow("ed3-k23", "K23", "Thermal Shock Endurance", "46", "45-52"),
       createRow("ed3-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "2", "45-52"),
-      createRow("ed3-post-l6", "L6 Internal Inspection", "20", "45-52"),
+      createL6InternalRow("ed3-post-l6-internal", "3", "45-52"),
+      createL6ExternalRow("ed3-post-l6-external", "20", "45-52"),
     ], { totalSamplePrefix: "PCBA", totalSampleQty: "8", totalDurationDays: "68", totalCost: "" }),
     createGroup("ema-group-d4", "Group D-4", environmentItems, [
       createRow("ed4-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "3"),
       createNamedRow("ed4-k8", "K8", "Dewing Test", "2", "53-58"),
       createRow("ed4-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "2", "53-58"),
-      createRow("ed4-post-l6", "L6 Internal Inspection", "3", "53-58"),
+      createL6InternalRow("ed4-post-l6", "3", "53-58"),
     ], { totalSamplePrefix: "PCBA", totalSampleQty: "6", totalDurationDays: "7", totalCost: "" }),
     createGroup("ema-group-d5", "Group D-5", environmentItems, [
       createRow("ed5-optical", "Optical Test", "7"),
@@ -517,14 +540,14 @@ function createEmaPlan(environmentItems: EditableTestItem[], projectCode: string
       createNamedRow("ed5-k24", "K24", "High Temperature Endurance", "42", "59-64"),
       createRow("ed5-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "2", "59-64"),
       createRow("ed5-post-optical", "Optical Test", "1", "59-64"),
-      createRow("ed5-post-l6", "L6 Internal Inspection", "3", "59-64"),
+      createL6InternalRow("ed5-post-l6", "3", "59-64"),
     ], { totalSampleQty: "6", totalDurationDays: "48", totalCost: "" }),
     createGroup("ema-group-d6", "Group D-6", environmentItems, [
       createRow("ed6-optical", "Optical Test", "7"),
       createRow("ed6-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "3"),
       createNamedRow("ed6-k27", "K27", "85/85 High Temperature -High Humidity Endurance", "42", "65-70"),
       createRow("ed6-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "2", "65-70"),
-      createRow("ed6-post-l6", "L6 Internal Inspection", "3", "65-70"),
+      createL6InternalRow("ed6-post-l6", "3", "65-70"),
     ], { totalSampleQty: "6", totalDurationDays: "47", totalCost: "" }),
     createGroup("ema-group-d7", "Group D-7", environmentItems, [
       createRow("ed7-optical", "Optical Test", "7"),
@@ -532,7 +555,7 @@ function createEmaPlan(environmentItems: EditableTestItem[], projectCode: string
       createNamedRow("ed7-k27", "K27", "60/95 High Temperature -High Humidity Endurance", "46", "71-76"),
       createRow("ed7-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "2", "71-76"),
       createRow("ed7-post-optical", "Optical Test", "1", "71-76"),
-      createRow("ed7-post-l6", "L6 Internal Inspection", "3", "71-76"),
+      createL6InternalRow("ed7-post-l6", "3", "71-76"),
     ], { totalSampleQty: "6", totalDurationDays: "52", totalCost: "" }),
     createGroup("ema-group-d8", "Group D-8", environmentItems, [
       createRow("ed8-optical", "Optical Test", "7"),
@@ -544,7 +567,7 @@ function createEmaPlan(environmentItems: EditableTestItem[], projectCode: string
       createNamedRow("ed8-mix", "K28", "HALT TST & Vibration", "8h"),
       createRow("ed8-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "3"),
       createRow("ed8-post-optical", "Optical Test", "3"),
-      createRow("ed8-post-l6", "L6 Internal Inspection", "3"),
+      createL6InternalRow("ed8-post-l6", "3"),
     ], { totalSampleQty: "15", totalDurationDays: "14", totalCost: "" }),
     createGroup(
       "ema-group-e1",
@@ -593,7 +616,7 @@ function createEmaRhdPlan(environmentItems: EditableTestItem[], projectCode: str
       createNamedRow("ea-k13", "K13", "Dust Ingress", "5", "1-12"),
       createRow("ea-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "3", "1-12"),
       createRow("ea-post-optical", "Optical Test", "2", "1-12"),
-      createRow("ea-post-l6", "L6 Internal Inspection", "7", "1-12"),
+      createL6InternalRow("ea-post-l6", "7", "1-12"),
     ], { totalSampleQty: "14", totalDurationDays: "94", totalCost: "" }),
     createGroup("ema-rhd-group-c", "Group C", environmentItems, [
       createNamedRow("ec-k7", "K7", "Thermal Shock in Air", "14", "15-20"),
@@ -602,17 +625,17 @@ function createEmaRhdPlan(environmentItems: EditableTestItem[], projectCode: str
       createNamedRow("ec-k26", "K26", "Mechanical Wear-Out", "23", "15-20"),
       createRow("ec-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "2", "15-20"),
       createRow("ec-post-optical", "Optical Test", "1", "15-20"),
-      createRow("ec-post-l6", "L6 Internal Inspection", "3", "15-20"),
+      createL6InternalRow("ec-post-l6", "3", "15-20"),
     ], { totalSampleQty: "6", totalDurationDays: "49", totalCost: "" }),
     createGroup("ema-rhd-group-d4", "Group D-4", environmentItems, [
       createNamedRow("ed4-k8", "K8", "Dewing Test", "2", "21-26"),
       createRow("ed4-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "2", "21-26"),
-      createRow("ed4-post-l6", "L6 Internal Inspection", "3", "21-26"),
+      createL6InternalRow("ed4-post-l6", "3", "21-26"),
     ], { totalSamplePrefix: "PCBA", totalSampleQty: "6", totalDurationDays: "7", totalCost: "" }),
     createGroup("ema-rhd-group-d6", "Group D-6", environmentItems, [
       createNamedRow("ed6-k27", "K27", "85/85 High Temperature -High Humidity Endurance", "42", "33-38"),
       createRow("ed6-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "2", "33-38"),
-      createRow("ed6-post-l6", "L6 Internal Inspection", "3", "33-38"),
+      createL6InternalRow("ed6-post-l6", "3", "33-38"),
     ], { totalSampleQty: "6", totalDurationDays: "47", totalCost: "" }),
     createGroup(
       "ema-rhd-group-f2",

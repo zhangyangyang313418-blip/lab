@@ -13,17 +13,35 @@ export interface EnvironmentFeePricingRule {
   matcher: RegExp;
   chargeBasis: EnvironmentFeeChargeBasis;
   labs: Record<EnvironmentFeeLabName, EnvironmentFeeLabPriceValue>;
+  chamberPrices?: {
+    large: Record<EnvironmentFeeLabName, EnvironmentFeeLabPriceValue>;
+    small: Record<EnvironmentFeeLabName, EnvironmentFeeLabPriceValue>;
+  };
+  compositeLabComponents?: Array<{
+    label: string;
+    fixedCount?: number;
+    countLabel: string;
+    basis?: Exclude<EnvironmentFeeChargeBasis, "pending">;
+    prices: Record<EnvironmentFeeLabName, EnvironmentFeeLabPriceValue>;
+  }>;
   fixedUnitPrice?: number;
   componentMultiplier?: number;
   componentLabel?: string;
   quantityLabel?: string;
+  fixedLabAddOn?: {
+    label: string;
+    prices: Record<EnvironmentFeeLabName, EnvironmentFeeLabPriceValue>;
+  };
   additiveComponent?: {
     fixedCount: number;
-    fixedUnitPrice: number;
+    fixedUnitPrice?: number;
+    fixedUnitPrices?: Record<EnvironmentFeeLabName, EnvironmentFeeLabPriceValue>;
     fixedLabel: string;
     variableBasis: Exclude<EnvironmentFeeChargeBasis, "pending">;
     variableLabel: string;
   };
+  priceLabel?: string;
+  hideUnavailableLabQuotes?: boolean;
   notes?: string;
 }
 
@@ -41,6 +59,8 @@ export interface EnvironmentFeeDetailRow {
   estimatedItemFee: number | null;
   labs: EnvironmentFeeLabQuote[];
   status: EnvironmentFeeStatus;
+  priceLabel?: string;
+  hideUnavailableLabQuotes?: boolean;
   notes?: string;
 }
 

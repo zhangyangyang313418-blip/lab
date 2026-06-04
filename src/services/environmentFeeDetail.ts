@@ -12,7 +12,7 @@ import type {
   EnvironmentFeeStatus,
 } from "../types/environmentFeeDetail";
 
-const labNames: EnvironmentFeeLabName[] = ["SGS", "华测", "苏劢", "信测"];
+const labNames: EnvironmentFeeLabName[] = ["SGS", "华测", "苏劢"];
 const mlaOpticalGroupsWithOne51Point = new Set([
   "Group A",
   "Group B",
@@ -31,6 +31,8 @@ export interface EnvironmentFeeBreakdownLine {
   quantity?: number;
   unitPrice?: number;
   formula?: string;
+  unitPriceSummary?: string;
+  unitPriceSummaryLines?: string[];
   total: number;
 }
 
@@ -76,7 +78,7 @@ function parseSampleCount(value: string | undefined): number | null {
 }
 
 function extractTestCode(label: string): string {
-  const codeMatch = label.match(/\b(K\d+(?:\.\d+)?|L1\s*&?\s*L4|L6|E-\d)\b/i);
+  const codeMatch = label.match(/\b(K\d+(?:\.\d+)?|L1\s*&?\s*L4|L6(?:-[A-Za-z&]+)?|E-\d)\b/i);
   return codeMatch ? codeMatch[1]!.replace(/\s+/g, "") : label.split(/\s+/)[0] ?? label;
 }
 
@@ -208,6 +210,15 @@ function getParticleExposureBreakdown(
       total: lab.total,
     })),
     total: medianTotal,
+    labQuotes: labNames.map((lab) => {
+      const line = labs.find((item) => item.lab === lab);
+
+      return {
+        lab,
+        unitPrice: "",
+        itemFee: line?.total ?? "N/A",
+      };
+    }),
     ...(medianLab ? { selectedLabel: medianLab } : {}),
     note: reduced ? "A 组已做，当前仅保留批次费" : "当前按实验室全额费用取中值",
   };
@@ -217,17 +228,103 @@ function createComponentFormula(
   rule: EnvironmentFeePricingRule,
   basisValue: number,
   unitPrice: number,
+  fixedLabAddOnPrice?: number,
 ) {
   const componentLabel = rule.componentLabel ?? `${rule.componentMultiplier ?? 1} 项`;
   const quantityLabel = rule.quantityLabel
-    ?? (rule.chargeBasis === "hour" ? "小时" : rule.chargeBasis === "batch" ? "批" : "台样机");
+    ?? (rule.chargeBasis === "hour" ? "h" : rule.chargeBasis === "batch" ? "批" : "台样机");
   const quantityPart = quantityLabel ? `${basisValue} ${quantityLabel}` : "";
+  const componentFormula = [componentLabel, quantityPart, String(unitPrice)].filter(Boolean).join(" × ");
 
-  return [componentLabel, quantityPart, String(unitPrice)].filter(Boolean).join(" × ");
+  return fixedLabAddOnPrice === undefined
+    ? componentFormula
+    : `${componentFormula} + ${rule.fixedLabAddOn?.label ?? "固定加项"} ${fixedLabAddOnPrice}`;
 }
 
 function getComponentMedianLab(lines: EnvironmentFeeBreakdownLine[], medianTotal: number) {
   return lines.find((line) => line.total === medianTotal)?.label as EnvironmentFeeLabName | undefined;
+}
+
+function getCompositeComponentBasisValue(
+  component: NonNullable<EnvironmentFeePricingRule["compositeLabComponents"]>[number],
+  base: { testHours: number | null; quantity: number | null; batchCount: number | null },
+) {
+  if (component.fixedCount !== undefined) {
+    return component.fixedCount;
+  }
+
+  return component.basis ? calculateBasisValue(component.basis, base) : null;
+}
+
+function getCompositeComponentFeeBreakdown(
+  rule: EnvironmentFeePricingRule,
+  base: { testHours: number | null; quantity: number | null; batchCount: number | null },
+): EnvironmentSpecialFeeBreakdown | null {
+  const components = rule.compositeLabComponents;
+
+  if (!components || components.length === 0) {
+    return null;
+  }
+
+  const lines = labNames.flatMap((lab) => {
+    const segmentFormulas: string[] = [];
+    const segmentUnitPrices = new Map<string, number>();
+    let total = 0;
+
+    for (const component of components) {
+      const basisValue = getCompositeComponentBasisValue(component, base);
+      const unitPrice = component.prices[lab];
+
+      if (basisValue === null || basisValue <= 0 || !isValidUnitPrice(unitPrice)) {
+        return [];
+      }
+
+      segmentFormulas.push(`${basisValue} ${component.countLabel} × ${unitPrice}`);
+      segmentUnitPrices.set(component.label, unitPrice);
+      total += basisValue * unitPrice;
+    }
+
+    const roomUnitPrice = segmentUnitPrices.get("常温");
+    const hotUnitPrice = segmentUnitPrices.get("高温");
+    const coldUnitPrice = segmentUnitPrices.get("低温");
+
+    return [{
+      label: lab,
+      formula: segmentFormulas.join(" + "),
+      ...(roomUnitPrice !== undefined && hotUnitPrice !== undefined && coldUnitPrice !== undefined
+        ? {
+            unitPriceSummary: `常温 ${roomUnitPrice}；高温 ${hotUnitPrice}；低温 ${coldUnitPrice}`,
+            unitPriceSummaryLines: [`常温 ${roomUnitPrice}`, `高温 ${hotUnitPrice}`, `低温 ${coldUnitPrice}`],
+          }
+        : {}),
+      total: Math.round(total),
+    }];
+  });
+
+  const medianTotal = calculateLabMedianUnitPrice(lines.map((line) => line.total));
+
+  if (medianTotal === null) {
+    return null;
+  }
+
+  const selectedLabel = getComponentMedianLab(lines, medianTotal);
+
+  return {
+    chargeBasis: "component-total",
+    lines,
+    total: medianTotal,
+    labQuotes: labNames.map((lab) => {
+      const line = lines.find((item) => item.label === lab);
+
+      return {
+        lab,
+        unitPrice: rule.labs[lab],
+        itemFee: line?.total ?? "N/A",
+      };
+    }),
+    ...(selectedLabel ? { selectedLabel } : {}),
+    ...(rule.notes ? { note: rule.notes } : {}),
+  };
 }
 
 function getAdditiveComponentFeeBreakdown(
@@ -248,17 +345,18 @@ function getAdditiveComponentFeeBreakdown(
 
   const lines = labNames.flatMap((lab) => {
     const variableUnitPrice = rule.labs[lab];
+    const fixedUnitPrice = component.fixedUnitPrices?.[lab] ?? component.fixedUnitPrice;
 
-    if (!isValidUnitPrice(variableUnitPrice)) {
+    if (!isValidUnitPrice(variableUnitPrice) || !isValidUnitPrice(fixedUnitPrice)) {
       return [];
     }
 
-    const fixedTotal = component.fixedCount * component.fixedUnitPrice;
+    const fixedTotal = component.fixedCount * fixedUnitPrice;
     const variableTotal = variableBasisValue * variableUnitPrice;
 
     return [{
       label: lab,
-      formula: `${component.fixedCount} ${component.fixedLabel} × ${component.fixedUnitPrice} + ${variableBasisValue} ${component.variableLabel} × ${variableUnitPrice}`,
+      formula: `${component.fixedCount} ${component.fixedLabel} × ${fixedUnitPrice} + ${variableBasisValue} ${component.variableLabel} × ${variableUnitPrice}`,
       total: Math.round(fixedTotal + variableTotal),
     }];
   });
@@ -289,12 +387,30 @@ function getAdditiveComponentFeeBreakdown(
   };
 }
 
+function isL6InternalInspectionRow(row: EnvironmentPlanRow) {
+  return /L6-photo&xray|\bL6\b|Internal Inspection|SEM&SECTION/i.test(row.label);
+}
+
+function isL6ExternalInspectionRow(row: EnvironmentPlanRow) {
+  return /L6-SEM&SECTION|外部/i.test(row.label);
+}
+
+function isL6InternalOnlyInspectionRow(row: EnvironmentPlanRow) {
+  return /L6-photo&xray|内部/i.test(row.label) && !isL6ExternalInspectionRow(row);
+}
+
 function getComponentFeeBreakdown(
   rule: EnvironmentFeePricingRule | undefined,
   base: { testHours: number | null; quantity: number | null; batchCount: number | null },
 ): EnvironmentSpecialFeeBreakdown | null {
   if (!rule) {
     return null;
+  }
+
+  const compositeBreakdown = getCompositeComponentFeeBreakdown(rule, base);
+
+  if (compositeBreakdown) {
+    return compositeBreakdown;
   }
 
   const additiveBreakdown = getAdditiveComponentFeeBreakdown(rule, base);
@@ -321,18 +437,26 @@ function getComponentFeeBreakdown(
 
   const lines = labNames.flatMap((lab) => {
     const unitPrice = rule.labs[lab];
+    const fixedLabAddOnPrice = rule.fixedLabAddOn?.prices[lab];
 
-    if (!isValidUnitPrice(unitPrice)) {
+    if (!isValidUnitPrice(unitPrice) || (fixedLabAddOnPrice !== undefined && !isValidUnitPrice(fixedLabAddOnPrice))) {
       return [];
     }
 
     return [{
       label: lab,
-      formula: createComponentFormula(rule, componentBasisValue, unitPrice),
-      total: Math.round(rule.componentMultiplier! * componentBasisValue * unitPrice),
+      formula: fixedLabAddOnPrice === undefined
+        ? createComponentFormula(rule, componentBasisValue, unitPrice, fixedLabAddOnPrice)
+        : `四项单价 ${unitPrice}；微应力 ${fixedLabAddOnPrice}`,
+      total: Math.round(rule.componentMultiplier! * componentBasisValue * unitPrice + (fixedLabAddOnPrice ?? 0)),
     }];
   });
-  const total = Math.round(rule.componentMultiplier * componentBasisValue * medianUnitPrice);
+  const total = calculateLabMedianUnitPrice(lines.map((line) => line.total));
+
+  if (total === null) {
+    return null;
+  }
+
   const selectedLabel = getComponentMedianLab(lines, total);
 
   return {
@@ -466,6 +590,14 @@ function calculateBasisValue(
   return null;
 }
 
+function getChamberAdjustedLabs(rule: EnvironmentFeePricingRule, quantity: number | null): EnvironmentFeePricingRule["labs"] {
+  if (!rule.chamberPrices) {
+    return rule.labs;
+  }
+
+  return quantity !== null && quantity <= 6 ? rule.chamberPrices.small : rule.chamberPrices.large;
+}
+
 export function calculateLabMedianUnitPrice(values: Array<number | string | undefined>): number | null {
   const validPrices = values.filter(isValidUnitPrice).sort((left, right) => left - right);
 
@@ -524,21 +656,58 @@ function getDisplayedTestHours(row: EnvironmentPlanRow): number | null {
   return testHoursDays === null ? null : testHoursDays * 24;
 }
 
+function getK15VibrationFixtureHours(row: EnvironmentPlanRow, quantity: number | null): number | null {
+  if (/\bK28\b|HALT/i.test(row.label) || !/\bK15\b|Vibartion|Vibration/i.test(row.label) || quantity === null || quantity <= 0) {
+    return null;
+  }
+
+  return Math.ceil(quantity / 6) * 24;
+}
+
+function getThreeSampleFixtureBatches(row: EnvironmentPlanRow, quantity: number | null): number | null {
+  if (!/\bK13\b|Dust Ingress|\bK14\b|Dust Blowing Test/i.test(row.label) || quantity === null || quantity <= 0) {
+    return null;
+  }
+
+  return Math.ceil(quantity / 3);
+}
+
 function applyCoefficientBasis(
   group: EnvironmentPlanGroup,
   row: EnvironmentPlanRow,
   base: { testHours: number | null; quantity: number | null; batchCount: number | null },
 ) {
   const basisRule = findMlaFeeBasisRule(group.title, row.label);
+  const vibrationFixtureHours = getK15VibrationFixtureHours(row, base.quantity);
+  const threeSampleFixtureBatches = getThreeSampleFixtureBatches(row, base.quantity);
 
   if (!basisRule) {
-    return base;
+    return {
+      ...base,
+      testHours: vibrationFixtureHours ?? base.testHours,
+      batchCount: threeSampleFixtureBatches ?? base.batchCount,
+    };
   }
 
   return {
-    testHours: basisRule.basis.hour ?? base.testHours,
+    testHours: vibrationFixtureHours ?? basisRule.basis.hour ?? base.testHours,
     quantity: basisRule.basis.quantity ?? base.quantity,
-    batchCount: basisRule.basis.batch ?? base.batchCount,
+    batchCount: threeSampleFixtureBatches ?? basisRule.basis.batch ?? base.batchCount,
+  };
+}
+
+function applyUserFeeBasisOverrides(
+  row: EnvironmentPlanRow,
+  basis: { testHours: number | null; quantity: number | null; batchCount: number | null },
+) {
+  const hour = parsePositiveNumber(row.feeBasisOverrides?.hour);
+  const quantity = parsePositiveNumber(row.feeBasisOverrides?.quantity);
+  const batch = parsePositiveNumber(row.feeBasisOverrides?.batch);
+
+  return {
+    testHours: hour ?? basis.testHours,
+    quantity: quantity ?? basis.quantity,
+    batchCount: batch ?? basis.batchCount,
   };
 }
 
@@ -573,6 +742,19 @@ function createLabQuotes(
   });
 }
 
+function createRuleLabQuotes(
+  rule: EnvironmentFeePricingRule | undefined,
+  labs: Record<EnvironmentFeeLabName, EnvironmentFeeLabPriceValue>,
+  basis: EnvironmentFeeChargeBasis,
+  base: { testHours: number | null; quantity: number | null; batchCount: number | null },
+): EnvironmentFeeLabQuote[] {
+  if (rule?.fixedUnitPrice !== undefined) {
+    return [];
+  }
+
+  return createLabQuotes(labs, basis, base);
+}
+
 function createDetailRow(
   phase: EnvironmentPlanPhase,
   group: EnvironmentPlanGroup,
@@ -585,10 +767,15 @@ function createDetailRow(
   };
   const shouldKeepConfirmedSpecialBasis = isMlaParticleExposureRow(group, row)
     || isMlaOpticalSpecialRow(group, row)
-    || isMlaBaselineL1L4Row(group, row);
-  const { testHours, quantity, batchCount } = shouldKeepConfirmedSpecialBasis
-    ? outlineBasis
-    : applyCoefficientBasis(group, row, outlineBasis);
+    || isMlaBaselineL1L4Row(group, row)
+    || (isL6InternalInspectionRow(row) && isL6InternalOnlyInspectionRow(row));
+  const feeBasis = applyUserFeeBasisOverrides(
+    row,
+    shouldKeepConfirmedSpecialBasis
+      ? outlineBasis
+      : applyCoefficientBasis(group, row, outlineBasis),
+  );
+  const { testHours, quantity, batchCount } = feeBasis;
   const particleBreakdown = isMlaParticleExposureRow(group, row) ? getParticleExposureBreakdown(phase, group, outlineBasis.quantity) : null;
   const specialOpticalFee = isMlaOpticalSpecialRow(group, row) ? calculateMlaOpticalFee(phase, group, row, outlineBasis.quantity) : null;
   const rule = findPricingRule(row);
@@ -675,12 +862,16 @@ function createDetailRow(
       estimatedItemFee: componentBreakdown.total,
       labs: componentBreakdown.labQuotes ?? [],
       status: "priced",
+      ...(rule?.priceLabel ? { priceLabel: rule.priceLabel } : {}),
+      ...(rule?.hideUnavailableLabQuotes ? { hideUnavailableLabQuotes: true } : {}),
       ...(componentBreakdown.note ? { notes: componentBreakdown.note } : {}),
     };
   }
 
   const chargeBasis = rule?.chargeBasis ?? "pending";
-  const labs = rule?.labs ?? { SGS: "", 华测: "", 苏劢: "", 信测: "" };
+  const labs: EnvironmentFeePricingRule["labs"] = rule
+    ? getChamberAdjustedLabs(rule, quantity)
+    : { SGS: "", 华测: "", 苏劢: "", 信测: "" };
   const medianUnitPrice = chargeBasis === "pending"
     ? null
     : rule?.fixedUnitPrice ?? calculateLabMedianUnitPrice(Object.values(labs));
@@ -698,8 +889,10 @@ function createDetailRow(
     chargeBasis,
     medianUnitPrice,
     estimatedItemFee,
-    labs: createLabQuotes(labs, chargeBasis, { testHours, quantity, batchCount }),
+    labs: createRuleLabQuotes(rule, labs, chargeBasis, { testHours, quantity, batchCount }),
     status: getFeeStatus(rule, estimatedItemFee),
+    ...(rule?.priceLabel ? { priceLabel: rule.priceLabel } : {}),
+    ...(rule?.hideUnavailableLabQuotes ? { hideUnavailableLabQuotes: true } : {}),
     ...(rule?.notes ? { notes: rule.notes } : {}),
   };
 }
