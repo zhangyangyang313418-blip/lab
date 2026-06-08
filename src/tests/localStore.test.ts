@@ -505,7 +505,7 @@ describe("local draft persistence", () => {
     );
   });
 
-  it("refreshes stale EMA drafts to the shared MLA fee template results", () => {
+  it("refreshes stale EMA drafts to the returned EMA workbook fee rules", () => {
     const state = createSeedAppState();
     const emaDraft = appReducer(state, {
       type: "applyProjectSetup",
@@ -533,15 +533,17 @@ describe("local draft persistence", () => {
           })),
         })),
       },
-      environmentPlanVersion: 28,
+      environmentPlanVersion: 29,
     });
 
     const hydrated = createInitialAppState();
     const dvPhase = hydrated.environmentPlan.phases.find((phase) => phase.id === "dv");
     const groupA = dvPhase?.groups.find((group) => group.id === "ema-group-a");
+    const groupB = dvPhase?.groups.find((group) => group.id === "ema-group-b");
     const groupE2 = dvPhase?.groups.find((group) => group.id === "ema-group-e2");
 
-    expect(groupA?.rows.find((row) => row.id === "ea-k1")?.fee).toBe("720");
+    expect(groupA?.rows.find((row) => row.id === "ea-k17")?.fee).toBe("39996");
+    expect(groupB?.rows.find((row) => row.id === "eb-k22")?.fee).toBe("7150");
     expect(groupE2?.rows.find((row) => row.id === "ee2-item")?.fee).toBe("42500");
     expect(dvPhase?.summary.totalCost).not.toBe("");
   });

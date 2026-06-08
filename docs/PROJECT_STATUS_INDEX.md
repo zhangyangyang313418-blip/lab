@@ -27,7 +27,8 @@ npm run build
 - MLA/LHD 环境费用规则维护以 `docs/MLA费用交接.md` 和 `docs/LHD费用说明.md` 为准。
 - 2026-06-03 已按用户修改后的单页 Excel 导回 MLA 费用：当前仅 `SGS / 华测 / 苏勃` 三家参与报价和中值计算，信测不参与本版。
 - 环境箱项目按样本量自动选价：`> 6` 使用大环境箱，`<= 6` 使用小环境箱。
-- 本地草稿迁移版本当前为 `ENVIRONMENT_PLAN_TEMPLATE_VERSION = 29`。
+- 本地草稿迁移版本当前为 `ENVIRONMENT_PLAN_TEMPLATE_VERSION = 30`。
+- EMA 费用已按 `outputs/ema-fee-detail-export/JLR-EMA 费用规则V.0 版本_待修改.xlsx` 导回专属规则；MLA 锁定费用不变。
 - 流程图维护以 `docs/*.drawio` 和对应 `scripts/generate_*drawio*.mjs` 为准。
 
 ## 关键文件入口

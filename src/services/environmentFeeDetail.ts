@@ -1,5 +1,7 @@
 import { mlaFeePricingRules } from "../data/seed/mlaFeePricing";
 import { findMlaFeeBasisRule } from "../data/seed/mlaFeeBasis";
+import { emaFeePricingRules } from "../data/seed/emaFeePricing";
+import { findEmaFeeBasisRule } from "../data/seed/emaFeeBasis";
 import type { EnvironmentPlanGroup, EnvironmentPlanPhase, EnvironmentPlanRow } from "../types/environmentPlan";
 import type {
   EnvironmentFeeChargeBasis,
@@ -82,8 +84,13 @@ function extractTestCode(label: string): string {
   return codeMatch ? codeMatch[1]!.replace(/\s+/g, "") : label.split(/\s+/)[0] ?? label;
 }
 
-function findPricingRule(row: EnvironmentPlanRow): EnvironmentFeePricingRule | undefined {
-  return mlaFeePricingRules.find((rule) => rule.matcher.test(row.label));
+function isEmaFeeTemplateGroup(group: EnvironmentPlanGroup) {
+  return group.id.startsWith("ema-group-") || group.id.startsWith("ema-rhd-group-");
+}
+
+function findPricingRule(group: EnvironmentPlanGroup, row: EnvironmentPlanRow): EnvironmentFeePricingRule | undefined {
+  const rules = isEmaFeeTemplateGroup(group) ? emaFeePricingRules : mlaFeePricingRules;
+  return rules.find((rule) => rule.matcher.test(row.label));
 }
 
 function isOpticalTestRow(row: EnvironmentPlanRow) {
@@ -562,7 +569,7 @@ export function getEnvironmentSpecialFeeBreakdown(
   };
   const feeBasis = applyCoefficientBasis(group, row, outlineBasis);
 
-  return getComponentFeeBreakdown(findPricingRule(row), feeBasis);
+  return getComponentFeeBreakdown(findPricingRule(group, row), feeBasis);
 }
 
 function isSharedOpticalSpecialRow(group: EnvironmentPlanGroup, row: EnvironmentPlanRow) {
@@ -689,7 +696,9 @@ function applyCoefficientBasis(
   row: EnvironmentPlanRow,
   base: { testHours: number | null; quantity: number | null; batchCount: number | null },
 ) {
-  const basisRule = findMlaFeeBasisRule(group.title, row.label);
+  const basisRule = isEmaFeeTemplateGroup(group)
+    ? findEmaFeeBasisRule(group.title, row.label)
+    : findMlaFeeBasisRule(group.title, row.label);
   const vibrationFixtureHours = getK15VibrationFixtureHours(row, base.quantity);
   const threeSampleFixtureBatches = getThreeSampleFixtureBatches(row, base.quantity);
 
@@ -726,6 +735,10 @@ function applyUserFeeBasisOverrides(
 function getFeeStatus(rule: EnvironmentFeePricingRule | undefined, estimatedItemFee: number | null): EnvironmentFeeStatus {
   if (!rule) {
     return "待确认";
+  }
+
+  if (/不测试/.test(rule.notes ?? "")) {
+    return "未匹配大纲";
   }
 
   if (rule.chargeBasis === "pending") {
@@ -790,7 +803,7 @@ function createDetailRow(
   const { testHours, quantity, batchCount } = feeBasis;
   const particleBreakdown = isMlaParticleExposureRow(group, row) ? getParticleExposureBreakdown(phase, group, outlineBasis.quantity) : null;
   const specialOpticalFee = isSharedOpticalSpecialRow(group, row) ? calculateMlaOpticalFee(phase, group, row, outlineBasis.quantity) : null;
-  const rule = findPricingRule(row);
+  const rule = findPricingRule(group, row);
   const componentBreakdown = getComponentFeeBreakdown(rule, { testHours, quantity, batchCount });
 
   if (particleBreakdown !== null) {

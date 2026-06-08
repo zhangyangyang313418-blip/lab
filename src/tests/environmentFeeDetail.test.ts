@@ -166,7 +166,7 @@ describe("environment fee detail calculations", () => {
     expect(k26?.labs.find((lab) => lab.lab === "信测")).toBeUndefined();
   });
 
-  it("applies the shared MLA fee template to EMA LHD representative rows", () => {
+  it("applies EMA-specific fee rules from the returned EMA workbook", () => {
     const phase: EnvironmentPlanPhase = {
       id: "dv",
       title: "DV",
@@ -193,8 +193,9 @@ describe("environment fee detail calculations", () => {
           totalCostLabel: "组费用",
           totalCost: "",
           rows: [
-            { id: "ea-k1", label: "K1 Low Temperature Exposure", testHours: "2", sampleRange: "1-12" },
             { id: "ea-k17", label: "K17 Audible Noise", testHours: "10", sampleRange: "1-12" },
+            { id: "ea-k7", label: "K7 Thermal Shock in Air", testHours: "14", sampleRange: "1-12" },
+            { id: "ea-k14", label: "K14 Dust Blowing Test", testHours: "5", sampleRange: "1-12" },
           ],
         },
         {
@@ -217,22 +218,43 @@ describe("environment fee detail calculations", () => {
           totalDurationDays: "49",
           totalCostLabel: "组费用",
           totalCost: "",
-          rows: [{ id: "ec-k26", label: "K26 Mechanical Wear-Out", testHours: "23", sampleRange: "27-32" }],
+          rows: [
+            { id: "ec-k26", label: "K26 Mechanical Wear-Out", testHours: "23", sampleRange: "27-32" },
+            { id: "ec-particle", label: "Particle Exposure", testHours: "2", sampleRange: "27-32" },
+          ],
         },
         {
-          id: "ema-group-d3",
-          title: "Group D-3",
+          id: "ema-group-d1",
+          title: "Group D-1",
           totalSampleLabel: "Total样机数量",
-          totalSamplePrefix: "PCBA",
-          totalSampleQty: "8",
+          totalSampleQty: "6",
           totalDurationLabel: "组测试时间(天)",
-          totalDurationDays: "68",
+          totalDurationDays: "48",
           totalCostLabel: "组费用",
           totalCost: "",
-          rows: [
-            { id: "ed3-post-l6-internal", label: "L6-photo&xray", testHours: "3", sampleRange: "45-52" },
-            { id: "ed3-post-l6-external", label: "L6-SEM&SECTION", testHours: "20", sampleRange: "45-52" },
-          ],
+          rows: [{ id: "ed1-k21", label: "K21 Corrosive Gases", testHours: "42", sampleRange: "33-38" }],
+        },
+        {
+          id: "ema-group-d2",
+          title: "Group D-2",
+          totalSampleLabel: "Total样机数量",
+          totalSampleQty: "6",
+          totalDurationLabel: "组测试时间(天)",
+          totalDurationDays: "8",
+          totalCostLabel: "组费用",
+          totalCost: "",
+          rows: [{ id: "ed2-k20", label: "K20 Solar Radiation", testHours: "2", sampleRange: "39-44" }],
+        },
+        {
+          id: "ema-group-d9",
+          title: "Group D-9",
+          totalSampleLabel: "Total样机数量",
+          totalSampleQty: "6",
+          totalDurationLabel: "组测试时间(天)",
+          totalDurationDays: "13",
+          totalCostLabel: "组费用",
+          totalCost: "",
+          rows: [{ id: "ed9-k52", label: "K52.351 Condensing humidity", testHours: "7", sampleRange: "77-82" }],
         },
         {
           id: "ema-group-e2",
@@ -248,14 +270,40 @@ describe("environment fee detail calculations", () => {
       ],
     };
 
-    const [groupA, groupB, groupC, groupD3, groupE2] = createEnvironmentFeeDetailSections(phase);
+    const [groupA, groupB, groupC, groupD1, groupD2, groupD9, groupE2] = createEnvironmentFeeDetailSections(phase);
+    const k7 = groupA?.rows.find((row) => row.outlineRowId === "ea-k7");
+    const k14 = groupA?.rows.find((row) => row.outlineRowId === "ea-k14");
+    const k17 = groupA?.rows.find((row) => row.outlineRowId === "ea-k17");
+    const k22 = groupB?.rows.find((row) => row.outlineRowId === "eb-k22");
+    const particle = groupC?.rows.find((row) => row.outlineRowId === "ec-particle");
+    const k21 = groupD1?.rows.find((row) => row.outlineRowId === "ed1-k21");
+    const k20 = groupD2?.rows.find((row) => row.outlineRowId === "ed2-k20");
+    const k52 = groupD9?.rows.find((row) => row.outlineRowId === "ed9-k52");
 
-    expect(groupA?.rows.find((row) => row.outlineRowId === "ea-k1")?.estimatedItemFee).toBe(720);
-    expect(groupA?.rows.find((row) => row.outlineRowId === "ea-k17")?.estimatedItemFee).toBe(120000);
-    expect(groupB?.rows.find((row) => row.outlineRowId === "eb-k22")?.estimatedItemFee).toBe(11190);
+    expect(k7?.testHours).toBe(305);
+    expect(k7?.estimatedItemFee).toBe(30500);
+    expect(k17?.estimatedItemFee).toBe(39996);
+    expect(k17?.labs.find((lab) => lab.lab === "SGS")?.itemFee).toBe(48000);
+    expect(k17?.labs.find((lab) => lab.lab === "华测")?.itemFee).toBe(39996);
+    expect(k17?.labs.find((lab) => lab.lab === "苏劢")?.itemFee).toBe(12000);
+    expect(k22?.chargeBasis).toBe("quantity");
+    expect(k22?.quantity).toBe(11);
+    expect(k22?.estimatedItemFee).toBe(7150);
+    expect(k22?.notes).toContain("EMA 条件 2");
+    expect(k22?.labs.find((lab) => lab.lab === "SGS")?.itemFee).toBe(7150);
+    expect(k22?.labs.find((lab) => lab.lab === "华测")?.itemFee).toBe(7700);
+    expect(k22?.labs.find((lab) => lab.lab === "苏劢")?.itemFee).toBe(3300);
+    expect(k20?.testHours).toBe(24);
+    expect(k20?.estimatedItemFee).toBe(3480);
+    expect(k21?.testHours).toBe(1000);
+    expect(k21?.estimatedItemFee).toBe(120000);
+    expect(k14?.status).toBe("未匹配大纲");
+    expect(k14?.estimatedItemFee).toBeNull();
+    expect(particle?.status).toBe("未匹配大纲");
+    expect(particle?.estimatedItemFee).toBeNull();
+    expect(k52?.status).toBe("未匹配大纲");
+    expect(k52?.estimatedItemFee).toBeNull();
     expect(groupC?.rows.find((row) => row.outlineRowId === "ec-k26")?.estimatedItemFee).toBe(7158);
-    expect(groupD3?.rows.find((row) => row.outlineRowId === "ed3-post-l6-internal")?.estimatedItemFee).toBe(3200);
-    expect(groupD3?.rows.find((row) => row.outlineRowId === "ed3-post-l6-external")?.estimatedItemFee).toBe(21450);
     expect(groupE2?.rows.find((row) => row.outlineRowId === "ee2-item")?.estimatedItemFee).toBe(42500);
   });
 

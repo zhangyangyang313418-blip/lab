@@ -30,7 +30,7 @@ http://127.0.0.1:5173/environment-outline
 当前本地草稿模板版本：
 
 ```text
-ENVIRONMENT_PLAN_TEMPLATE_VERSION = 29
+ENVIRONMENT_PLAN_TEMPLATE_VERSION = 30
 ```
 
 Git 状态：
@@ -44,7 +44,7 @@ Git 状态：
 ## 当前状态
 
 - `MLA / LHD` 已确认可作为当前锁定模板继续使用。
-- `EMA` 费用已临时复用当前已锁定的 `MLA` 费用模板；EMA 自身环境大纲、测试时间、样本范围和 LHD/RHD 分组差异不改。
+- `EMA` 费用已按用户回传的 EMA 费用规则 Excel 导回专属规则；不再完全复用 MLA 费用模板。
 - 当前工作重点已经从“逐条试错确认”切到“文档化、交接、后续小范围维护”。
 - 页面中涉及 LHD 的默认环境大纲、费用按钮、费用弹窗、本地草稿迁移已经一致。
 - 如果用户后续说“刷新后还是旧值”，优先检查是否需要再升 `ENVIRONMENT_PLAN_TEMPLATE_VERSION`。
@@ -57,6 +57,21 @@ Git 状态：
 - 费用单价、三家实验室报价、中值取费、特殊项目公式暂时复用 MLA 当前实现
 - 当前不导入新的 Excel 费用规则；用户后续会先修改 Excel，再由代码导回价格规则
 - 已将 `ENVIRONMENT_PLAN_TEMPLATE_VERSION` 升到 `29`，用于刷新旧 EMA 草稿中的空费用
+
+## 2026-06-08 EMA 费用规则 Excel 导回
+
+用户修改并确认 `outputs/ema-fee-detail-export/JLR-EMA 费用规则V.0 版本_待修改.xlsx` 后，已按 EMA 专属费用规则导回：
+
+- `K52.351 Condensing humidity`：EMA 平台不测试，不参与费用计算
+- `Particle Exposure`：EMA 平台不测试，不参与费用计算
+- `K14 Dust Blowing Test`：EMA 平台不测试，不参与费用计算
+- `K7 Thermal Shock in Air`：计费基数从 MLA `105h` 改为 EMA `305h`
+- `K17 Audible Noise`：EMA 单价为 `SGS 4000 / 华测 3333 / 苏勃 1000`，按 12 台样机计算，中值为华测 `39996`
+- `K20 Solar Radiation`：计费基数从 MLA `720h` 改为 EMA `24h`
+- `K21 Corrosive Gases`：计费基数从 MLA `336h` 改为 EMA `1000h`
+- `K22 Chemical Resistance`：EMA 条件 2，按 `11` 种试剂 × 实验室单价计算；`SGS 650 / 华测 700 / 苏勃 300`，中值为 SGS `7150`
+- 已新增 EMA 专属 pricing/basis 规则，MLA 当前锁定费用不变
+- 已将 `ENVIRONMENT_PLAN_TEMPLATE_VERSION` 升到 `30`，用于刷新旧 EMA 草稿中的费用
 
 ## 2026-06-03 Excel 导回费用口径
 
@@ -293,7 +308,7 @@ Git 状态：
 - `src/services/environmentFeeDetail.ts`：费用明细计算主逻辑。
 - `src/pages/EnvironmentOutlinePage.tsx`：环境大纲页面和费用计算弹窗展示。
 - `src/store/appState.tsx`：环境大纲编辑状态更新；手动新增测试项完整名称匹配逻辑在这里。
-- `src/services/localStore.ts`：本地草稿版本号，当前 `ENVIRONMENT_PLAN_TEMPLATE_VERSION = 29`。
+- `src/services/localStore.ts`：本地草稿版本号，当前 `ENVIRONMENT_PLAN_TEMPLATE_VERSION = 30`。
 - `src/tests/environmentFeeDetail.test.ts`：费用规则回归测试。
 - `src/tests/environmentPlan.test.ts`：模板结构与默认时间回归测试。
 - `src/tests/localStore.test.ts`：旧草稿迁移回归测试。

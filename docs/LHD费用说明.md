@@ -16,8 +16,8 @@
 
 补充结论：
 
-- EMA 费用已临时复用当前 MLA 费用模板；EMA 自身测试时间、样本范围和 RHD/LHD 分组不改
-- 后续如果用户修改 Excel 费用规则，应按新 Excel 导回价格，再决定继续共享价格表还是拆分 EMA 独立规则
+- EMA 费用已按用户回传的 EMA 费用规则 Excel 导回专属规则；EMA 自身测试时间、样本范围和 RHD/LHD 分组不改
+- EMA 专属规则与 MLA 锁定规则分开维护，避免后续 EMA 条件差异影响 MLA
 
 ## 代码入口
 
@@ -295,7 +295,7 @@
 当前：
 
 ```text
-ENVIRONMENT_PLAN_TEMPLATE_VERSION = 29
+ENVIRONMENT_PLAN_TEMPLATE_VERSION = 30
 ```
 
 这个版本已覆盖的刷新目标包括：
@@ -305,7 +305,7 @@ ENVIRONMENT_PLAN_TEMPLATE_VERSION = 29
 - `K26` 新组合费用
 - `D-3 / L6-photo&xray = 3d`
 - 三家实验室报价口径：仅 `SGS / 华测 / 苏勃` 参与展示与中值计算
-- EMA 费用临时复用当前 MLA 费用模板
+- EMA 费用按回传 Excel 导回专属规则：K52.351 / Particle / K14 不测；K7/K17/K20/K21/K22 按 EMA 条件差异计费
 
 ## 修改后的最少验证
 
