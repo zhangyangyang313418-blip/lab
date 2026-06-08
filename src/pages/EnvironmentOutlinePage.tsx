@@ -2,6 +2,7 @@ import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type Re
 import { useNavigate } from "react-router-dom";
 import { EnvironmentFeeDetailTable } from "../components/environment/EnvironmentFeeDetailTable";
 import { createEnvironmentFeeDetailSections, getEnvironmentSpecialFeeBreakdown } from "../services/environmentFeeDetail";
+import { downloadMlaEnvironmentFeeWorkbook } from "../services/mlaEnvironmentFeeExport";
 import { AppLayout } from "../components/layout/AppLayout";
 import { useAppState } from "../store/appState";
 import type { EnvironmentFeeChargeBasis, EnvironmentFeeDetailRow, EnvironmentFeeLabQuote } from "../types/environmentFeeDetail";
@@ -1508,6 +1509,7 @@ export function EnvironmentOutlinePage() {
   const { state, dispatch } = useAppState();
   const editable = !state.projectSetup.reuseEnvironmentTemplate;
   const canUndoEnvironmentPlan = Boolean(state.lastEnvironmentPlan);
+  const exportMlaFees = () => downloadMlaEnvironmentFeeWorkbook(state.environmentPlan);
 
   return (
     <AppLayout
@@ -1527,6 +1529,9 @@ export function EnvironmentOutlinePage() {
             onClick={() => dispatch({ type: "undoEnvironmentPlan" })}
           >
             撤回上一步
+          </button>
+          <button type="button" className="secondary-button" onClick={exportMlaFees}>
+            导出 MLA 费用 Excel
           </button>
         </div>
 
@@ -1552,6 +1557,9 @@ export function EnvironmentOutlinePage() {
             onClick={() => dispatch({ type: "undoEnvironmentPlan" })}
           >
             撤回上一步
+          </button>
+          <button type="button" className="secondary-button" onClick={exportMlaFees}>
+            导出 MLA 费用 Excel
           </button>
           <button type="button" className="primary-button" onClick={() => navigate("/results")}>
             确认进入结果页

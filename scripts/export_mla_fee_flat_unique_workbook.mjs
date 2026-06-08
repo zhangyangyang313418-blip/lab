@@ -11,7 +11,7 @@ const rootDir = path.resolve(__dirname, "..");
 const outputDir = path.join(rootDir, "outputs", "mla-fee-detail-export");
 const outputPath = process.env.MLA_FEE_OUTPUT_PATH
   ? path.resolve(process.env.MLA_FEE_OUTPUT_PATH)
-  : path.join(outputDir, "JLR-MLA 费用规则V.0 版本.xlsx");
+  : path.join(outputDir, "JLR- MLA 费用规则.xlsx");
 const labNames = ["SGS", "华测", "苏劢"];
 const labDisplayNames = { SGS: "SGS", 华测: "华测", 苏劢: "苏勃" };
 const chamberPriceRules = {
@@ -333,7 +333,7 @@ const versionRows = [
     "V.0",
     "2026-06-04",
     "初版导出",
-    "按当前系统规则导出 JLR-MLA 费用规则单页去重版；包含 K28 HALT 五项 8h、E-2 SGS 参考价、K13 最新单价、L6 命名与费用规则；交付前修正 L6 已命名规则重复拆分问题，并保留 L6 内部/委外归属；K28 测试项目名称统一为 HALT，子项写入备注。",
+    "按当前系统规则导出 JLR- MLA 费用规则单页去重版；包含 K28 HALT 五项 8h、E-2 SGS 参考价、K13 最新单价、L6 命名与费用规则；交付前修正 L6 已命名规则重复拆分问题，并保留 L6 内部/委外归属；K28 测试项目名称统一为 HALT，子项写入备注。",
     "费用规则去重表",
     "后续如修改单价或规则，请在本页追加 V.1 / V.2 记录，并保留历史版本。",
   ],

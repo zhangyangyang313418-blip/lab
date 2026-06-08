@@ -301,6 +301,8 @@ describe("environment fee detail calculations", () => {
     expect(k20?.estimatedItemFee).toBe(3480);
     expect(k21?.testHours).toBe(1000);
     expect(k21?.estimatedItemFee).toBe(120000);
+    expect(k21?.labs.find((lab) => lab.lab === "SGS")?.unitPrice).toBe(100);
+    expect(k21?.labs.find((lab) => lab.lab === "SGS")?.itemFee).toBe(100000);
     expect(k14?.status).toBe("未匹配大纲");
     expect(k14?.estimatedItemFee).toBeNull();
     expect(particle?.status).toBe("未匹配大纲");

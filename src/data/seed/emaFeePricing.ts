@@ -49,6 +49,12 @@ const emaSpecificFeePricingRules: EnvironmentFeePricingRule[] = [
     notes: "K17 Audible Noise 按 EMA 条件单价 × 样机数计算",
   },
   {
+    matcher: /K21\b|Corrosive Gases/i,
+    chargeBasis: "hour",
+    labs: quotedLabs(100, 120, 150),
+    notes: "K21 Corrosive Gases 按 EMA 条件小时单价计算，SGS 单价为 100/h",
+  },
+  {
     matcher: /K22\b|Chemical Resistance/i,
     chargeBasis: "quantity",
     labs: quotedLabs(650, 700, 300),

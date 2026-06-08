@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
 import { appReducer, createSeedAppState } from "../store/appState";
 import { saveProjectDraft } from "../services/localStore";
@@ -10,6 +10,10 @@ import { saveProjectDraft } from "../services/localStore";
 describe("environment outline fee detail", () => {
   beforeEach(() => {
     window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it("shows MLA fee detail below the outline and exposes calculated fee columns", () => {
@@ -97,6 +101,37 @@ describe("environment outline fee detail", () => {
     for (const totalCostInput of screen.getAllByRole("textbox", { name: "Total Test Cost" })) {
       expect(totalCostInput).toHaveAttribute("readonly");
     }
+  });
+
+  it("downloads the MLA fee workbook from the environment outline page", async () => {
+    const user = userEvent.setup();
+    const createObjectUrlMock = vi.fn(() => "blob:mla-fee-export");
+    const revokeObjectUrlMock = vi.fn();
+    const clickMock = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+
+    Object.defineProperty(window.URL, "createObjectURL", {
+      configurable: true,
+      value: createObjectUrlMock,
+    });
+    Object.defineProperty(window.URL, "revokeObjectURL", {
+      configurable: true,
+      value: revokeObjectUrlMock,
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/environment-outline"]}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    const exportButtons = screen.getAllByRole("button", { name: "导出 MLA 费用 Excel" });
+    expect(exportButtons).toHaveLength(2);
+
+    await user.click(exportButtons[0]!);
+
+    expect(createObjectUrlMock).toHaveBeenCalledTimes(1);
+    expect(clickMock).toHaveBeenCalledTimes(1);
+    expect(revokeObjectUrlMock).toHaveBeenCalledTimes(1);
   });
 
   it("shows optical fee split details and keeps the original fee when opened without edits", async () => {

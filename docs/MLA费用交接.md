@@ -60,7 +60,7 @@ Git 状态：
 
 ## 2026-06-08 EMA 费用规则 Excel 导回
 
-用户修改并确认 `outputs/ema-fee-detail-export/JLR-EMA 费用规则V.0 版本_待修改.xlsx` 后，已按 EMA 专属费用规则导回：
+用户修改并确认 `outputs/ema-fee-detail-export/JLR- EMA 费用规则.xlsx` 后，已按 EMA 专属费用规则导回：
 
 - `K52.351 Condensing humidity`：EMA 平台不测试，不参与费用计算
 - `Particle Exposure`：EMA 平台不测试，不参与费用计算
@@ -68,7 +68,7 @@ Git 状态：
 - `K7 Thermal Shock in Air`：计费基数从 MLA `105h` 改为 EMA `305h`
 - `K17 Audible Noise`：EMA 单价为 `SGS 4000 / 华测 3333 / 苏勃 1000`，按 12 台样机计算，中值为华测 `39996`
 - `K20 Solar Radiation`：计费基数从 MLA `720h` 改为 EMA `24h`
-- `K21 Corrosive Gases`：计费基数从 MLA `336h` 改为 EMA `1000h`
+- `K21 Corrosive Gases`：计费基数从 MLA `336h` 改为 EMA `1000h`；SGS 单价按 EMA 平台修正为 `100/h`，华测 `120/h`、苏勃 `150/h` 保持不变
 - `K22 Chemical Resistance`：EMA 条件 2，按 `11` 种试剂 × 实验室单价计算；`SGS 650 / 华测 700 / 苏勃 300`，中值为 SGS `7150`
 - 已新增 EMA 专属 pricing/basis 规则，MLA 当前锁定费用不变
 - 已将 `ENVIRONMENT_PLAN_TEMPLATE_VERSION` 升到 `30`，用于刷新旧 EMA 草稿中的费用
