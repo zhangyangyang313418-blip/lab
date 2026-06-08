@@ -219,6 +219,7 @@ describe("environment fee detail calculations", () => {
           totalCostLabel: "组费用",
           totalCost: "",
           rows: [
+            { id: "ec-k7", label: "K7 Thermal Shock in Air", testHours: "14", sampleRange: "27-32" },
             { id: "ec-k26", label: "K26 Mechanical Wear-Out", testHours: "23", sampleRange: "27-32" },
             { id: "ec-particle", label: "Particle Exposure", testHours: "2", sampleRange: "27-32" },
           ],
@@ -275,6 +276,7 @@ describe("environment fee detail calculations", () => {
     const k14 = groupA?.rows.find((row) => row.outlineRowId === "ea-k14");
     const k17 = groupA?.rows.find((row) => row.outlineRowId === "ea-k17");
     const k22 = groupB?.rows.find((row) => row.outlineRowId === "eb-k22");
+    const groupCK7 = groupC?.rows.find((row) => row.outlineRowId === "ec-k7");
     const particle = groupC?.rows.find((row) => row.outlineRowId === "ec-particle");
     const k21 = groupD1?.rows.find((row) => row.outlineRowId === "ed1-k21");
     const k20 = groupD2?.rows.find((row) => row.outlineRowId === "ed2-k20");
@@ -282,6 +284,8 @@ describe("environment fee detail calculations", () => {
 
     expect(k7?.testHours).toBe(305);
     expect(k7?.estimatedItemFee).toBe(30500);
+    expect(groupCK7?.testHours).toBe(305);
+    expect(groupCK7?.estimatedItemFee).toBe(30500);
     expect(k17?.estimatedItemFee).toBe(39996);
     expect(k17?.labs.find((lab) => lab.lab === "SGS")?.itemFee).toBe(48000);
     expect(k17?.labs.find((lab) => lab.lab === "华测")?.itemFee).toBe(39996);
