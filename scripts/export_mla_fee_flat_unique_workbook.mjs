@@ -198,6 +198,57 @@ function normalizeK28ExportRow(row) {
   };
 }
 
+function createAdditionalFeeRows() {
+  return [
+    {
+      ruleKey: "Computer Fee",
+      testCode: "Computer Fee",
+      testName: "Computer Fee",
+      chargeBasis: "computerCoefficient",
+      unit: "按月/台计费",
+      ownership: "委外费用",
+      defaultBase: 48,
+      baseValues: new Set(["48"]),
+      baseNote: "系数默认 48，可在页面展开后人工修改",
+      special: "是",
+      specialNote: "SGS: 250/月/台 × 48 = 12000；华测: 450/月/台 × 48 = 21600；苏勃: 150/月/台 × 48 = 7200",
+      status: "",
+      notes: "电脑费用计入顶部 Total Cost；当前按 SGS 报价计入，系数默认 48，可编辑。",
+      labs: {
+        SGS: { unitPrice: 250, itemFee: 12000 },
+        华测: { unitPrice: 450, itemFee: 21600 },
+        苏劢: { unitPrice: 150, itemFee: 7200 },
+      },
+      sourceCount: 1,
+      priority: 0,
+      recommendedFeeFormula: "S",
+    },
+    {
+      ruleKey: "Report Fee",
+      testCode: "Report Fee",
+      testName: "Report Fee",
+      chargeBasis: "reportCount",
+      unit: "按报告份数计费/份",
+      ownership: "委外费用",
+      defaultBase: 13,
+      baseValues: new Set(["13"]),
+      baseNote: "默认按当前 phase 实际组数量，每组一份；导出示例按 DV 13 组",
+      special: "是",
+      specialNote: "SGS: 0/份 × 13 份 = 0；华测: 0/份 × 13 份 = 0；苏勃: 150/份 × 13 份 = 1950",
+      status: "",
+      notes: "报告费用计入顶部 Total Cost；SGS/华测为 0，当前按苏勃 150/份计入；报告份数默认每组一份，可编辑。",
+      labs: {
+        SGS: { unitPrice: 0, itemFee: 0 },
+        华测: { unitPrice: 0, itemFee: 0 },
+        苏劢: { unitPrice: 150, itemFee: 1950 },
+      },
+      sourceCount: 1,
+      priority: 0,
+      recommendedFeeFormula: "W",
+    },
+  ];
+}
+
 function buildUniqueRows() {
   const state = createSeedAppState();
   const rowsByKey = new Map();
@@ -272,7 +323,7 @@ function buildUniqueRows() {
 
   const splitRows = [...rowsByKey.values()].flatMap((row) => (isL6Rule(row) ? createL6SplitRows(row) : [row]));
 
-  return splitRows
+  const uniqueRows = splitRows
     .sort((a, b) => {
       const aCode = a.testCode || a.ruleKey;
       const bCode = b.testCode || b.ruleKey;
@@ -285,6 +336,8 @@ function buildUniqueRows() {
         baseNote: normalized.baseNote || (row.baseValues.size > 1 ? `不同使用场景出现过这些基数：${[...row.baseValues].join(" / ")}` : ""),
       };
     });
+
+  return [...uniqueRows, ...createAdditionalFeeRows()];
 }
 
 const headers = [
@@ -336,6 +389,14 @@ const versionRows = [
     "按当前系统规则导出 JLR- MLA 费用规则单页去重版；包含 K28 HALT 五项 8h、E-2 SGS 参考价、K13 最新单价、L6 命名与费用规则；交付前修正 L6 已命名规则重复拆分问题，并保留 L6 内部/委外归属；K28 测试项目名称统一为 HALT，子项写入备注。",
     "费用规则去重表",
     "后续如修改单价或规则，请在本页追加 V.1 / V.2 记录，并保留历史版本。",
+  ],
+  [
+    "V.1",
+    "2026-06-11",
+    "费用规则补充",
+    "新增顶部附加费用规则：Computer Fee 按实验室月/台单价 × 系数计算，默认系数 48，当前按 SGS 计入；Report Fee 按实验室每份报告单价 × 报告份数计算，默认每组一份，当前按苏勃 150/份计入；Total Cost 口径同步为各组测试费用 + Computer Fee + Report Fee。",
+    "费用规则去重表；/environment-outline 顶部费用汇总",
+    "对应系统本地草稿模板版本 ENVIRONMENT_PLAN_TEMPLATE_VERSION = 36。",
   ],
 ];
 
@@ -445,6 +506,7 @@ async function writeRawXlsx(rows) {
     `<row r="1" ht="33" customHeight="1">${headers.map((header, index) => stringCell(`${colName(index)}1`, header, 5)).join("")}</row>`,
     ...values.map((row, rowIndex) => {
       const excelRow = rowIndex + 2;
+      const sourceRow = rows[rowIndex];
       const cells = row.map((value, colIndex) => {
         const col = colName(colIndex);
         const ref = `${col}${excelRow}`;
@@ -484,6 +546,10 @@ async function writeRawXlsx(rows) {
             : formulaCell(ref, `IF(${specialFormula},"",IF(OR(I${excelRow}="",V${excelRow}="",V${excelRow}="N/A"),"",I${excelRow}*V${excelRow}))`, 3);
         }
         if (col === "X") {
+          if (sourceRow?.recommendedFeeFormula) {
+            return formulaCell(ref, `${sourceRow.recommendedFeeFormula}${excelRow}`, 3);
+          }
+
           return formulaCell(ref, `IFERROR(MEDIAN(S${excelRow},U${excelRow},W${excelRow}),"")`, 3);
         }
         if (col === "Z") {

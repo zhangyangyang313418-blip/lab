@@ -547,6 +547,49 @@ describe("local draft persistence", () => {
     expect(groupE2?.rows.find((row) => row.id === "ee2-item")?.fee).toBe("42500");
     expect(dvPhase?.summary.totalCost).not.toBe("");
   });
+
+  it("hydrates computer and report fee fields into stale environment outline drafts", () => {
+    const state = createSeedAppState();
+    const mlaDraft = appReducer(state, {
+      type: "applyProjectSetup",
+      updates: {
+        platform: "MLA",
+        steeringSides: ["LHD"],
+        projectCode: "L463",
+        reuseEnvironmentTemplate: true,
+        reuseMaterialTemplate: false,
+        reuseEmcTemplate: false,
+      },
+    });
+
+    saveProjectDraft({
+      ...mlaDraft,
+      environmentPlan: {
+        ...mlaDraft.environmentPlan,
+        phases: mlaDraft.environmentPlan.phases.map((phase) => ({
+          ...phase,
+          summary: (() => {
+            const summary = { ...phase.summary };
+            delete summary.computerFee;
+            delete summary.computerFeeCoefficient;
+            delete summary.reportFee;
+            delete summary.reportFeeCount;
+            return summary;
+          })(),
+        })),
+      },
+      environmentPlanVersion: 34,
+    });
+
+    const hydrated = createInitialAppState();
+    const dvPhase = hydrated.environmentPlan.phases.find((phase) => phase.id === "dv");
+    const defaultReportFee = String((dvPhase?.groups.length ?? 0) * 150);
+
+    expect(dvPhase?.summary.computerFee).toBe("12000");
+    expect(dvPhase?.summary.computerFeeCoefficient).toBe("48");
+    expect(dvPhase?.summary.reportFee).toBe(defaultReportFee);
+    expect(dvPhase?.summary.reportFeeCount).toBe("");
+  });
 });
 
 describe("app state reducer", () => {

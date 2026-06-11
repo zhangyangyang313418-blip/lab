@@ -1,6 +1,6 @@
 # Product Test Evaluation Tool Status Index
 
-更新时间：2026-06-08
+更新时间：2026-06-11
 
 ## 目的
 
@@ -28,7 +28,8 @@ npm run build
 - EMA 环境费用规则维护以 `docs/EMA费用交接.md` 为准。
 - 2026-06-03 已按用户修改后的单页 Excel 导回 MLA 费用：当前仅 `SGS / 华测 / 苏勃` 三家参与报价和中值计算，信测不参与本版。
 - 环境箱项目按样本量自动选价：`> 6` 使用大环境箱，`<= 6` 使用小环境箱。
-- 本地草稿迁移版本当前为 `ENVIRONMENT_PLAN_TEMPLATE_VERSION = 30`。
+- 本地草稿迁移版本当前为 `ENVIRONMENT_PLAN_TEMPLATE_VERSION = 36`。
+- `/environment-outline` 顶部新增独立费用汇总行：`TOTAL COST` 后跟各组费用、`Computer Fee`、`Report Fee`；总费用口径为各组测试费用合计 + 电脑费用 + 报告费用。
 - EMA 费用已按 `outputs/ema-fee-detail-export/JLR- EMA 费用规则.xlsx` 导回专属规则；MLA 锁定费用不变。
 - 流程图维护以 `docs/*.drawio` 和对应 `scripts/generate_*drawio*.mjs` 为准。
 

@@ -98,9 +98,91 @@ describe("environment outline fee detail", () => {
       </MemoryRouter>,
     );
 
-    for (const totalCostInput of screen.getAllByRole("textbox", { name: "Total Test Cost" })) {
+    for (const totalCostInput of screen.getAllByRole("textbox", { name: "Total Cost" })) {
       expect(totalCostInput).toHaveAttribute("readonly");
     }
+  });
+
+  it("shows total, group, computer, and report fees on a dedicated fee summary row", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter initialEntries={["/environment-outline"]}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    const totalCostInput = screen.getAllByRole("textbox", { name: "Total Cost" })[0]!;
+    const initialTotal = Number(totalCostInput.getAttribute("value")?.replace(/[^\d.]/g, ""));
+    const feeRow = totalCostInput.closest(".meta-fee-row") as HTMLElement | null;
+
+    expect(feeRow).not.toBeNull();
+    const feeRowQueries = within(feeRow as HTMLElement);
+    const computerFeeAmount = feeRowQueries.getByLabelText("DV Computer Fee 费用 ¥12,000.00");
+    const reportFeeAmount = feeRowQueries.getByLabelText("DV Report Fee 费用 ¥1,950.00");
+
+    for (const label of ["Group A", "Group B", "Group C", "Group D", "Group E"]) {
+      expect(feeRowQueries.getByText(label)).toBeInTheDocument();
+    }
+    expect(feeRowQueries.getByText("Computer Fee")).toBeInTheDocument();
+    expect(feeRowQueries.getByText("Report Fee")).toBeInTheDocument();
+    expect(computerFeeAmount.closest(".meta-extra-fee-card")).toBe(feeRow?.lastElementChild?.previousElementSibling);
+    expect(reportFeeAmount.closest(".meta-extra-fee-card")).toBe(feeRow?.lastElementChild);
+    expect(feeRowQueries.queryByText("实验室报价明细")).not.toBeInTheDocument();
+
+    await user.dblClick(computerFeeAmount);
+
+    const computerFeeDetail = within(screen.getByLabelText("DV 电脑费用报价"));
+    expect(computerFeeDetail.getByText("实验室报价明细")).toBeInTheDocument();
+    expect(computerFeeDetail.getByText("SGS（中值）")).toBeInTheDocument();
+    expect(computerFeeDetail.getByText("250/月/台 × 48")).toBeInTheDocument();
+    expect(computerFeeDetail.getByText("450/月/台 × 48")).toBeInTheDocument();
+    expect(computerFeeDetail.getByText("150/月/台 × 48")).toBeInTheDocument();
+    expect(computerFeeDetail.getByText("¥12,000")).toBeInTheDocument();
+    expect(computerFeeDetail.getByText("¥21,600")).toBeInTheDocument();
+    expect(computerFeeDetail.getByText("¥7,200")).toBeInTheDocument();
+    expect(screen.getByLabelText("Computer Fee 系数")).toHaveValue("48");
+
+    await user.clear(screen.getByLabelText("Computer Fee 系数"));
+    await user.type(screen.getByLabelText("Computer Fee 系数"), "50");
+
+    expect(totalCostInput).toHaveValue(
+      new Intl.NumberFormat("zh-CN", {
+        style: "currency",
+        currency: "CNY",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(initialTotal + 500),
+    );
+    expect(within(feeRow as HTMLElement).getByLabelText("DV Computer Fee 费用 ¥12,500.00")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("heading", { name: "DV 环境测试流程图" }));
+
+    expect(screen.queryByLabelText("DV 电脑费用报价")).not.toBeInTheDocument();
+
+    await user.dblClick(within(feeRow as HTMLElement).getByLabelText("DV Report Fee 费用 ¥1,950.00"));
+
+    const reportFeeDetail = within(screen.getByLabelText("DV 报告费用报价"));
+    expect(reportFeeDetail.getByText("实验室报价明细")).toBeInTheDocument();
+    expect(reportFeeDetail.getByText("SGS")).toBeInTheDocument();
+    expect(reportFeeDetail.getByText("华测")).toBeInTheDocument();
+    expect(reportFeeDetail.getByText("苏勃（计入）")).toBeInTheDocument();
+    expect(reportFeeDetail.getAllByText("0/份 × 13 份")).toHaveLength(2);
+    expect(reportFeeDetail.getByText("150/份 × 13 份")).toBeInTheDocument();
+    expect(reportFeeDetail.getByText("¥1,950")).toBeInTheDocument();
+    expect(screen.getByLabelText("Report Fee 报告份数")).toHaveValue("");
+
+    await user.type(screen.getByLabelText("Report Fee 报告份数"), "14");
+
+    expect(totalCostInput).toHaveValue(
+      new Intl.NumberFormat("zh-CN", {
+        style: "currency",
+        currency: "CNY",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(initialTotal + 500 + 150),
+    );
+    expect(within(feeRow as HTMLElement).getByLabelText("DV Report Fee 费用 ¥2,100.00")).toBeInTheDocument();
   });
 
   it("downloads the MLA fee workbook from the environment outline page", async () => {

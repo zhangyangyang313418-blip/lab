@@ -1,6 +1,6 @@
 # LHD费用说明
 
-更新时间：2026-06-04
+更新时间：2026-06-11
 
 ## 适用范围
 
@@ -18,6 +18,7 @@
 
 - EMA 费用已按用户回传的 EMA 费用规则 Excel 导回专属规则；EMA 自身测试时间、样本范围和 RHD/LHD 分组不改
 - EMA 专属规则与 MLA 锁定规则分开维护，避免后续 EMA 条件差异影响 MLA
+- `/environment-outline` 顶部已新增独立费用汇总行：`TOTAL COST` 后跟各组费用、`Computer Fee`、`Report Fee`；总费用口径为各组测试费用合计 + 电脑费用 + 报告费用
 
 ## 代码入口
 
@@ -70,6 +71,14 @@
 
 ### 已确认的特殊项
 
+- `Computer Fee`
+  - SGS `250/月/台`、华测 `450/月/台`、苏勃 `150/月/台`
+  - 默认系数 `48`，可在页面双击费用后展开修改
+  - 当前按 SGS 报价计入 `TOTAL COST`
+- `Report Fee`
+  - SGS `0/份`、华测 `0/份`、苏勃 `150/份`
+  - 报告份数默认按当前 phase 实际组数量，每组一份，可在页面双击费用后展开修改
+  - 当前按苏勃报价计入 `TOTAL COST`
 - `Particle Exposure`
   - 保留特殊实验室总价逻辑
 - `Optical Test`
@@ -295,7 +304,7 @@
 当前：
 
 ```text
-ENVIRONMENT_PLAN_TEMPLATE_VERSION = 30
+ENVIRONMENT_PLAN_TEMPLATE_VERSION = 36
 ```
 
 这个版本已覆盖的刷新目标包括：
@@ -306,6 +315,7 @@ ENVIRONMENT_PLAN_TEMPLATE_VERSION = 30
 - `D-3 / L6-photo&xray = 3d`
 - 三家实验室报价口径：仅 `SGS / 华测 / 苏勃` 参与展示与中值计算
 - EMA 费用按回传 Excel 导回专属规则：K52.351 / Particle / K14 不测；K7/K17/K20/K21/K22 按 EMA 条件差异计费
+- 附加费用字段与总费用刷新：`Computer Fee`、`Report Fee` 计入 `TOTAL COST`
 
 ## 修改后的最少验证
 

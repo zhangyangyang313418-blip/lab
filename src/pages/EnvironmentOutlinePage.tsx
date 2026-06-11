@@ -1,7 +1,11 @@
-import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { EnvironmentFeeDetailTable } from "../components/environment/EnvironmentFeeDetailTable";
-import { createEnvironmentFeeDetailSections, getEnvironmentSpecialFeeBreakdown } from "../services/environmentFeeDetail";
+import {
+  createEnvironmentFeeDetailSections,
+  getEnvironmentAdditionalFeeSummary,
+  getEnvironmentSpecialFeeBreakdown,
+} from "../services/environmentFeeDetail";
 import { downloadMlaEnvironmentFeeWorkbook } from "../services/mlaEnvironmentFeeExport";
 import { AppLayout } from "../components/layout/AppLayout";
 import { useAppState } from "../store/appState";
@@ -66,6 +70,10 @@ function sanitizeCurrencyInput(value: string) {
   }
 
   return `${integerPart}.${decimalParts.join("")}`;
+}
+
+function sanitizeWholeNumberInput(value: string) {
+  return value.replace(/[^\d]/g, "");
 }
 
 function getSampleRange(group: EnvironmentPlanGroup, row: EnvironmentPlanRow, fallbackRange?: string) {
@@ -1262,6 +1270,8 @@ function OtherTestCard({
 function PhaseSection({ phase, editable }: { phase: EnvironmentPlanPhase; editable: boolean }) {
   const { dispatch } = useAppState();
   const [expandedFeeKey, setExpandedFeeKey] = useState<string | null>(null);
+  const [expandedAdditionalFeeKey, setExpandedAdditionalFeeKey] = useState<"computer" | "report" | null>(null);
+  const additionalFeeRowRef = useRef<HTMLDivElement | null>(null);
   const sequenceGroups = phase.groups.filter(isSequenceGroup);
   const dGroups = phase.groups.filter(isDGroup);
   const eGroups = phase.groups.filter(isEGroup);
@@ -1281,6 +1291,40 @@ function PhaseSection({ phase, editable }: { phase: EnvironmentPlanPhase; editab
   const baselineSource = getPhaseBaselineSource(phase);
   const baselineSample = String(preTestSampleTotal || "-");
   const baselineOpticalSample = String(Math.max(preTestSampleTotal - pcbaOnlySampleTotal, 0) || "-");
+  const groupFeeSummaries = [
+    ...sequenceGroups.map((group) => ({ label: group.title, value: group.totalCost })),
+    ...(dGroups.length > 0
+      ? [{ label: "Group D", value: String(dGroups.reduce((sum, group) => sum + Number(group.totalCost || 0), 0)) }]
+      : []),
+    ...(eGroups.length > 0
+      ? [{ label: "Group E", value: String(eGroups.reduce((sum, group) => sum + Number(group.totalCost || 0), 0)) }]
+      : []),
+  ];
+  const additionalFees = getEnvironmentAdditionalFeeSummary(phase);
+  const displayedComputerCoefficient = String(additionalFees.computerCoefficient);
+  const reportCountValue = phase.summary.reportFeeCount ?? "";
+  const displayedReportCount = reportCountValue || String(additionalFees.reportCount);
+  const isComputerFeeExpanded = expandedAdditionalFeeKey === "computer";
+  const isReportFeeExpanded = expandedAdditionalFeeKey === "report";
+
+  useEffect(() => {
+    if (!expandedAdditionalFeeKey) {
+      return undefined;
+    }
+
+    function closeAdditionalFeeOnOutsideClick(event: PointerEvent) {
+      const target = event.target instanceof Node ? event.target : null;
+
+      if (target && additionalFeeRowRef.current?.contains(target)) {
+        return;
+      }
+
+      setExpandedAdditionalFeeKey(null);
+    }
+
+    document.addEventListener("pointerdown", closeAdditionalFeeOnOutsideClick);
+    return () => document.removeEventListener("pointerdown", closeAdditionalFeeOnOutsideClick);
+  }, [expandedAdditionalFeeKey]);
   const renderFee: FeeRenderer = (group, row, className) => {
     const feeKey = `${group.id}:${row.id}`;
     const detailRow = feeDetailsByRowId.get(feeKey);
@@ -1389,14 +1433,159 @@ function PhaseSection({ phase, editable }: { phase: EnvironmentPlanPhase; editab
               </div>
               <div className="flow-phase__hint">• 以上时间为测试时间，实际测试执行时，需考虑样品流转时间，会增加约 20d</div>
             </label>
-            <label className="card">
-              <div className="label">Total Test Cost</div>
+          </div>
+
+          <div ref={additionalFeeRowRef} className="meta-fee-row" aria-label={`${phase.title} fee summary`}>
+            <label className="card meta-fee-card meta-total-cost-card">
+              <div className="label">Total Cost</div>
               <input
-                className="value flow-inline-input flow-inline-input--metric"
+                className="value meta-total-cost-value flow-inline-input flow-inline-input--metric"
                 value={formatCurrency(phase.summary.totalCost)}
                 readOnly
               />
             </label>
+            {groupFeeSummaries.map((summary) => (
+              <div key={summary.label} className="card meta-fee-card meta-group-fee-card">
+                <div className="label">{summary.label}</div>
+                <strong className="value">{formatCurrency(summary.value)}</strong>
+              </div>
+            ))}
+            <div
+              className={`card meta-fee-card meta-extra-fee-card meta-extra-fee-card--computer${
+                isComputerFeeExpanded ? " meta-extra-fee-card--expanded" : " meta-extra-fee-card--collapsed"
+              }`}
+            >
+              <div className="meta-extra-fee-card__heading">
+                <div>
+                  <div className="label">Computer Fee</div>
+                  <strong
+                    className="value meta-extra-fee-card__amount"
+                    aria-label={`${phase.title} Computer Fee 费用 ${formatCurrencyAmount(additionalFees.computerFee)}`}
+                    tabIndex={0}
+                    onDoubleClick={() => setExpandedAdditionalFeeKey(isComputerFeeExpanded ? null : "computer")}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        setExpandedAdditionalFeeKey(isComputerFeeExpanded ? null : "computer");
+                      }
+                    }}
+                  >
+                    {formatCurrencyAmount(additionalFees.computerFee)}
+                  </strong>
+                </div>
+              </div>
+              {isComputerFeeExpanded ? (
+                <div className="meta-extra-fee-card__detail">
+                  <div className="fee-calculation-editor__median-summary meta-extra-fee-card__selected-summary">
+                    <span>{`中值（${formatLabName(additionalFees.computerSelectedLab)}）`}</span>
+                    <strong>{formatCurrencyAmount(additionalFees.computerFee, 0)}</strong>
+                  </div>
+                  <div className="fee-calculation-editor__lab-breakdown meta-extra-fee-card__lab-breakdown" aria-label={`${phase.title} 电脑费用报价`}>
+                    <div className="fee-calculation-editor__lab-title">实验室报价明细</div>
+                    {additionalFees.computerLabQuotes.map((quote) => (
+                      <div
+                        key={quote.lab}
+                        className={`fee-calculation-editor__lab-card${
+                          quote.lab === additionalFees.computerSelectedLab ? " fee-calculation-editor__lab-card--selected" : ""
+                        }`}
+                      >
+                        <span className="fee-calculation-editor__lab-name">
+                          {formatLabName(quote.lab)}
+                          {quote.lab === additionalFees.computerSelectedLab ? "（中值）" : ""}
+                        </span>
+                        <div className="fee-calculation-editor__lab-formula">{`${formatLabPriceValue(quote.unitPrice)}/月/台 × ${displayedComputerCoefficient}`}</div>
+                        <strong className={`fee-calculation-editor__lab-total ${getLabToneClass(quote.lab)}`}>
+                          {formatCurrencyAmount(quote.fee, 0)}
+                        </strong>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="meta-extra-fee-card__formula">
+                    <span>系数</span>
+                    <input
+                      aria-label="Computer Fee 系数"
+                      inputMode="numeric"
+                      value={phase.summary.computerFeeCoefficient ?? "48"}
+                      onChange={(event) =>
+                        dispatch({
+                          type: "updateEnvironmentPlanSummary",
+                          phaseId: phase.id,
+                          field: "computerFeeCoefficient",
+                      value: sanitizeWholeNumberInput(event.target.value),
+                    })}
+                />
+              </div>
+                </div>
+              ) : null}
+            </div>
+            <div
+              className={`card meta-fee-card meta-extra-fee-card meta-extra-fee-card--report${
+                isReportFeeExpanded ? " meta-extra-fee-card--expanded" : " meta-extra-fee-card--collapsed"
+              }`}
+            >
+              <div className="meta-extra-fee-card__heading">
+                <div>
+                  <div className="label">Report Fee</div>
+                  <strong
+                    className="value meta-extra-fee-card__amount"
+                    aria-label={`${phase.title} Report Fee 费用 ${formatCurrencyAmount(additionalFees.reportFee)}`}
+                    tabIndex={0}
+                    onDoubleClick={() => setExpandedAdditionalFeeKey(isReportFeeExpanded ? null : "report")}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        setExpandedAdditionalFeeKey(isReportFeeExpanded ? null : "report");
+                      }
+                    }}
+                  >
+                    {formatCurrencyAmount(additionalFees.reportFee)}
+                  </strong>
+                </div>
+              </div>
+              {isReportFeeExpanded ? (
+                <div className="meta-extra-fee-card__detail">
+                  <div className="fee-calculation-editor__median-summary meta-extra-fee-card__selected-summary">
+                    <span>{`计入（${formatLabName(additionalFees.reportSelectedLab)}）`}</span>
+                    <strong>{formatCurrencyAmount(additionalFees.reportFee, 0)}</strong>
+                  </div>
+                  <div className="fee-calculation-editor__lab-breakdown meta-extra-fee-card__lab-breakdown" aria-label={`${phase.title} 报告费用报价`}>
+                    <div className="fee-calculation-editor__lab-title">实验室报价明细</div>
+                    {additionalFees.reportLabQuotes.map((quote) => (
+                      <div
+                        key={quote.lab}
+                        className={`fee-calculation-editor__lab-card${
+                          quote.lab === additionalFees.reportSelectedLab ? " fee-calculation-editor__lab-card--selected" : ""
+                        }`}
+                      >
+                        <span className="fee-calculation-editor__lab-name">
+                          {formatLabName(quote.lab)}
+                          {quote.lab === additionalFees.reportSelectedLab ? "（计入）" : ""}
+                        </span>
+                        <div className="fee-calculation-editor__lab-formula">{`${formatLabPriceValue(quote.unitPrice)}/份 × ${displayedReportCount} 份`}</div>
+                        <strong className={`fee-calculation-editor__lab-total ${getLabToneClass(quote.lab)}`}>
+                          {formatCurrencyAmount(quote.fee, 0)}
+                        </strong>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="meta-extra-fee-card__formula">
+                    <span>报告份数</span>
+                    <input
+                      aria-label="Report Fee 报告份数"
+                      inputMode="numeric"
+                      placeholder={String(additionalFees.reportCount)}
+                      value={reportCountValue}
+                      onChange={(event) =>
+                        dispatch({
+                          type: "updateEnvironmentPlanSummary",
+                          phaseId: phase.id,
+                          field: "reportFeeCount",
+                          value: sanitizeWholeNumberInput(event.target.value),
+                        })}
+                    />
+                    <em>{reportCountValue ? "手动" : `默认 ${displayedReportCount}`}</em>
+                  </div>
+                </div>
+              ) : null}
+            </div>
           </div>
 
           <div className="banner">

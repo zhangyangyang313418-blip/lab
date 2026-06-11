@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyEnvironmentFeeDetailsToPhase,
   calculateFeeAmount,
   calculateLabMedianUnitPrice,
   createEnvironmentFeeDetailSections,
+  getEnvironmentAdditionalFeeSummary,
 } from "../services/environmentFeeDetail";
 import type { EnvironmentPlanPhase } from "../types/environmentPlan";
 
@@ -23,6 +25,72 @@ describe("environment fee detail calculations", () => {
     expect(calculateFeeAmount(40, "hour", { testHours: 24, quantity: 12, batchCount: 2 })).toBe(960);
     expect(calculateFeeAmount(4333, "quantity", { testHours: 24, quantity: 12, batchCount: 2 })).toBe(51996);
     expect(calculateFeeAmount(5000, "batch", { testHours: 24, quantity: 12, batchCount: 2 })).toBe(10000);
+  });
+
+  it("adds computer and report fees to the calculated phase total", () => {
+    const phase: EnvironmentPlanPhase = {
+      id: "dv",
+      title: "DV",
+      summary: {
+        projectLabel: "项目",
+        projectCode: "L460-L",
+        phaseLabel: "阶段",
+        phaseValue: "DV",
+        totalSampleLabel: "样本总数量",
+        totalSampleQty: "18",
+        longestDurationLabel: "最长测试时间(天)",
+        longestDurationDays: "101",
+        totalCostLabel: "总费用",
+        totalCost: "",
+        computerFeeCoefficient: "50",
+        reportFeeCount: "4",
+      },
+      groups: [
+        {
+          id: "mla-group-a",
+          title: "Group A",
+          totalSampleLabel: "Total样机数量",
+          totalSampleQty: "12",
+          totalDurationLabel: "组测试时间(天)",
+          totalDurationDays: "101",
+          totalCostLabel: "组费用",
+          totalCost: "",
+          rows: [{ id: "a-k1", label: "K1 Low Temperature Exposure", testHours: "2", sampleRange: "1-12" }],
+        },
+        {
+          id: "mla-group-c",
+          title: "Group C",
+          totalSampleLabel: "Total样机数量",
+          totalSampleQty: "6",
+          totalDurationLabel: "组测试时间(天)",
+          totalDurationDays: "56",
+          totalCostLabel: "组费用",
+          totalCost: "",
+          rows: [{ id: "c-k13", label: "K13 Dust Ingress", testHours: "2", sampleRange: "13-18" }],
+        },
+      ],
+    };
+
+    const additionalFees = getEnvironmentAdditionalFeeSummary(phase);
+    const applied = applyEnvironmentFeeDetailsToPhase(phase);
+
+    expect(additionalFees.computerFee).toBe(12500);
+    expect(additionalFees.computerLabQuotes.map((quote) => [quote.lab, quote.fee])).toEqual([
+      ["SGS", 12500],
+      ["华测", 22500],
+      ["苏劢", 7500],
+    ]);
+    expect(additionalFees.reportFee).toBe(600);
+    expect(additionalFees.reportLabQuotes.map((quote) => [quote.lab, quote.fee])).toEqual([
+      ["SGS", 0],
+      ["华测", 0],
+      ["苏劢", 600],
+    ]);
+    expect(applied.groups.find((group) => group.id === "mla-group-a")?.totalCost).toBe("720");
+    expect(applied.groups.find((group) => group.id === "mla-group-c")?.totalCost).toBe("3000");
+    expect(applied.summary.computerFee).toBe("12500");
+    expect(applied.summary.reportFee).toBe("600");
+    expect(applied.summary.totalCost).toBe("16820");
   });
 
   it("uses the Excel-confirmed three-lab MLA medians without Xince quotes", () => {

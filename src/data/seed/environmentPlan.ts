@@ -144,6 +144,10 @@ function createPhase(title: string, projectCode: string, groups: EnvironmentPlan
       longestDurationDays,
       totalCostLabel: "总费用",
       totalCost: formatCurrency(totalCost),
+      computerFee: "",
+      computerFeeCoefficient: "48",
+      reportFee: "",
+      reportFeeCount: "",
     },
     groups,
   }));

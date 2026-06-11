@@ -29,6 +29,7 @@ Thumbs.db
 .idea/
 .vscode/
 dist-export/
+.superpowers/
 
 # WPS / draw.io temporary backup files
 .$*.bkp
