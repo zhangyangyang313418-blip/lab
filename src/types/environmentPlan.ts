@@ -11,6 +11,10 @@ export interface EnvironmentPlanSummary {
   longestDurationDays: string;
   totalCostLabel: string;
   totalCost: string;
+  computerFee?: string;
+  computerFeeCoefficient?: string;
+  reportFee?: string;
+  reportFeeCount?: string;
 }
 
 export interface EnvironmentPlanRow {

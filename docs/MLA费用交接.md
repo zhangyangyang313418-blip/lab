@@ -1,6 +1,6 @@
 # MLA 费用交接
 
-更新时间：2026-06-04
+更新时间：2026-06-11
 
 ## 新线程使用方式
 
@@ -30,7 +30,7 @@ http://127.0.0.1:5173/environment-outline
 当前本地草稿模板版本：
 
 ```text
-ENVIRONMENT_PLAN_TEMPLATE_VERSION = 30
+ENVIRONMENT_PLAN_TEMPLATE_VERSION = 36
 ```
 
 Git 状态：
@@ -47,7 +47,17 @@ Git 状态：
 - `EMA` 费用已按用户回传的 EMA 费用规则 Excel 导回专属规则；不再完全复用 MLA 费用模板。
 - 当前工作重点已经从“逐条试错确认”切到“文档化、交接、后续小范围维护”。
 - 页面中涉及 LHD 的默认环境大纲、费用按钮、费用弹窗、本地草稿迁移已经一致。
+- `/environment-outline` 顶部新增独立费用汇总行：`TOTAL COST` 后跟各组费用、`Computer Fee`、`Report Fee`；总费用口径为各组测试费用合计 + 电脑费用 + 报告费用。
 - 如果用户后续说“刷新后还是旧值”，优先检查是否需要再升 `ENVIRONMENT_PLAN_TEMPLATE_VERSION`。
+
+## 2026-06-11 环境大纲附加费用
+
+用户确认电脑费用、报告费用放在顶部独立费用汇总行，不作为流程节点展示：
+
+- `TOTAL COST` 继续只读显示，计算口径为各组测试费用合计 + `Computer Fee` + `Report Fee`
+- 电脑费报价：SGS `250/月/台`、华测 `450/月/台`、苏勃 `150/月/台`；默认系数 `48`，系数可编辑，当前按 SGS 报价计入
+- 报告费报价：SGS `0/份`、华测 `0/份`、苏勃 `150/份`；报告份数默认按当前实际组数量，可编辑，当前按苏勃报价计入
+- 已将 `ENVIRONMENT_PLAN_TEMPLATE_VERSION` 升到 `36`，用于刷新旧环境大纲草稿中的附加费用字段和总费用
 
 ## 2026-06-04 EMA 费用临时复用 MLA 模板
 
@@ -308,7 +318,7 @@ Git 状态：
 - `src/services/environmentFeeDetail.ts`：费用明细计算主逻辑。
 - `src/pages/EnvironmentOutlinePage.tsx`：环境大纲页面和费用计算弹窗展示。
 - `src/store/appState.tsx`：环境大纲编辑状态更新；手动新增测试项完整名称匹配逻辑在这里。
-- `src/services/localStore.ts`：本地草稿版本号，当前 `ENVIRONMENT_PLAN_TEMPLATE_VERSION = 30`。
+- `src/services/localStore.ts`：本地草稿版本号，当前 `ENVIRONMENT_PLAN_TEMPLATE_VERSION = 36`。
 - `src/tests/environmentFeeDetail.test.ts`：费用规则回归测试。
 - `src/tests/environmentPlan.test.ts`：模板结构与默认时间回归测试。
 - `src/tests/localStore.test.ts`：旧草稿迁移回归测试。

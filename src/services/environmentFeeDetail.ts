@@ -48,6 +48,42 @@ export interface EnvironmentSpecialFeeBreakdown {
   note?: string;
 }
 
+type EnvironmentAdditionalFeeLabName = "SGS" | "华测" | "苏劢";
+
+interface EnvironmentAdditionalFeeRule {
+  selectedLab: EnvironmentAdditionalFeeLabName;
+  labs: Array<{ lab: EnvironmentAdditionalFeeLabName; unitPrice: number }>;
+}
+
+export interface EnvironmentAdditionalFeeSummary {
+  computerCoefficient: number;
+  computerFee: number;
+  computerSelectedLab: EnvironmentAdditionalFeeLabName;
+  computerLabQuotes: Array<{ lab: EnvironmentAdditionalFeeLabName; unitPrice: number; fee: number }>;
+  reportCount: number;
+  reportFee: number;
+  reportSelectedLab: EnvironmentAdditionalFeeLabName;
+  reportLabQuotes: Array<{ lab: EnvironmentAdditionalFeeLabName; unitPrice: number; fee: number }>;
+}
+
+const defaultComputerFeeCoefficient = 48;
+const computerFeeRule: EnvironmentAdditionalFeeRule = {
+  selectedLab: "SGS",
+  labs: [
+    { lab: "SGS", unitPrice: 250 },
+    { lab: "华测", unitPrice: 450 },
+    { lab: "苏劢", unitPrice: 150 },
+  ],
+};
+const reportFeeRule: EnvironmentAdditionalFeeRule = {
+  selectedLab: "苏劢",
+  labs: [
+    { lab: "SGS", unitPrice: 0 },
+    { lab: "华测", unitPrice: 0 },
+    { lab: "苏劢", unitPrice: 150 },
+  ],
+};
+
 function formatFee(value: number | null): string {
   return value && value > 0 ? String(Math.round(value)) : "";
 }
@@ -60,6 +96,48 @@ function parsePositiveNumber(value: string | undefined): number | null {
   const normalized = value.trim().replace(/[^\d.]/g, "");
   const parsed = Number(normalized);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function parseNonNegativeNumber(value: string | undefined, fallback: number): number {
+  if (value === undefined || value.trim() === "") {
+    return fallback;
+  }
+
+  const normalized = value.trim().replace(/[^\d.]/g, "");
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+function calculateAdditionalFee(rule: EnvironmentAdditionalFeeRule, base: number) {
+  const labQuotes = rule.labs.map((lab) => ({
+    ...lab,
+    fee: Math.round(lab.unitPrice * base),
+  }));
+  const selectedFee = labQuotes.find((lab) => lab.lab === rule.selectedLab)?.fee ?? 0;
+
+  return {
+    selectedFee,
+    labQuotes,
+  };
+}
+
+export function getEnvironmentAdditionalFeeSummary(phase: EnvironmentPlanPhase): EnvironmentAdditionalFeeSummary {
+  const computerCoefficient = parseNonNegativeNumber(phase.summary.computerFeeCoefficient, defaultComputerFeeCoefficient);
+  const defaultReportCount = phase.groups.length;
+  const reportCount = parseNonNegativeNumber(phase.summary.reportFeeCount, defaultReportCount);
+  const computer = calculateAdditionalFee(computerFeeRule, computerCoefficient);
+  const report = calculateAdditionalFee(reportFeeRule, reportCount);
+
+  return {
+    computerCoefficient,
+    computerFee: computer.selectedFee,
+    computerSelectedLab: computerFeeRule.selectedLab,
+    computerLabQuotes: computer.labQuotes,
+    reportCount,
+    reportFee: report.selectedFee,
+    reportSelectedLab: reportFeeRule.selectedLab,
+    reportLabQuotes: report.labQuotes,
+  };
 }
 
 function parseSampleCount(value: string | undefined): number | null {
@@ -942,12 +1020,18 @@ export function applyEnvironmentFeeDetailsToPhase(phase: EnvironmentPlanPhase): 
     sections.flatMap((section) => section.rows.map((row) => [row.outlineRowId, formatFee(row.estimatedItemFee)])),
   );
   const totalByGroupId = new Map(sections.map((section) => [section.groupId, section.totalEstimatedFee]));
-  const totalCost = sections.reduce((sum, section) => sum + section.totalEstimatedFee, 0);
+  const groupTotalCost = sections.reduce((sum, section) => sum + section.totalEstimatedFee, 0);
+  const additionalFees = getEnvironmentAdditionalFeeSummary(phase);
+  const totalCost = groupTotalCost + additionalFees.computerFee + additionalFees.reportFee;
 
   return {
     ...phase,
     summary: {
       ...phase.summary,
+      computerFee: formatFee(additionalFees.computerFee),
+      computerFeeCoefficient: phase.summary.computerFeeCoefficient ?? String(defaultComputerFeeCoefficient),
+      reportFee: formatFee(additionalFees.reportFee),
+      reportFeeCount: phase.summary.reportFeeCount ?? "",
       totalCost: formatFee(totalCost),
     },
     groups: phase.groups.map((group) => ({

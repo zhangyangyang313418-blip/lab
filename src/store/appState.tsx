@@ -328,32 +328,43 @@ function mergeEnvironmentPlanWithTemplate(
       const missingGroups = (templatePhase?.groups ?? []).filter(
         (group) => !phase.groups.some((draftGroup) => draftGroup.id === group.id),
       );
+      const summary = refreshTimings && templatePhase
+        ? {
+            ...templatePhase.summary,
+            computerFee: phase.summary.computerFee ?? templatePhase.summary.computerFee ?? "",
+            computerFeeCoefficient: phase.summary.computerFeeCoefficient ?? templatePhase.summary.computerFeeCoefficient ?? "48",
+            reportFee: phase.summary.reportFee ?? templatePhase.summary.reportFee ?? "",
+            reportFeeCount: phase.summary.reportFeeCount ?? templatePhase.summary.reportFeeCount ?? "",
+          }
+        : {
+            ...phase.summary,
+            computerFee: phase.summary.computerFee ?? templatePhase?.summary.computerFee ?? "",
+            computerFeeCoefficient: phase.summary.computerFeeCoefficient ?? templatePhase?.summary.computerFeeCoefficient ?? "48",
+            reportFee: phase.summary.reportFee ?? templatePhase?.summary.reportFee ?? "",
+            reportFeeCount: phase.summary.reportFeeCount ?? templatePhase?.summary.reportFeeCount ?? "",
+          };
 
       return {
         ...phase,
-        ...(refreshTimings && templatePhase
-          ? {
-              summary: templatePhase.summary,
-            }
-          : {}),
+        summary,
         groups: [...mergedGroups, ...missingGroups],
       };
       }),
       ...templatePlan.phases.filter((phase) => !draftPhaseIds.has(phase.id)),
-    ],
+    ].map(applyEnvironmentFeeDetailsToPhase),
   };
 }
 
 function recalculateEnvironmentPlanPhaseSummary(phase: EnvironmentPlanPhase): EnvironmentPlanPhase {
   const totalSampleQty = phase.groups.reduce((sum, group) => sum + Number(group.totalSampleQty || 0), 0);
 
-  return {
+  return applyEnvironmentFeeDetailsToPhase({
     ...phase,
     summary: {
       ...phase.summary,
       totalSampleQty: String(totalSampleQty),
     },
-  };
+  });
 }
 
 function isManualEnvironmentPlanRow(row: EnvironmentPlanRow): boolean {
@@ -549,16 +560,26 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         lastEnvironmentPlan: state.environmentPlan,
         environmentPlan: {
           ...state.environmentPlan,
-          phases: state.environmentPlan.phases.map((phase) =>
-            phase.id === action.phaseId
-              ? {
-                  ...phase,
-                  summary: {
-                    ...phase.summary,
-                    [action.field]: action.value,
-                  },
-                }
-              : phase),
+          phases: state.environmentPlan.phases.map((phase) => {
+            if (phase.id !== action.phaseId) {
+              return phase;
+            }
+
+            const nextPhase = {
+              ...phase,
+              summary: {
+                ...phase.summary,
+                [action.field]: action.value,
+              },
+            };
+
+            return action.field === "computerFee"
+              || action.field === "computerFeeCoefficient"
+              || action.field === "reportFee"
+              || action.field === "reportFeeCount"
+              ? applyEnvironmentFeeDetailsToPhase(nextPhase)
+              : nextPhase;
+          }),
         },
       };
     case "updateEnvironmentPlanGroup":
