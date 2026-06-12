@@ -41,7 +41,7 @@ const l460PvCoefficientRules: EnvironmentFeeBasisRule[] = [
   { groupTitle: "Group D-2", matcher: /L1\s*&?\s*L4|Performance Evaluation.*Functional Evaluation/i, basis: { quantity: 6 } },
   { groupTitle: "Group D-3", matcher: /\bK23\b|Thermal Shock Endurance/i, basis: { hour: 1017 } },
   { groupTitle: "Group D-3", matcher: /L6-SEM&SECTION|L6.*外部|Internal Inspection.*外部/i, basis: { quantity: 33 } },
-  { groupTitle: "Group D-3", matcher: /L1\s*&?\s*L4|Performance Evaluation.*Functional Evaluation/i, basis: { quantity: 6 } },
+  { groupTitle: "Group D-3", matcher: /L1\s*&?\s*L4|Performance Evaluation.*Functional Evaluation/i, basis: { quantity: 8 } },
   { groupTitle: "Group D-4", matcher: /\bK8\b|Dewing Test/i, basis: { batch: 1 } },
   { groupTitle: "Group D-4", matcher: /L1\s*&?\s*L4|Performance Evaluation.*Functional Evaluation/i, basis: { quantity: 6 } },
   { groupTitle: "Group D-5", matcher: /\bK24\b|High Temperature Endurance/i, basis: { hour: 1000 } },

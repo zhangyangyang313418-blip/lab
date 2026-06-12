@@ -1698,12 +1698,13 @@ export function EnvironmentOutlinePage() {
   const { state, dispatch } = useAppState();
   const editable = !state.projectSetup.reuseEnvironmentTemplate;
   const canUndoEnvironmentPlan = Boolean(state.lastEnvironmentPlan);
-  const exportMlaFees = () => downloadMlaEnvironmentFeeWorkbook(state.environmentPlan);
+  const platform = state.projectSetup.platform;
+  const exportFees = () => downloadMlaEnvironmentFeeWorkbook(state.environmentPlan, state.projectSetup);
 
   return (
     <AppLayout
       title="环境测试大纲"
-      subtitle="参考 MLA test flow chart 展示，可直接编辑各组内容。"
+      subtitle={`参考 ${platform} test flow chart 展示，可直接编辑各组内容。`}
       wide
     >
       <div className="content-stack">
@@ -1719,8 +1720,8 @@ export function EnvironmentOutlinePage() {
           >
             撤回上一步
           </button>
-          <button type="button" className="secondary-button" onClick={exportMlaFees}>
-            导出 MLA 费用 Excel
+          <button type="button" className="secondary-button" onClick={exportFees}>
+            {`导出 ${platform} 费用 Excel`}
           </button>
         </div>
 
@@ -1747,8 +1748,8 @@ export function EnvironmentOutlinePage() {
           >
             撤回上一步
           </button>
-          <button type="button" className="secondary-button" onClick={exportMlaFees}>
-            导出 MLA 费用 Excel
+          <button type="button" className="secondary-button" onClick={exportFees}>
+            {`导出 ${platform} 费用 Excel`}
           </button>
           <button type="button" className="primary-button" onClick={() => navigate("/results")}>
             确认进入结果页

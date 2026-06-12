@@ -1,6 +1,6 @@
 # Product Test Evaluation Tool Status Index
 
-更新时间：2026-06-11
+更新时间：2026-06-12
 
 ## 目的
 
@@ -31,6 +31,11 @@ npm run build
 - 本地草稿迁移版本当前为 `ENVIRONMENT_PLAN_TEMPLATE_VERSION = 36`。
 - `/environment-outline` 顶部新增独立费用汇总行：`TOTAL COST` 后跟各组费用、`Computer Fee`、`Report Fee`；总费用口径为各组测试费用合计 + 电脑费用 + 报告费用。
 - EMA 费用已按 `outputs/ema-fee-detail-export/JLR- EMA 费用规则.xlsx` 导回专属规则；MLA 锁定费用不变。
+- MLA RHD 右舵费用已补齐使用锁定 MLA 费用规则：`mla-rhd-group-*` 会参与 Optical、Particle Exposure、L1&L4、L6、E-2 及 K 系列费用计算。
+- MLA/LHD/RHD 导出和费用明细中，baseline `Optical Test` 与 `L1&L4` 按各自 Group 样本量计算与展示，不再使用跨组汇总样本量。
+- MLA Group A 样品范围已确认：普通 sequence rows 为 `1-12`；`K16.1 Mechanical Shock Package Drop`、测试前评估、测试后 `L1&L4 / Optical / L6-photo&xray` 使用 `1-14`。
+- MLA Group D-3 已确认按 `8` 个 PCBA 样品：`L1&L4` 和 `L6-photo&xray` 计费基数为 `8 个样品`；`L6-SEM&SECTION` 仍按 `33 个点位`。
+- MLA Group D-8 已确认前置 `Optical Test` / `L1&L4` 按 `15 个样品`；HALT 五项仍为 `8h × 800/h = 6400`；后置 `L1&L4` / `Optical Test` / `L6-photo&xray` 按 `9 个样品`。
 - 流程图维护以 `docs/*.drawio` 和对应 `scripts/generate_*drawio*.mjs` 为准。
 
 ## 关键文件入口

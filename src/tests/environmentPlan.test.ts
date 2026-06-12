@@ -22,7 +22,7 @@ describe("environment plan fees", () => {
     const groupA = pv?.groups.find((group) => group.id === "mla-group-a");
 
     expect(pv?.summary.totalSampleQty).toBe("123");
-    expect(groupA?.rows.find((row) => row.id === "a-l1l4")?.fee).toBe("38800");
+    expect(groupA?.rows.find((row) => row.id === "a-l1l4")?.fee).toBe("5600");
   });
 
   it("populates per-hour environmental row fee from the coefficient-table hours", () => {
@@ -49,14 +49,14 @@ describe("environment plan fees", () => {
     expect(pv?.groups.find((group) => group.id === "mla-group-d4")?.totalSamplePrefix).toBe("PCBA");
   });
 
-  it("subtracts PCBA-only D-3 and D-4 samples from the baseline optical sample range", () => {
+  it("scopes baseline optical sample range to each group", () => {
     const plan = createSeedEnvironmentPlan("MLA", "L481-L", mlaLhdItems);
     const pv = plan.phases.find((phase) => phase.id === "pv");
     const groupA = pv?.groups.find((group) => group.id === "mla-group-a");
 
     expect(pv?.summary.totalSampleQty).toBe("123");
-    expect(groupA?.rows.find((row) => row.id === "a-optical")?.sampleRange).toBe("1-109");
-    expect(groupA?.rows.find((row) => row.id === "a-l1l4")?.sampleRange).toBeUndefined();
+    expect(groupA?.rows.find((row) => row.id === "a-optical")?.sampleRange).toBe("1-14");
+    expect(groupA?.rows.find((row) => row.id === "a-l1l4")?.sampleRange).toBe("1-14");
   });
 
   it("applies the MLA optical mixed rule to the baseline optical summary row", () => {
@@ -64,8 +64,8 @@ describe("environment plan fees", () => {
     const pv = plan.phases.find((phase) => phase.id === "pv");
     const groupA = pv?.groups.find((group) => group.id === "mla-group-a");
 
-    expect(groupA?.rows.find((row) => row.id === "a-optical")?.sampleRange).toBe("1-109");
-    expect(groupA?.rows.find((row) => row.id === "a-optical")?.fee).toBe("25140");
+    expect(groupA?.rows.find((row) => row.id === "a-optical")?.sampleRange).toBe("1-14");
+    expect(groupA?.rows.find((row) => row.id === "a-optical")?.fee).toBe("3190");
   });
 
   it("uses the displayed baseline sample count for MLA baseline L1&L4 fees", () => {
@@ -74,7 +74,7 @@ describe("environment plan fees", () => {
     const groupA = dv?.groups.find((group) => group.id === "mla-group-a");
 
     expect(dv?.summary.totalSampleQty).toBe("108");
-    expect(groupA?.rows.find((row) => row.id === "a-l1l4")?.fee).toBe("32800");
+    expect(groupA?.rows.find((row) => row.id === "a-l1l4")?.fee).toBe("5600");
   });
 
   it("splits D-3 L6 into internal and external rows while other L6 rows stay internal-only", () => {
@@ -92,6 +92,7 @@ describe("environment plan fees", () => {
     const emaGroupD3 = emaPv?.groups.find((group) => group.id === "ema-group-d3");
 
     expect(mlaGroupA?.rows.find((row) => row.id === "a-post-l6")?.label).toBe("L6-photo&xray");
+    expect(mlaGroupA?.rows.find((row) => row.id === "a-post-l6")?.sampleRange).toBe("1-14");
     expect(
       mlaGroupD3?.rows
         .filter((row) => row.id === "d3-post-l6-internal" || row.id === "d3-post-l6-external")
@@ -183,9 +184,41 @@ describe("environment plan fees", () => {
     const plan = createSeedEnvironmentPlan("MLA", "L460-L", mlaLhdItems);
     const pv = plan.phases.find((phase) => phase.id === "pv");
 
-    expect(pv?.groups.find((group) => group.id === "mla-group-a")?.rows.find((row) => row.id === "a-post-optical")?.fee).toBe("2770");
+    expect(pv?.groups.find((group) => group.id === "mla-group-a")?.rows.find((row) => row.id === "a-post-optical")?.fee).toBe("3190");
     expect(pv?.groups.find((group) => group.id === "mla-group-b")?.rows.find((row) => row.id === "b-post-optical")?.fee).toBe("2770");
-    expect(pv?.groups.find((group) => group.id === "mla-group-d8")?.rows.find((row) => row.id === "d8-post-optical")?.fee).toBe("3150");
+    expect(pv?.groups.find((group) => group.id === "mla-group-d8")?.rows.find((row) => row.id === "d8-post-optical")?.fee).toBe("1890");
+  });
+
+  it("uses the confirmed D-8 pre and post evaluation sample quantities", () => {
+    const plan = createSeedEnvironmentPlan("MLA", "L460-L", mlaLhdItems);
+    const pv = plan.phases.find((phase) => phase.id === "pv");
+    const groupD8 = pv?.groups.find((group) => group.id === "mla-group-d8");
+
+    expect(groupD8?.rows.find((row) => row.id === "d8-optical")).toMatchObject({
+      sampleRange: "1-15",
+      feeBasisOverrides: { quantity: "15" },
+      fee: "3150",
+    });
+    expect(groupD8?.rows.find((row) => row.id === "d8-l1l4")).toMatchObject({
+      sampleRange: "1-15",
+      feeBasisOverrides: { quantity: "15" },
+      fee: "6000",
+    });
+    expect(groupD8?.rows.find((row) => row.id === "d8-post-l1l4")).toMatchObject({
+      sampleRange: "1-15",
+      feeBasisOverrides: { quantity: "9" },
+      fee: "3600",
+    });
+    expect(groupD8?.rows.find((row) => row.id === "d8-post-optical")).toMatchObject({
+      sampleRange: "1-15",
+      feeBasisOverrides: { quantity: "9" },
+      fee: "1890",
+    });
+    expect(groupD8?.rows.find((row) => row.id === "d8-post-l6")).toMatchObject({
+      sampleRange: "1-15",
+      feeBasisOverrides: { quantity: "9" },
+      fee: "3600",
+    });
   });
 
   it("syncs approved MLA fee updates for K6, K14, and E groups into the seeded PV outline", () => {

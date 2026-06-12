@@ -1,6 +1,6 @@
 # LHD费用说明
 
-更新时间：2026-06-11
+更新时间：2026-06-12
 
 ## 适用范围
 
@@ -12,6 +12,10 @@
 - 当前费用规则以代码实现为准，不再依赖旧聊天上下文
 - 当前报价和中值计算仅使用 `SGS / 华测 / 苏勃` 三家；代码内部仍沿用 `苏劢` 键名，页面展示为 `苏勃`
 - `信测` 不参与当前版本报价展示和中值计算
+- `MLA / RHD` 右舵大纲沿用当前锁定的 MLA 费用规则；`mla-rhd-group-*` 已参与 Optical、Particle Exposure、L1&L4、L6、E-2 及 K 系列费用计算
+- baseline `Optical Test` 与 `L1&L4 Performance Evaluation & Functional Evaluation` 按各自 Group 样本量计算和导出，不再按跨组汇总样本量计算
+- Group A 样品范围：普通 sequence rows 为 `1-12`；只有 `K16.1 Mechanical Shock Package Drop`、测试前评估、测试后 `L1&L4 / Optical / L6-photo&xray` 使用 `1-14`
+- Group D-8 样品基数：前置 `Optical Test` / `L1&L4` 使用 `15 个样品`；HALT 五项保持 `8h / 800/h`；后置 `L1&L4 / Optical Test / L6-photo&xray` 使用 `9 个样品`
 - 后续若有修改，应先更新本文件，再改代码
 
 补充结论：
@@ -55,6 +59,8 @@
 ### L6 费用
 
 - `L6-photo&xray`：固定单价 `400 / 个样品`，按样本数量计费，不展示 `SGS / 华测 / 苏勃` 实验室报价明细
+- Group A 测试后 `L6-photo&xray` 按 `1-14` 全部样品计费，当前费用 `14 × 400 = 5600`
+- Group D-3 `L6-photo&xray` 按 `8 个样品` 计费，当前费用 `8 × 400 = 3200`
 - `L6-SEM&SECTION`：按 `3 样品 × 11 点位 = 33 点位` 计费，使用 `SGS 650 / 华测 500 / 苏勃 700` 的中值计算
 - `D-3` 内部和外部分别单独计费
 
@@ -82,9 +88,11 @@
 - `Particle Exposure`
   - 保留特殊实验室总价逻辑
 - `Optical Test`
-  - 保留 51 点位 / 19 点位拆分逻辑
+  - 保留 51 点位 / 19 点位拆分逻辑；普通 Group 按本组样本量计算为 `1 台 51 点位 + 其余 19 点位`
 - `L1&L4 Performance Evaluation & Functional Evaluation`
-  - 按样机数量计费
+  - 按本组样机数量计费；无 `sampleRange` 时优先取当前 Group `totalSampleQty`
+  - Group A baseline 与 post 评估均按 `1-14 / 14 个样品` 计费
+  - Group D-3 按 `8 个 PCBA 样品` 计费，每行费用 `8 × 400 = 3200`
 - `L6-photo&xray`
   - 内部固定单价 `400 / 个样品`
 - `L6-SEM&SECTION`
@@ -97,6 +105,12 @@
   - 每个子项目预估测试时间和计费基数均为 `8h`
   - SGS `800/h`，华测 `600/h`，苏勃 `1500/h`
   - 当前按中值 `800/h` 计费，每项 `6400`
+- `Group D-8` 前后评估
+  - 前置 `Optical Test`：`15 个样品`，费用 `3150`
+  - 前置 `L1&L4`：`15 个样品`，费用 `6000`
+  - 后置 `L1&L4`：`9 个样品`，费用 `3600`
+  - 后置 `Optical Test`：`9 个样品`，费用 `1890`
+  - 后置 `L6-photo&xray`：`9 个样品`，费用 `3600`
 
 ### K13
 
@@ -232,7 +246,8 @@
 - `Group B / K18 = quantity 12`
 - `Group C / K26 = 500h`
 - `Group D-3 / K23 = 1017h`
-- `Group D-3 / L6-SEM&SECTION = quantity 33`，页面展示为 `3 样品 × 11 点位`
+- `Group D-3 / L1&L4 = quantity 8`
+- `Group D-3 / L6-SEM&SECTION = quantity 33`，页面展示为 `3 样品 × 11 点位`，Excel 导出计费基数展示为 `33 个点位`
 
 ## 修改规则时怎么判断改哪里
 
@@ -316,6 +331,11 @@ ENVIRONMENT_PLAN_TEMPLATE_VERSION = 36
 - 三家实验室报价口径：仅 `SGS / 华测 / 苏勃` 参与展示与中值计算
 - EMA 费用按回传 Excel 导回专属规则：K52.351 / Particle / K14 不测；K7/K17/K20/K21/K22 按 EMA 条件差异计费
 - 附加费用字段与总费用刷新：`Computer Fee`、`Report Fee` 计入 `TOTAL COST`
+- MLA RHD 旧草稿刷新到锁定 MLA 费用规则：补齐右舵 Optical、Particle Exposure、L1&L4、L6、E-2 及 K 系列费用
+- baseline `Optical Test` / `L1&L4` 旧草稿刷新到按各自 Group 样本量计算和导出
+- Group A post `L1&L4 / Optical / L6-photo&xray` 旧草稿刷新到 `1-14` 全部样品
+- Group D-3 `L1&L4` 旧草稿刷新到 `8 个样品 / 3200`
+- Group D-8 前后评估旧草稿刷新到前置 `15 个样品`、后置 `9 个样品`
 
 ## 修改后的最少验证
 

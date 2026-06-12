@@ -15,6 +15,12 @@ import { appReducer, createInitialAppState, createSeedAppState } from "../store/
 
 const seedEnvironmentItems = seedPlatformTemplates.find((template) => template.platform === defaultProjectSetup.platform)?.items ?? [];
 
+function withoutFeeBasisOverrides<T extends { feeBasisOverrides?: unknown }>(row: T): Omit<T, "feeBasisOverrides"> {
+  const nextRow = { ...row };
+  delete nextRow.feeBasisOverrides;
+  return nextRow;
+}
+
 function createDraft(): ProjectDraft {
   return {
     projectSetup: {
@@ -548,6 +554,229 @@ describe("local draft persistence", () => {
     expect(dvPhase?.summary.totalCost).not.toBe("");
   });
 
+  it("refreshes stale MLA RHD drafts to the locked MLA fee rules", () => {
+    const state = createSeedAppState();
+    const rhdDraft = appReducer(state, {
+      type: "applyProjectSetup",
+      updates: {
+        platform: "MLA",
+        steeringSides: ["RHD"],
+        projectCode: "L463",
+        reuseEnvironmentTemplate: true,
+        reuseMaterialTemplate: false,
+        reuseEmcTemplate: false,
+      },
+    });
+
+    saveProjectDraft({
+      ...rhdDraft,
+      environmentPlan: {
+        ...rhdDraft.environmentPlan,
+        phases: rhdDraft.environmentPlan.phases.map((phase) => ({
+          ...phase,
+          summary: { ...phase.summary, totalCost: "" },
+          groups: phase.groups.map((group) => ({
+            ...group,
+            totalCost: "",
+            rows: group.rows.map((row) => ({ ...row, fee: "" })),
+          })),
+        })),
+      },
+      environmentPlanVersion: 30,
+    });
+
+    const hydrated = createInitialAppState();
+    const dvPhase = hydrated.environmentPlan.phases.find((phase) => phase.id === "dv");
+    const groupA = dvPhase?.groups.find((group) => group.id === "mla-rhd-group-a");
+    const groupC = dvPhase?.groups.find((group) => group.id === "mla-rhd-group-c");
+    const groupE2 = dvPhase?.groups.find((group) => group.id === "mla-rhd-group-e2");
+
+    expect(groupA?.rows.find((row) => row.id === "a-particle")?.fee).toBe("24000");
+    expect(groupA?.rows.find((row) => row.id === "a-k6")?.fee).toBe("7200");
+    expect(groupC?.rows.find((row) => row.id === "c-particle")?.fee).toBe("3000");
+    expect(groupC?.rows.find((row) => row.id === "c-k26")?.fee).toBe("7158");
+    expect(groupE2?.rows.find((row) => row.id === "e2-item")?.fee).toBe("42500");
+  });
+
+  it("refreshes stale baseline Optical and L1&L4 rows to group-scoped quantities", () => {
+    const state = createSeedAppState();
+    const mlaDraft = appReducer(state, {
+      type: "applyProjectSetup",
+      updates: {
+        platform: "MLA",
+        projectCode: "L463",
+        reuseEnvironmentTemplate: true,
+        reuseMaterialTemplate: false,
+        reuseEmcTemplate: false,
+      },
+    });
+
+    saveProjectDraft({
+      ...mlaDraft,
+      environmentPlan: {
+        ...mlaDraft.environmentPlan,
+        phases: mlaDraft.environmentPlan.phases.map((phase) => ({
+          ...phase,
+          groups: phase.groups.map((group) => ({
+            ...group,
+            rows: group.rows.map((row) => {
+              if (group.id === "mla-group-a" && row.id === "a-optical") {
+                return { ...row, sampleRange: "1-94", fee: "21990" };
+              }
+
+              if (group.id === "mla-group-a" && row.id === "a-l1l4") {
+                return { ...row, sampleRange: "", fee: "37600" };
+              }
+
+              if (group.id === "mla-group-a" && row.id === "a-post-l1l4") {
+                return { ...row, sampleRange: "1-12", fee: "4800" };
+              }
+
+              if (group.id === "mla-group-a" && row.id === "a-post-optical") {
+                return { ...row, sampleRange: "1-12", fee: "2770" };
+              }
+
+              if (group.id === "mla-group-a" && row.id === "a-post-l6") {
+                return { ...row, sampleRange: "1-12", fee: "4800" };
+              }
+
+              return row;
+            }),
+          })),
+        })),
+      },
+      environmentPlanVersion: 31,
+    });
+
+    const hydrated = createInitialAppState();
+    const dvPhase = hydrated.environmentPlan.phases.find((phase) => phase.id === "dv");
+    const groupA = dvPhase?.groups.find((group) => group.id === "mla-group-a");
+
+    expect(groupA?.rows.find((row) => row.id === "a-optical")?.sampleRange).toBe("1-14");
+    expect(groupA?.rows.find((row) => row.id === "a-optical")?.fee).toBe("3190");
+    expect(groupA?.rows.find((row) => row.id === "a-l1l4")?.sampleRange).toBe("1-14");
+    expect(groupA?.rows.find((row) => row.id === "a-l1l4")?.fee).toBe("5600");
+    expect(groupA?.rows.find((row) => row.id === "a-post-l1l4")?.sampleRange).toBe("1-14");
+    expect(groupA?.rows.find((row) => row.id === "a-post-l1l4")?.fee).toBe("5600");
+    expect(groupA?.rows.find((row) => row.id === "a-post-optical")?.sampleRange).toBe("1-14");
+    expect(groupA?.rows.find((row) => row.id === "a-post-optical")?.fee).toBe("3190");
+    expect(groupA?.rows.find((row) => row.id === "a-post-l6")?.sampleRange).toBe("1-14");
+    expect(groupA?.rows.find((row) => row.id === "a-post-l6")?.fee).toBe("5600");
+  });
+
+  it("refreshes stale D-3 L1&L4 rows to the 8 PCBA sample basis", () => {
+    const state = createSeedAppState();
+    const mlaDraft = appReducer(state, {
+      type: "applyProjectSetup",
+      updates: {
+        platform: "MLA",
+        projectCode: "L463",
+        reuseEnvironmentTemplate: true,
+        reuseMaterialTemplate: false,
+        reuseEmcTemplate: false,
+      },
+    });
+
+    saveProjectDraft({
+      ...mlaDraft,
+      environmentPlan: {
+        ...mlaDraft.environmentPlan,
+        phases: mlaDraft.environmentPlan.phases.map((phase) => ({
+          ...phase,
+          groups: phase.groups.map((group) => ({
+            ...group,
+            rows: group.rows.map((row) =>
+              group.id === "mla-group-d3" && (row.id === "d3-l1l4" || row.id === "d3-post-l1l4")
+                ? { ...row, fee: "2400" }
+                : row,
+            ),
+          })),
+        })),
+      },
+      environmentPlanVersion: 33,
+    });
+
+    const hydrated = createInitialAppState();
+    const dvPhase = hydrated.environmentPlan.phases.find((phase) => phase.id === "dv");
+    const pvPhase = hydrated.environmentPlan.phases.find((phase) => phase.id === "pv");
+    const dvGroupD3 = dvPhase?.groups.find((group) => group.id === "mla-group-d3");
+    const pvGroupD3 = pvPhase?.groups.find((group) => group.id === "mla-group-d3");
+
+    expect(dvGroupD3?.rows.find((row) => row.id === "d3-l1l4")?.fee).toBe("3200");
+    expect(dvGroupD3?.rows.find((row) => row.id === "d3-post-l1l4")?.fee).toBe("3200");
+    expect(pvGroupD3?.rows.find((row) => row.id === "d3-l1l4")?.fee).toBe("3200");
+    expect(pvGroupD3?.rows.find((row) => row.id === "d3-post-l1l4")?.fee).toBe("3200");
+  });
+
+  it("refreshes stale D-8 evaluation rows to the confirmed 15 and 9 sample basis", () => {
+    const state = createSeedAppState();
+    const mlaDraft = appReducer(state, {
+      type: "applyProjectSetup",
+      updates: {
+        platform: "MLA",
+        projectCode: "L463",
+        reuseEnvironmentTemplate: true,
+        reuseMaterialTemplate: false,
+        reuseEmcTemplate: false,
+      },
+    });
+
+    saveProjectDraft({
+      ...mlaDraft,
+      environmentPlan: {
+        ...mlaDraft.environmentPlan,
+        phases: mlaDraft.environmentPlan.phases.map((phase) => ({
+          ...phase,
+          groups: phase.groups.map((group) => ({
+            ...group,
+            rows: group.rows.map((row) => {
+              if (group.id !== "mla-group-d8") {
+                return row;
+              }
+
+              if (row.id === "d8-l1l4") {
+                return { ...withoutFeeBasisOverrides(row), fee: "2400" };
+              }
+
+              if (row.id === "d8-post-optical") {
+                return { ...withoutFeeBasisOverrides(row), fee: "3150" };
+              }
+
+              return row;
+            }),
+          })),
+        })),
+      },
+      environmentPlanVersion: 34,
+    });
+
+    const hydrated = createInitialAppState();
+    const pvGroupD8 = hydrated.environmentPlan.phases
+      .find((phase) => phase.id === "pv")
+      ?.groups.find((group) => group.id === "mla-group-d8");
+
+    expect(pvGroupD8?.rows.find((row) => row.id === "d8-optical")).toMatchObject({
+      feeBasisOverrides: { quantity: "15" },
+      fee: "3150",
+    });
+    expect(pvGroupD8?.rows.find((row) => row.id === "d8-l1l4")).toMatchObject({
+      feeBasisOverrides: { quantity: "15" },
+      fee: "6000",
+    });
+    expect(pvGroupD8?.rows.find((row) => row.id === "d8-post-l1l4")).toMatchObject({
+      feeBasisOverrides: { quantity: "9" },
+      fee: "3600",
+    });
+    expect(pvGroupD8?.rows.find((row) => row.id === "d8-post-optical")).toMatchObject({
+      feeBasisOverrides: { quantity: "9" },
+      fee: "1890",
+    });
+    expect(pvGroupD8?.rows.find((row) => row.id === "d8-post-l6")).toMatchObject({
+      feeBasisOverrides: { quantity: "9" },
+      fee: "3600",
+    });
+  });
+
   it("hydrates computer and report fee fields into stale environment outline drafts", () => {
     const state = createSeedAppState();
     const mlaDraft = appReducer(state, {
@@ -578,7 +807,7 @@ describe("local draft persistence", () => {
           })(),
         })),
       },
-      environmentPlanVersion: 34,
+      environmentPlanVersion: 35,
     });
 
     const hydrated = createInitialAppState();
@@ -589,6 +818,43 @@ describe("local draft persistence", () => {
     expect(dvPhase?.summary.computerFeeCoefficient).toBe("48");
     expect(dvPhase?.summary.reportFee).toBe(defaultReportFee);
     expect(dvPhase?.summary.reportFeeCount).toBe("");
+  });
+
+  it("rebuilds the environment outline when a saved draft platform no longer matches the selected platform", () => {
+    const state = createSeedAppState();
+    const mlaRhdDraft = appReducer(state, {
+      type: "applyProjectSetup",
+      updates: {
+        platform: "MLA",
+        steeringSides: ["RHD"],
+        projectCode: "L463",
+        reuseEnvironmentTemplate: false,
+        reuseMaterialTemplate: false,
+        reuseEmcTemplate: false,
+      },
+    });
+
+    saveProjectDraft({
+      ...mlaRhdDraft,
+      projectSetup: {
+        ...mlaRhdDraft.projectSetup,
+        platform: "EMA",
+      },
+      environmentPlanVersion: 31,
+    });
+
+    const hydrated = createInitialAppState();
+    const dvPhase = hydrated.environmentPlan.phases.find((phase) => phase.id === "dv");
+
+    expect(hydrated.projectSetup.platform).toBe("EMA");
+    expect(hydrated.environmentPlan.platform).toBe("EMA");
+    expect(dvPhase?.groups.some((group) => group.id === "mla-rhd-group-a")).toBe(false);
+    expect(dvPhase?.groups.some((group) => group.id === "ema-rhd-group-a")).toBe(true);
+    expect(dvPhase?.summary.projectCode).toBe("L463 RHD");
+    expect(dvPhase?.groups.find((group) => group.id === "ema-rhd-group-a")?.rows.some((row) => /K14\b/.test(row.label))).toBe(false);
+    expect(dvPhase?.groups.find((group) => group.id === "ema-rhd-group-f2")?.rows[0]?.label).toBe(
+      "Operating Noise & Transient Noise",
+    );
   });
 });
 

@@ -1,6 +1,6 @@
 # MLA 费用交接
 
-更新时间：2026-06-11
+更新时间：2026-06-12
 
 ## 新线程使用方式
 
@@ -48,6 +48,11 @@ Git 状态：
 - 当前工作重点已经从“逐条试错确认”切到“文档化、交接、后续小范围维护”。
 - 页面中涉及 LHD 的默认环境大纲、费用按钮、费用弹窗、本地草稿迁移已经一致。
 - `/environment-outline` 顶部新增独立费用汇总行：`TOTAL COST` 后跟各组费用、`Computer Fee`、`Report Fee`；总费用口径为各组测试费用合计 + 电脑费用 + 报告费用。
+- 页面中涉及 RHD 右舵的费用计算已补齐使用锁定 MLA 费用规则；`mla-rhd-group-*` 会参与 Optical、Particle Exposure、L1&L4、L6、E-2 及 K 系列费用计算。
+- baseline `Optical Test` 与 `L1&L4 Performance Evaluation & Functional Evaluation` 已改为按各自 Group 样本量计算和导出；例如 Group A 使用 `1-14 / 14 个样品`，Group C 使用 `1-6 / 6 个样品`，不再导出跨组汇总样本量。
+- Group A 样品范围已确认：普通 sequence rows 为 `1-12`；只有 `K16.1 Mechanical Shock Package Drop`、测试前评估、测试后 `L1&L4 / Optical / L6-photo&xray` 使用 `1-14` 全部样品。
+- Group D-3 已确认按 `8` 个 PCBA 样品；`L1&L4` 与 `L6-photo&xray` 使用 `8 个样品`，`L6-SEM&SECTION` 仍按 `33 个点位`。
+- Group D-8 已确认前置 `Optical Test` / `L1&L4` 使用 `15 个样品`；HALT 五项仍按 `8h × 800/h = 6400`；后置 `L1&L4` / `Optical Test` / `L6-photo&xray` 使用 `9 个样品`。
 - 如果用户后续说“刷新后还是旧值”，优先检查是否需要再升 `ENVIRONMENT_PLAN_TEMPLATE_VERSION`。
 
 ## 2026-06-11 环境大纲附加费用
@@ -58,6 +63,51 @@ Git 状态：
 - 电脑费报价：SGS `250/月/台`、华测 `450/月/台`、苏勃 `150/月/台`；默认系数 `48`，系数可编辑，当前按 SGS 报价计入
 - 报告费报价：SGS `0/份`、华测 `0/份`、苏勃 `150/份`；报告份数默认按当前实际组数量，可编辑，当前按苏勃报价计入
 - 已将 `ENVIRONMENT_PLAN_TEMPLATE_VERSION` 升到 `36`，用于刷新旧环境大纲草稿中的附加费用字段和总费用
+
+## 2026-06-12 MLA Group D-8 样品基数修正
+
+用户确认 `D-8 HALT` 相关计费不改 `8h / 800/h`，本轮仅修正同组光学、L1&L4 和 L6 的样品数量：
+
+- `Group D-8 / Optical Test` 前置行：按 `15 个样品`，费用 `15 × 210 = 3150`
+- `Group D-8 / L1&L4 Performance Evaluation & Functional Evaluation` 前置行：按 `15 个样品`，费用 `15 × 400 = 6000`
+- `Group D-8 / K28 HALT Cold / Hot / Thermal Shock / Vibration / TST & Vibration`：保持每项 `8h × 800/h = 6400`
+- `Group D-8` 后置 `L1&L4`：按 `9 个样品`，费用 `9 × 400 = 3600`
+- `Group D-8` 后置 `Optical Test`：按 `9 个样品`，费用 `9 × 210 = 1890`
+- `Group D-8` 后置 `L6-photo&xray`：按 `9 个样品`，费用 `9 × 400 = 3600`
+- Excel 导出中 D-8 样品范围仍按该组全量连续编号展示，例如 `77-91`；计费基数列单独展示 `15 个样品` 或 `9 个样品`
+- 本轮对应迁移节点为 `35`，用于刷新旧草稿中 D-8 前后评估行旧基数和旧费用；合入附加费用后当前最新版本为 `36`
+
+## 2026-06-11 MLA Group D-3 样品基数修正
+
+用户确认 `D-3 是 8 个样品`，本轮已同步到计费规则和导出：
+
+- `Group D-3 / L1&L4 Performance Evaluation & Functional Evaluation` 计费基数从 `6 个样品` 改为 `8 个样品`
+- `L1&L4` 中值单价仍按当前三家报价中值 `400/个样品`，每行费用为 `8 × 400 = 3200`
+- `Group D-3 / L6-photo&xray` 保持 `8 个样品`，费用 `3200`
+- `Group D-3 / L6-SEM&SECTION` 不改为样品口径，仍按 `3 样品 × 11 点位 = 33 点位`，费用 `21450`
+- 已将 `ENVIRONMENT_PLAN_TEMPLATE_VERSION` 升到 `34`，用于刷新旧草稿中 D-3 `L1&L4` 的旧费用
+
+## 2026-06-10 MLA Group A 样品范围修正
+
+用户确认 Group A 中只有 Drop Test 需要 14 个样品，但测试前后评估仍需要 14 个全部测试：
+
+- Group A 普通 sequence rows 保持 `1-12`
+- `K16.1 Mechanical Shock Package Drop` 使用 `1-14`
+- baseline `Optical Test` / `L1&L4` 使用 `1-14`
+- post `L1&L4` / post `Optical Test` / post `L6-photo&xray` 使用 `1-14`
+- Excel 导出层按 Phase / Group 顺序生成全局样品编号，但保留行级 `sampleRange` 差异；不再把 Group A 所有行强制覆盖成整组 `1-14`
+- 已将 `ENVIRONMENT_PLAN_TEMPLATE_VERSION` 升到 `33`，用于刷新旧草稿中 Group A post 评估行的样品范围与费用
+- 最新生成样例：`outputs/mla-fee-export-template/MLA测试项目及费用预估_test-flow组别顺序模板.xls`
+
+## 2026-06-09 MLA 导出 baseline 样本量口径修正
+
+用户确认每一组 `Optical Test` / `L1&L4 Performance Evaluation & Functional Evaluation` 应完成该组自己的样本量，而不是导出后全部变成跨组汇总：
+
+- baseline `Optical Test` 不再使用“baseline 汇总”口径；按该 Group 样本量计算，普通 Group 为 `1 台 51 点位 + 其余 19 点位`
+- baseline `L1&L4` 不再取 phase / pre-test 总样本量；无 `sampleRange` 时优先取当前 Group `totalSampleQty`
+- 默认大纲会给 baseline `Optical` / `L1&L4` 补当前 Group 的样本范围，例如 `Group A = 1-14`、`Group C = 1-6`
+- 已将 `ENVIRONMENT_PLAN_TEMPLATE_VERSION` 升到 `32`，用于刷新旧草稿中 `Optical` / `L1&L4` 的样本范围和费用
+- 最新生成样例：`outputs/mla-fee-export-template/MLA测试项目及费用预估_test-flow组别顺序模板.xls`
 
 ## 2026-06-04 EMA 费用临时复用 MLA 模板
 
@@ -82,6 +132,16 @@ Git 状态：
 - `K22 Chemical Resistance`：EMA 条件 2，按 `11` 种试剂 × 实验室单价计算；`SGS 650 / 华测 700 / 苏勃 300`，中值为 SGS `7150`
 - 已新增 EMA 专属 pricing/basis 规则，MLA 当前锁定费用不变
 - 已将 `ENVIRONMENT_PLAN_TEMPLATE_VERSION` 升到 `30`，用于刷新旧 EMA 草稿中的费用
+
+## 2026-06-08 MLA RHD 费用规则补齐
+
+已确认并修复 MLA RHD 右舵费用没有完整套用锁定 MLA 费用规则的问题：
+
+- `mla-rhd-group-*` 现在进入 MLA 费用模板识别
+- RHD Group A 的 baseline `Optical Test` 与 `L1&L4 Performance Evaluation & Functional Evaluation` 使用与 MLA LHD 一致的特殊规则
+- RHD `Particle Exposure` 使用已确认的实验室总价中值与 C 组批次费减免逻辑
+- RHD `L6-photo&xray`、`L6-SEM&SECTION`、`E-2 Operating Noise & Transient Noise` 及 K 系列费用按当前锁定 MLA 规则计算
+- 已将 `ENVIRONMENT_PLAN_TEMPLATE_VERSION` 升到 `31`，用于刷新旧 RHD 草稿中的费用
 
 ## 2026-06-03 Excel 导回费用口径
 
@@ -109,6 +169,7 @@ Git 状态：
 - K26 Mechanical Wear-Out：SGS `7158`，华测 `6488`，苏勃 `11660`，中值 `7158`
 - K28 HALT：拆分为 `HALT Cold / HALT Hot / HALT Thermal Shock / HALT Vibration / HALT TST & Vibration` 五个子项目；每项计费基数固定 `8h`；SGS `800/h`，华测 `600/h`，苏勃 `1500/h`，中值 `800/h`，每项费用 `6400`
 - L6 内部：`L6-photo&xray`，固定单价 `400/个样品`，按样本数量计费，不展示 `SGS / 华测 / 苏勃` 实验室报价明细
+- D-3 `L1&L4`：按 `8 个样品`，中值单价 `400/个样品`，每行费用 `3200`
 - L6 外部：`L6-SEM&SECTION`，SGS `650`，华测 `500`，苏勃 `700`，按 `3 样品 × 11 点位 = 33 点位` 中值费用 `21450`
 - E-1 Restricted Substance Management：总价 `20000`，其中 `1500` 为评估费
 - E-2 Operating Noise & Transient Noise：无中值口径，参考 SGS `1700/台样机` 计费；费用明细只展示 SGS，不展示华测/苏勃无报价信息
