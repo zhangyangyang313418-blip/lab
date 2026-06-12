@@ -1,6 +1,6 @@
 # EMA 费用交接
 
-更新时间：2026-06-08
+更新时间：2026-06-12
 
 ## 新线程使用方式
 
@@ -74,7 +74,7 @@ MLA 通用价格和计费基数：
 本地草稿刷新版本：
 
 - `src/services/localStore.ts`
-- 当前 `ENVIRONMENT_PLAN_TEMPLATE_VERSION = 30`
+- 当前 `ENVIRONMENT_PLAN_TEMPLATE_VERSION = 35`
 
 Environment Outline 页面费用展示和 Excel 下载：
 

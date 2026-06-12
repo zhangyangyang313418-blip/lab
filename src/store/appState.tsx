@@ -259,11 +259,12 @@ function mergeEnvironmentPlanRow(
 
   return {
     ...draftRow,
-    ...(templateRow?.sampleRange && !draftRow.sampleRange ? { sampleRange: templateRow.sampleRange } : {}),
+    ...(templateRow?.sampleRange && (!draftRow.sampleRange || refreshTimings) ? { sampleRange: templateRow.sampleRange } : {}),
     ...(templateRow?.fee && !draftRow.fee ? { fee: templateRow.fee } : {}),
     ...(shouldRefreshLabel ? { label: templateRow.label } : {}),
     ...(refreshTimings && templateRow ? { testHours: templateRow.testHours } : {}),
     ...(refreshTimings && templateRow ? { fee: templateRow.fee } : {}),
+    ...(refreshTimings && templateRow?.feeBasisOverrides ? { feeBasisOverrides: templateRow.feeBasisOverrides } : {}),
   };
 }
 
@@ -428,9 +429,11 @@ function createStateFromDraft(draft?: ProjectDraft | null): AppState {
     emc: (draft?.domainItems?.emc ?? seedDomainItems.emc).map(normalizeItem),
   };
   const templateEnvironmentPlan = createEnvironmentPlanForSetup(projectSetup);
-  const refreshEnvironmentTiming = (draft?.environmentPlanVersion ?? 0) < ENVIRONMENT_PLAN_TEMPLATE_VERSION;
+  const isMismatchedEnvironmentPlatform = Boolean(draft?.environmentPlan && draft.environmentPlan.platform !== projectSetup.platform);
+  const refreshEnvironmentTiming = isMismatchedEnvironmentPlatform
+    || (draft?.environmentPlanVersion ?? 0) < ENVIRONMENT_PLAN_TEMPLATE_VERSION;
   const environmentPlan = mergeEnvironmentPlanWithTemplate(
-    draft?.environmentPlan,
+    isMismatchedEnvironmentPlatform ? undefined : draft?.environmentPlan,
     templateEnvironmentPlan,
     refreshEnvironmentTiming,
   );

@@ -16,6 +16,16 @@ function createNamedRow(id: string, code: string, name: string, testHours: strin
   return createRow(id, `${code} ${name}`.trim(), testHours, sampleRange);
 }
 
+function withQuantityOverride(row: EnvironmentPlanRow, quantity: string): EnvironmentPlanRow {
+  return {
+    ...row,
+    feeBasisOverrides: {
+      ...(row.feeBasisOverrides ?? {}),
+      quantity,
+    },
+  };
+}
+
 function getSampleRangeQuantity(sampleRange: string | undefined): number | null {
   const match = sampleRange?.match(/^(\d+)-(\d+)$/);
   if (!match) {
@@ -149,7 +159,7 @@ function createPhase(title: string, projectCode: string, groups: EnvironmentPlan
   }));
 }
 
-function isBaselineDataRow(row: EnvironmentPlanRow) {
+function isBaselineScopeRow(row: EnvironmentPlanRow) {
   return row.id.includes("optical") || row.id.includes("l1l4");
 }
 
@@ -158,32 +168,28 @@ function isPcbaOnlyGroup(group: EnvironmentPlanGroup) {
 }
 
 function applyBaselineOpticalSampleRange(phase: EnvironmentPlanPhase): EnvironmentPlanPhase {
-  const pcbaOnlySamples = phase.groups
-    .filter(isPcbaOnlyGroup)
-    .reduce((total, group) => total + Number(group.totalSampleQty || 0), 0);
-  const opticalSampleCount = Math.max(Number(phase.summary.totalSampleQty || 0) - pcbaOnlySamples, 0);
-  const opticalSampleRange = opticalSampleCount > 0 ? `1-${opticalSampleCount}` : "";
-
   return {
     ...phase,
     groups: phase.groups.map((group) => {
       let reachedSequenceRows = false;
+      const groupSampleCount = Number(group.totalSampleQty || 0);
+      const groupSampleRange = groupSampleCount > 0 ? `1-${groupSampleCount}` : "";
 
       return {
         ...group,
         rows: group.rows.map((row) => {
-          if (!isBaselineDataRow(row)) {
+          if (!isBaselineScopeRow(row)) {
             reachedSequenceRows = true;
             return row;
           }
 
-          if (reachedSequenceRows || !row.id.includes("optical")) {
+          if (reachedSequenceRows || row.sampleRange || isPcbaOnlyGroup(group)) {
             return row;
           }
 
           return {
             ...row,
-            sampleRange: opticalSampleRange,
+            sampleRange: groupSampleRange,
           };
         }),
       };
@@ -240,9 +246,9 @@ function createMlaPlan(environmentItems: EditableTestItem[], projectCode: string
       createNamedRow("a-k10", "K10", "Water/Fluid Ingress Test", "3", "1-12"),
       createNamedRow("a-k13", "K13", "Dust Ingress", "5", "1-12"),
       createNamedRow("a-k14", "K14", "Dust Blowing Test", "5", "1-12"),
-      createRow("a-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "3", "1-12"),
-      createRow("a-post-optical", "Optical Test", "2", "1-12"),
-      createL6InternalRow("a-post-l6", "7", "1-12"),
+      createRow("a-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "3", "1-14"),
+      createRow("a-post-optical", "Optical Test", "2", "1-14"),
+      createL6InternalRow("a-post-l6", "7", "1-14"),
     ], { totalDurationDays: "101" }),
     createGroup("mla-group-b", "Group B", groupBItems, withRowsWhenItemsExist(groupBItems, [
       createRow("b-optical", "Optical Test", "7"),
@@ -321,16 +327,16 @@ function createMlaPlan(environmentItems: EditableTestItem[], projectCode: string
       createL6InternalRow("d7-post-l6", "3"),
     ]), { totalDurationDays: "52" }),
     createGroup("mla-group-d8", "Group D-8", groupD8Items, withRowsWhenItemsExist(groupD8Items, [
-      createRow("d8-optical", "Optical Test", "7"),
-      createRow("d8-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "3"),
+      withQuantityOverride(createRow("d8-optical", "Optical Test", "7", "1-15"), "15"),
+      withQuantityOverride(createRow("d8-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "3", "1-15"), "15"),
       createNamedRow("d8-cold", "K28", "HALT Cold", "8h"),
       createNamedRow("d8-hot", "K28", "HALT Hot", "8h"),
       createNamedRow("d8-tst", "K28", "HALT Thermal Shock", "8h"),
       createNamedRow("d8-vibration", "K28", "HALT Vibration", "8h"),
       createNamedRow("d8-mix", "K28", "HALT TST & Vibration", "8h"),
-      createRow("d8-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "3"),
-      createRow("d8-post-optical", "Optical Test", "3"),
-      createL6InternalRow("d8-post-l6", "3"),
+      withQuantityOverride(createRow("d8-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "3", "1-15"), "9"),
+      withQuantityOverride(createRow("d8-post-optical", "Optical Test", "3", "1-15"), "9"),
+      withQuantityOverride(createL6InternalRow("d8-post-l6", "3", "1-15"), "9"),
     ]), { totalSampleQty: "15", totalDurationDays: "14" }),
     createGroup("mla-group-d9", "Group D-9", groupD9Items, [
       createRow("d9-optical", "Optical Test", "7"),
@@ -406,9 +412,9 @@ function createMlaRhdPlan(environmentItems: EditableTestItem[], projectCode: str
       createNamedRow("a-k10", "K10", "Water/Fluid Ingress Test", "3", "1-12"),
       createNamedRow("a-k13", "K13", "Dust Ingress", "5", "1-12"),
       createNamedRow("a-k14", "K14", "Dust Blowing Test", "5", "1-12"),
-      createRow("a-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "3", "1-12"),
-      createRow("a-post-optical", "Optical Test", "2", "1-12"),
-      createL6InternalRow("a-post-l6", "7", "1-12"),
+      createRow("a-post-l1l4", "L1&L4 Performance Evaluation & Functional Evaluation", "3", "1-14"),
+      createRow("a-post-optical", "Optical Test", "2", "1-14"),
+      createL6InternalRow("a-post-l6", "7", "1-14"),
     ], { totalSampleQty: "14", totalDurationDays: "101" }),
     createGroup("mla-rhd-group-c", "Group C", groupCItems, [
       createNamedRow("c-k7", "K7", "Thermal Shock in Air", "14", "15-20"),

@@ -831,6 +831,56 @@ describe("environment fee detail calculations", () => {
     expect(l6External?.notes).toContain("委外");
   });
 
+  it("prices D-3 L1&L4 rows from the 8 PCBA sample group quantity", () => {
+    const phase: EnvironmentPlanPhase = {
+      id: "pv",
+      title: "PV",
+      summary: {
+        projectLabel: "项目",
+        projectCode: "L460-L",
+        phaseLabel: "阶段",
+        phaseValue: "PV",
+        totalSampleLabel: "样本总数量",
+        totalSampleQty: "8",
+        longestDurationLabel: "最长测试时间(天)",
+        longestDurationDays: "20",
+        totalCostLabel: "总费用",
+        totalCost: "",
+      },
+      groups: [
+        {
+          id: "mla-group-d3",
+          title: "Group D-3",
+          totalSampleLabel: "Total样机数量",
+          totalSamplePrefix: "PCBA",
+          totalSampleQty: "8",
+          totalDurationLabel: "组测试时间(天)",
+          totalDurationDays: "68",
+          totalCostLabel: "组费用",
+          totalCost: "",
+          rows: [
+            { id: "d3-l1l4", label: "L1&L4 Performance Evaluation & Functional Evaluation", testHours: "3" },
+            { id: "d3-post-l1l4", label: "L1&L4 Performance Evaluation & Functional Evaluation", testHours: "2", sampleRange: "1-8" },
+          ],
+        },
+      ],
+    };
+
+    const [groupD3] = createEnvironmentFeeDetailSections(phase);
+    const l1l4Rows = groupD3?.rows.filter((row) => row.testName === "L1&L4 Performance Evaluation & Functional Evaluation") ?? [];
+
+    expect(l1l4Rows).toHaveLength(2);
+    for (const row of l1l4Rows) {
+      expect(row.quantity).toBe(8);
+      expect(row.chargeBasis).toBe("quantity");
+      expect(row.medianUnitPrice).toBe(400);
+      expect(row.estimatedItemFee).toBe(3200);
+      expect(row.labs.find((lab) => lab.lab === "SGS")?.itemFee).toBe(3200);
+      expect(row.labs.find((lab) => lab.lab === "华测")?.itemFee).toBe(5600);
+      expect(row.labs.find((lab) => lab.lab === "苏劢")?.itemFee).toBe(3200);
+    }
+  });
+
   it("prices E group restricted substance and operating noise using approved rules", () => {
     const phase: EnvironmentPlanPhase = {
       id: "pv",
@@ -968,5 +1018,224 @@ describe("environment fee detail calculations", () => {
     const [groupD8] = createEnvironmentFeeDetailSections(phase);
 
     expect(groupD8?.rows[0]?.estimatedItemFee).toBe(3150);
+  });
+
+  it("uses D-8 row-level quantity overrides for confirmed pre and post evaluation samples", () => {
+    const phase: EnvironmentPlanPhase = {
+      id: "pv",
+      title: "PV",
+      summary: {
+        projectLabel: "项目",
+        projectCode: "L460-L",
+        phaseLabel: "阶段",
+        phaseValue: "PV",
+        totalSampleLabel: "样本总数量",
+        totalSampleQty: "15",
+        longestDurationLabel: "最长测试时间(天)",
+        longestDurationDays: "14",
+        totalCostLabel: "总费用",
+        totalCost: "",
+      },
+      groups: [
+        {
+          id: "mla-group-d8",
+          title: "Group D-8",
+          totalSampleLabel: "Total样机数量",
+          totalSampleQty: "15",
+          totalDurationLabel: "组测试时间(天)",
+          totalDurationDays: "14",
+          totalCostLabel: "组费用",
+          totalCost: "",
+          rows: [
+            { id: "d8-optical", label: "Optical Test", testHours: "7", sampleRange: "1-15", feeBasisOverrides: { quantity: "15" } },
+            { id: "d8-l1l4", label: "L1&L4 Performance Evaluation & Functional Evaluation", testHours: "3", sampleRange: "1-15", feeBasisOverrides: { quantity: "15" } },
+            { id: "d8-post-l1l4", label: "L1&L4 Performance Evaluation & Functional Evaluation", testHours: "3", sampleRange: "1-15", feeBasisOverrides: { quantity: "9" } },
+            { id: "d8-post-optical", label: "Optical Test", testHours: "3", sampleRange: "1-15", feeBasisOverrides: { quantity: "9" } },
+            { id: "d8-post-l6", label: "L6-photo&xray", testHours: "3", sampleRange: "1-15", feeBasisOverrides: { quantity: "9" } },
+          ],
+        },
+      ],
+    };
+
+    const [groupD8] = createEnvironmentFeeDetailSections(phase);
+    const rowsById = new Map(groupD8?.rows.map((row) => [row.outlineRowId, row]));
+
+    expect(rowsById.get("d8-optical")).toMatchObject({ quantity: 15, estimatedItemFee: 3150 });
+    expect(rowsById.get("d8-l1l4")).toMatchObject({ quantity: 15, estimatedItemFee: 6000 });
+    expect(rowsById.get("d8-post-l1l4")).toMatchObject({ quantity: 9, estimatedItemFee: 3600 });
+    expect(rowsById.get("d8-post-optical")).toMatchObject({ quantity: 9, estimatedItemFee: 1890 });
+    expect(rowsById.get("d8-post-l6")).toMatchObject({ quantity: 9, estimatedItemFee: 3600 });
+  });
+
+  it("applies locked MLA fee rules to RHD outline groups", () => {
+    const phase: EnvironmentPlanPhase = {
+      id: "pv-rhd",
+      title: "PV",
+      summary: {
+        projectLabel: "项目",
+        projectCode: "L460-R",
+        phaseLabel: "阶段",
+        phaseValue: "PV",
+        totalSampleLabel: "样本总数量",
+        totalSampleQty: "65",
+        longestDurationLabel: "最长测试时间(天)",
+        longestDurationDays: "101",
+        totalCostLabel: "总费用",
+        totalCost: "",
+      },
+      groups: [
+        {
+          id: "mla-rhd-group-a",
+          title: "Group A",
+          totalSampleLabel: "Total样机数量",
+          totalSampleQty: "14",
+          totalDurationLabel: "组测试时间(天)",
+          totalDurationDays: "101",
+          totalCostLabel: "组费用",
+          totalCost: "",
+          rows: [
+            { id: "a-optical", label: "Optical Test", testHours: "7" },
+            { id: "a-l1l4", label: "L1&L4 Performance Evaluation & Functional Evaluation", testHours: "3" },
+            { id: "a-particle", label: "Particle Exposure", testHours: "5", sampleRange: "1-12" },
+            { id: "a-k6", label: "K6 Power Thermal Cycle", testHours: "11", sampleRange: "1-12" },
+          ],
+        },
+        {
+          id: "mla-rhd-group-c",
+          title: "Group C",
+          totalSampleLabel: "Total样机数量",
+          totalSampleQty: "6",
+          totalDurationLabel: "组测试时间(天)",
+          totalDurationDays: "56",
+          totalCostLabel: "组费用",
+          totalCost: "",
+          rows: [
+            { id: "c-particle", label: "Particle Exposure", testHours: "2", sampleRange: "15-20" },
+            { id: "c-k26", label: "K26 Mechanical Wear-Out", testHours: "23", sampleRange: "15-20" },
+          ],
+        },
+        {
+          id: "mla-rhd-group-d3",
+          title: "Group D-3",
+          totalSampleLabel: "Total样机数量",
+          totalSamplePrefix: "PCBA",
+          totalSampleQty: "8",
+          totalDurationLabel: "组测试时间(天)",
+          totalDurationDays: "68",
+          totalCostLabel: "组费用",
+          totalCost: "",
+          rows: [
+            { id: "d3-post-l6-internal", label: "L6-photo&xray", testHours: "20", sampleRange: "21-28" },
+            { id: "d3-post-l6-external", label: "L6-SEM&SECTION", testHours: "20", sampleRange: "21-28" },
+          ],
+        },
+        {
+          id: "mla-rhd-group-e2",
+          title: "Group E-2",
+          totalSampleLabel: "Total样机数量",
+          totalSampleQty: "25",
+          totalDurationLabel: "组测试时间(天)",
+          totalDurationDays: "20",
+          totalCostLabel: "组费用",
+          totalCost: "",
+          rows: [{ id: "e2-item", label: "E-2 Operating Noise & Transient Noise", testHours: "20", sampleRange: "41-65" }],
+        },
+      ],
+    };
+
+    const [groupA, groupC, groupD3, groupE2] = createEnvironmentFeeDetailSections(phase);
+    const optical = groupA?.rows.find((row) => row.outlineRowId === "a-optical");
+    const l1l4 = groupA?.rows.find((row) => row.outlineRowId === "a-l1l4");
+    const particleA = groupA?.rows.find((row) => row.outlineRowId === "a-particle");
+    const k6 = groupA?.rows.find((row) => row.outlineRowId === "a-k6");
+    const particleC = groupC?.rows.find((row) => row.outlineRowId === "c-particle");
+    const k26 = groupC?.rows.find((row) => row.outlineRowId === "c-k26");
+    const l6Internal = groupD3?.rows.find((row) => row.outlineRowId === "d3-post-l6-internal");
+    const l6External = groupD3?.rows.find((row) => row.outlineRowId === "d3-post-l6-external");
+    const noise = groupE2?.rows.find((row) => row.outlineRowId === "e2-item");
+
+    expect(optical?.estimatedItemFee).toBe(3190);
+    expect(optical?.notes).not.toContain("baseline 汇总");
+    expect(l1l4?.quantity).toBe(14);
+    expect(l1l4?.estimatedItemFee).toBe(5600);
+    expect(particleA?.status).toBe("priced");
+    expect(particleA?.estimatedItemFee).toBe(24000);
+    expect(k6?.testHours).toBe(240);
+    expect(k6?.estimatedItemFee).toBe(7200);
+    expect(particleC?.estimatedItemFee).toBe(3000);
+    expect(k26?.estimatedItemFee).toBe(7158);
+    expect(l6Internal?.estimatedItemFee).toBe(3200);
+    expect(l6External?.quantity).toBe(33);
+    expect(l6External?.estimatedItemFee).toBe(21450);
+    expect(noise?.estimatedItemFee).toBe(42500);
+    expect(noise?.hideUnavailableLabQuotes).toBe(true);
+  });
+
+  it("keeps baseline Optical and L1&L4 quantities scoped to their own group", () => {
+    const phase: EnvironmentPlanPhase = {
+      id: "pv",
+      title: "PV",
+      summary: {
+        projectLabel: "项目",
+        projectCode: "L460-L",
+        phaseLabel: "阶段",
+        phaseValue: "PV",
+        totalSampleLabel: "样本总数量",
+        totalSampleQty: "20",
+        longestDurationLabel: "最长测试时间(天)",
+        longestDurationDays: "101",
+        totalCostLabel: "总费用",
+        totalCost: "",
+      },
+      groups: [
+        {
+          id: "mla-group-a",
+          title: "Group A",
+          totalSampleLabel: "Total样机数量",
+          totalSampleQty: "14",
+          totalDurationLabel: "组测试时间(天)",
+          totalDurationDays: "101",
+          totalCostLabel: "组费用",
+          totalCost: "",
+          rows: [
+            { id: "a-optical", label: "Optical Test", testHours: "7" },
+            { id: "a-l1l4", label: "L1&L4 Performance Evaluation & Functional Evaluation", testHours: "3" },
+            { id: "a-post-l1l4", label: "L1&L4 Performance Evaluation & Functional Evaluation", testHours: "3", sampleRange: "1-14" },
+          ],
+        },
+        {
+          id: "mla-group-c",
+          title: "Group C",
+          totalSampleLabel: "Total样机数量",
+          totalSampleQty: "6",
+          totalDurationLabel: "组测试时间(天)",
+          totalDurationDays: "56",
+          totalCostLabel: "组费用",
+          totalCost: "",
+          rows: [
+            { id: "c-optical", label: "Optical Test", testHours: "7" },
+            { id: "c-l1l4", label: "L1&L4 Performance Evaluation & Functional Evaluation", testHours: "3" },
+          ],
+        },
+      ],
+    };
+
+    const [groupA, groupC] = createEnvironmentFeeDetailSections(phase);
+    const groupAOptical = groupA?.rows.find((row) => row.outlineRowId === "a-optical");
+    const groupAL1L4 = groupA?.rows.find((row) => row.outlineRowId === "a-l1l4");
+    const groupAPostL1L4 = groupA?.rows.find((row) => row.outlineRowId === "a-post-l1l4");
+    const groupCOptical = groupC?.rows.find((row) => row.outlineRowId === "c-optical");
+    const groupCL1L4 = groupC?.rows.find((row) => row.outlineRowId === "c-l1l4");
+
+    expect(groupAOptical?.quantity).toBe(14);
+    expect(groupAOptical?.estimatedItemFee).toBe(3190);
+    expect(groupAL1L4?.quantity).toBe(14);
+    expect(groupAL1L4?.estimatedItemFee).toBe(5600);
+    expect(groupAPostL1L4?.quantity).toBe(14);
+    expect(groupAPostL1L4?.estimatedItemFee).toBe(5600);
+    expect(groupCOptical?.quantity).toBe(6);
+    expect(groupCOptical?.estimatedItemFee).toBe(1510);
+    expect(groupCL1L4?.quantity).toBe(6);
+    expect(groupCL1L4?.estimatedItemFee).toBe(2400);
   });
 });

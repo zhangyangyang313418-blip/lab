@@ -134,6 +134,37 @@ describe("environment outline fee detail", () => {
     expect(revokeObjectUrlMock).toHaveBeenCalledTimes(1);
   });
 
+  it("uses the selected platform in the environment outline header and fee export labels", () => {
+    const seedState = createSeedAppState();
+    const emaRhdDraft = appReducer(seedState, {
+      type: "applyProjectSetup",
+      updates: {
+        platform: "EMA",
+        steeringSides: ["RHD"],
+        projectCode: "L463",
+        reuseEnvironmentTemplate: false,
+        reuseMaterialTemplate: false,
+        reuseEmcTemplate: false,
+      },
+    });
+
+    saveProjectDraft(emaRhdDraft);
+
+    render(
+      <MemoryRouter initialEntries={["/environment-outline"]}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("参考 EMA test flow chart 展示，可直接编辑各组内容。")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "导出 EMA 费用 Excel" })).toHaveLength(2);
+    expect(screen.queryByText("参考 MLA test flow chart 展示，可直接编辑各组内容。")).not.toBeInTheDocument();
+    expect(screen.queryAllByRole("button", { name: "导出 MLA 费用 Excel" })).toHaveLength(0);
+    expect(screen.getAllByDisplayValue("L463 RHD").length).toBeGreaterThan(0);
+    expect(screen.getAllByDisplayValue("K27 85/85 High Temperature -High Humidity Endurance").length).toBeGreaterThan(0);
+    expect(screen.queryAllByDisplayValue("K14 Dust Blowing Test")).toHaveLength(0);
+  });
+
   it("shows optical fee split details and keeps the original fee when opened without edits", async () => {
     const user = userEvent.setup();
 
@@ -143,7 +174,9 @@ describe("environment outline fee detail", () => {
       </MemoryRouter>,
     );
 
-    const feeButton = screen.getByRole("button", { name: "PV / Group A / Optical Test 费用 ¥25,140.00" });
+    const feeButtons = screen.getAllByRole("button", { name: "PV / Group A / Optical Test 费用 ¥3,190.00" });
+    expect(feeButtons.length).toBeGreaterThanOrEqual(2);
+    const feeButton = feeButtons[0]!;
 
     await user.dblClick(feeButton);
 
@@ -152,15 +185,15 @@ describe("environment outline fee detail", () => {
     expect(editor).not.toBeNull();
     const opticalEditor = within(editor as HTMLElement);
     expect(opticalEditor.getByText("51 点位样品")).toBeInTheDocument();
-    expect(opticalEditor.getByText("9")).toBeInTheDocument();
+    expect(opticalEditor.getByText("1")).toBeInTheDocument();
     expect(opticalEditor.getByText("单价 460")).toBeInTheDocument();
-    expect(opticalEditor.getByText("总价 ¥4,140")).toBeInTheDocument();
+    expect(opticalEditor.getByText("总价 ¥460")).toBeInTheDocument();
     expect(opticalEditor.getByText("19 点位样品")).toBeInTheDocument();
-    expect(opticalEditor.getByText("100")).toBeInTheDocument();
+    expect(opticalEditor.getByText("13")).toBeInTheDocument();
     expect(opticalEditor.getByText("单价 210")).toBeInTheDocument();
-    expect(opticalEditor.getByText("总价 ¥21,000")).toBeInTheDocument();
-    expect(opticalEditor.getByText("合计 ¥25,140")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "PV / Group A / Optical Test 费用 ¥25,140.00" })).toBeInTheDocument();
+    expect(opticalEditor.getByText("总价 ¥2,730")).toBeInTheDocument();
+    expect(opticalEditor.getByText("合计 ¥3,190")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "PV / Group A / Optical Test 费用 ¥3,190.00" }).length).toBeGreaterThanOrEqual(2);
   });
 
   it("shows the external L6 basis as samples by points while keeping the 33-point fee", async () => {
