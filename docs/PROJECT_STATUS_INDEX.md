@@ -30,6 +30,7 @@ npm run build
 - 环境箱项目按样本量自动选价：`> 6` 使用大环境箱，`<= 6` 使用小环境箱。
 - 本地草稿迁移版本当前为 `ENVIRONMENT_PLAN_TEMPLATE_VERSION = 36`。
 - `/environment-outline` 顶部新增独立费用汇总行：`TOTAL COST` 后跟各组费用、`Computer Fee`、`Report Fee`；总费用口径为各组测试费用合计 + 电脑费用 + 报告费用。
+- 费用 Excel 导出：`费用预估` 页为全量费用总表，包含 K14 / E-1 / E-2 特殊项目以及 `Computer Fee`、`Report Fee`；`SGS / 华测 / 苏勃` 与 `费用对比` 页保留普通委外实验室报价以及 `Computer Fee`、`Report Fee`，但不纳入 K14 / E-1 / E-2 特殊项目。
 - EMA 费用已按 `outputs/ema-fee-detail-export/JLR- EMA 费用规则.xlsx` 导回专属规则；MLA 锁定费用不变。
 - 流程图维护以 `docs/*.drawio` 和对应 `scripts/generate_*drawio*.mjs` 为准。
 

@@ -1,4 +1,4 @@
-import { createEnvironmentFeeDetailSections } from "./environmentFeeDetail";
+import { createEnvironmentFeeDetailSections, getEnvironmentAdditionalFeeSummary } from "./environmentFeeDetail";
 import type { EnvironmentPlanGroup, EnvironmentPlanPhase, EnvironmentPlanRow, EnvironmentPlanSheet } from "../types/environmentPlan";
 import type { EnvironmentFeeChargeBasis, EnvironmentFeeDetailRow, EnvironmentFeeLabName } from "../types/environmentFeeDetail";
 
@@ -28,6 +28,7 @@ interface ExportRow {
   notes: string;
   labs: EnvironmentFeeDetailRow["labs"];
   special: boolean;
+  excludedFromLabSheets?: boolean;
 }
 
 const filename = "MLA测试项目及费用预估.xls";
@@ -181,6 +182,74 @@ function isSpecialProject(row: EnvironmentFeeDetailRow): boolean {
   return /\bK14\b|Restricted Substance|Operating Noise|Transient Noise/i.test(`${row.testCode} ${row.testName}`);
 }
 
+function formatLabName(lab: "SGS" | "华测" | "苏劢"): string {
+  return lab === "苏劢" ? "苏勃" : lab;
+}
+
+function selectedLabNote(lab: "SGS" | "华测" | "苏劢"): string {
+  const label = formatLabName(lab);
+  return label === "SGS" ? "当前按 SGS 计入" : `当前按${label}计入`;
+}
+
+function buildAdditionalFeeRows(phase: EnvironmentPlanPhase): ExportRow[] {
+  const additionalFees = getEnvironmentAdditionalFeeSummary(phase);
+  const computerNotes = [
+    "Computer Fee:",
+    ...additionalFees.computerLabQuotes.map((quote) =>
+      `${formatLabName(quote.lab)} ${quote.unitPrice}/月/台 × ${additionalFees.computerCoefficient} = ${quote.fee}`,
+    ),
+    selectedLabNote(additionalFees.computerSelectedLab),
+  ].join("；").replace("Fee:；", "Fee: ");
+  const reportNotes = [
+    "Report Fee:",
+    ...additionalFees.reportLabQuotes.map((quote) =>
+      `${formatLabName(quote.lab)} ${quote.unitPrice}/份 × ${additionalFees.reportCount} = ${quote.fee}`,
+    ),
+    selectedLabNote(additionalFees.reportSelectedLab),
+  ].join("；").replace("Fee:；", "Fee: ");
+
+  return [
+    {
+      phaseTitle: phase.title,
+      groupTitle: "附加费用",
+      testCode: "Computer Fee",
+      testName: "Computer Fee",
+      sampleRange: "",
+      basisText: `${additionalFees.computerCoefficient} 月/台`,
+      testTimeText: "",
+      chargeBasisText: "按电脑费用系数",
+      ownership: "委外费用",
+      estimatedItemFee: additionalFees.computerFee,
+      notes: computerNotes,
+      labs: additionalFees.computerLabQuotes.map((quote) => ({
+        lab: quote.lab,
+        unitPrice: quote.unitPrice,
+        itemFee: quote.fee,
+      })),
+      special: false,
+    },
+    {
+      phaseTitle: phase.title,
+      groupTitle: "附加费用",
+      testCode: "Report Fee",
+      testName: "Report Fee",
+      sampleRange: "",
+      basisText: `${additionalFees.reportCount} 份`,
+      testTimeText: "",
+      chargeBasisText: "按报告份数",
+      ownership: "委外费用",
+      estimatedItemFee: additionalFees.reportFee,
+      notes: reportNotes,
+      labs: additionalFees.reportLabQuotes.map((quote) => ({
+        lab: quote.lab,
+        unitPrice: quote.unitPrice,
+        itemFee: quote.fee,
+      })),
+      special: false,
+    },
+  ];
+}
+
 function getOutlineById(phase: EnvironmentPlanPhase): Map<string, { group: EnvironmentPlanGroup; row: EnvironmentPlanRow }> {
   return new Map(
     phase.groups.flatMap((group) =>
@@ -193,10 +262,10 @@ function buildExportRows(plan: EnvironmentPlanSheet): ExportRow[] {
   return plan.phases.flatMap((phase) => {
     const outlineById = getOutlineById(phase);
 
-    return createEnvironmentFeeDetailSections(phase).flatMap((section) =>
+    const detailRows = createEnvironmentFeeDetailSections(phase).flatMap((section) =>
       section.rows.map((detailRow) => {
         const outline = outlineById.get(`${section.groupId}:${detailRow.outlineRowId}`);
-        const ownership = isInternalFee(detailRow.testName) ? "内部费用" : "委外费用";
+        const ownership: ExportRow["ownership"] = isInternalFee(detailRow.testName) ? "内部费用" : "委外费用";
 
         return {
           phaseTitle: phase.title,
@@ -212,9 +281,12 @@ function buildExportRows(plan: EnvironmentPlanSheet): ExportRow[] {
           notes: detailRow.notes ?? "",
           labs: detailRow.labs,
           special: isSpecialProject(detailRow),
+          excludedFromLabSheets: isSpecialProject(detailRow),
         };
       }),
     );
+
+    return [...detailRows, ...buildAdditionalFeeRows(phase)];
   });
 }
 
@@ -224,7 +296,6 @@ function forecastSheet(rows: ExportRow[]): MlaFeeWorksheet {
     rows: [
       forecastHeaders,
       ...rows
-        .filter((row) => !row.special)
         .map((row) => [
           row.phaseTitle,
           row.groupTitle,
@@ -257,7 +328,7 @@ function labSheet(rows: ExportRow[], sheetName: (typeof labSheetNames)[number]):
     rows: [
       labHeaders,
       ...rows
-        .filter((row) => row.ownership === "委外费用" && !row.special)
+        .filter((row) => row.ownership === "委外费用" && !row.excludedFromLabSheets)
         .map((row) => [
           row.phaseTitle,
           row.groupTitle,
@@ -279,7 +350,7 @@ function comparisonSheet(rows: ExportRow[]): MlaFeeWorksheet {
   const totals = new Map<string, { phaseTitle: string; groupTitle: string; SGS: number; 华测: number; 苏勃: number }>();
 
   for (const row of rows) {
-    if (row.ownership !== "委外费用" || row.special) {
+    if (row.ownership !== "委外费用" || row.excludedFromLabSheets) {
       continue;
     }
 

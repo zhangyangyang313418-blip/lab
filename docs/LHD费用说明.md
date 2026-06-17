@@ -19,6 +19,7 @@
 - EMA 费用已按用户回传的 EMA 费用规则 Excel 导回专属规则；EMA 自身测试时间、样本范围和 RHD/LHD 分组不改
 - EMA 专属规则与 MLA 锁定规则分开维护，避免后续 EMA 条件差异影响 MLA
 - `/environment-outline` 顶部已新增独立费用汇总行：`TOTAL COST` 后跟各组费用、`Computer Fee`、`Report Fee`；总费用口径为各组测试费用合计 + 电脑费用 + 报告费用
+- 费用 Excel 导出中，`费用预估` 页是全量费用总表，包含特殊项目和 `Computer Fee` / `Report Fee`；`SGS / 华测 / 苏勃` 与 `费用对比` 页保留普通委外实验室报价以及 `Computer Fee` / `Report Fee`，不纳入 K14 / E-1 / E-2 特殊项目
 
 ## 代码入口
 
