@@ -1,4 +1,9 @@
-import { createEnvironmentFeeDetailSections } from "./environmentFeeDetail";
+import {
+  createEnvironmentFeeDetailSections,
+  getEnvironmentAdditionalFeeSummary,
+  opticalPoint19UnitPrice,
+  opticalPoint51UnitPrice,
+} from "./environmentFeeDetail";
 import type { EnvironmentPlanGroup, EnvironmentPlanPhase, EnvironmentPlanRow, EnvironmentPlanSheet } from "../types/environmentPlan";
 import type { EnvironmentFeeChargeBasis, EnvironmentFeeDetailRow, EnvironmentFeeLabName } from "../types/environmentFeeDetail";
 import type { PlatformCode, ProjectSetup } from "../types/project";
@@ -31,9 +36,23 @@ interface ExportRow {
   chargeBasisText: string;
   ownership: "内部费用" | "委外费用";
   estimatedItemFee: number | null;
+  formulaText: string;
   notes: string;
   labs: EnvironmentFeeDetailRow["labs"];
   special: boolean;
+}
+
+interface AdditionalFeeExportRow {
+  rowOrder: number;
+  phaseTitle: string;
+  testCode: "Computer Fee" | "Report Fee";
+  testName: "Computer Fee" | "Report Fee";
+  basisText: string;
+  chargeBasisText: string;
+  estimatedItemFee: number;
+  reference: string;
+  formulaText: string;
+  notes: string;
 }
 
 type ExportContext = Pick<ProjectSetup, "oem" | "platform" | "steeringSides" | "projectCode" | "projectType" | "isFullyReused" | "reuseEnvironmentTemplate">;
@@ -60,6 +79,7 @@ const forecastHeaders = [
   "内部费用",
   "委外费用",
   "费用合计",
+  "费用计算公式",
   "备注",
 ];
 
@@ -76,6 +96,7 @@ const labHeaders = [
   "计费方式",
   "实验室",
   "委外费用",
+  "费用计算公式",
   "备注",
 ];
 
@@ -92,8 +113,11 @@ const specialHeaders = [
   "测试时间",
   "当前规则费用",
   "实验室/参考口径",
+  "费用计算公式",
   "备注",
 ];
+
+const validationHeaders = ["实验室", "Excel行号", "Phase", "Group", "测试编号", "测试项目", "样品范围", "计费基数", "当前费用", "规则费用", "差异", "校验结果", "规则/公式说明"];
 
 function escapeXml(value: string): string {
   return value
@@ -222,6 +246,45 @@ function basisText(row: EnvironmentFeeDetailRow): string {
 
 function testTimeText(row: EnvironmentFeeDetailRow): string {
   return row.testHours === null ? "" : `${row.testHours} h`;
+}
+
+function compactNumber(value: number): string {
+  return Number.isInteger(value) ? String(value) : String(value);
+}
+
+function feeFormulaText(row: EnvironmentFeeDetailRow): string {
+  if (row.estimatedItemFee === null) {
+    return row.notes ?? "";
+  }
+
+  if (/^Optical Test$/i.test(row.testName)) {
+    const quantity = row.quantity ?? 0;
+    if (quantity <= 0) {
+      return row.notes ?? "";
+    }
+
+    if (row.estimatedItemFee === quantity * opticalPoint19UnitPrice) {
+      return `${quantity}台×19点位(¥${opticalPoint19UnitPrice}) = ${formatWholeCurrency(row.estimatedItemFee)}`;
+    }
+
+    const remaining = Math.max(quantity - 1, 0);
+    return `1台×51点位(¥${opticalPoint51UnitPrice}) + ${remaining}台×19点位(¥${opticalPoint19UnitPrice}) = ${formatWholeCurrency(opticalPoint51UnitPrice)} + ${formatWholeCurrency(remaining * opticalPoint19UnitPrice)} = ${formatWholeCurrency(row.estimatedItemFee)}`;
+  }
+
+  if (row.chargeBasis === "hour" && row.testHours !== null && row.medianUnitPrice !== null) {
+    return `${compactNumber(row.testHours)}h × ${formatWholeCurrency(row.medianUnitPrice)}/h = ${formatWholeCurrency(row.estimatedItemFee)}`;
+  }
+
+  if (row.chargeBasis === "quantity" && row.quantity !== null && row.medianUnitPrice !== null) {
+    const unitLabel = isL6ExternalPointBasis(row) ? "点位" : "个";
+    return `${compactNumber(row.quantity)}${unitLabel} × ${formatWholeCurrency(row.medianUnitPrice)}/${unitLabel} = ${formatWholeCurrency(row.estimatedItemFee)}`;
+  }
+
+  if (row.chargeBasis === "batch" && row.batchCount !== null && row.medianUnitPrice !== null) {
+    return `${compactNumber(row.batchCount)}批 × ${formatWholeCurrency(row.medianUnitPrice)}/批 = ${formatWholeCurrency(row.estimatedItemFee)}`;
+  }
+
+  return row.notes ?? "";
 }
 
 function isInternalFee(testName: string): boolean {
@@ -389,12 +452,58 @@ function buildExportRows(plan: EnvironmentPlanSheet): ExportRow[] {
           chargeBasisText: chargeBasisText(detailRow),
           ownership,
           estimatedItemFee: detailRow.estimatedItemFee,
+          formulaText: feeFormulaText(detailRow),
           notes: detailRow.notes ?? "",
           labs: detailRow.labs,
           special: isSpecialProject(detailRow),
         };
       }),
     );
+  });
+}
+
+function formatWholeCurrency(value: number): string {
+  return Math.round(value).toLocaleString("en-US");
+}
+
+function displayLabName(lab: string): string {
+  return lab === "苏劢" ? "苏勃" : lab;
+}
+
+function buildAdditionalFeeRows(plan: EnvironmentPlanSheet): AdditionalFeeExportRow[] {
+  return plan.phases.flatMap((phase) => {
+    const additionalFees = getEnvironmentAdditionalFeeSummary(phase);
+    const computerQuote = additionalFees.computerLabQuotes.find((quote) => quote.lab === additionalFees.computerSelectedLab);
+    const reportQuote = additionalFees.reportLabQuotes.find((quote) => quote.lab === additionalFees.reportSelectedLab);
+    const computerUnitPrice = computerQuote?.unitPrice ?? 0;
+    const reportUnitPrice = reportQuote?.unitPrice ?? 0;
+
+    return [
+      {
+        rowOrder: 1,
+        phaseTitle: phase.title,
+        testCode: "Computer Fee",
+        testName: "Computer Fee",
+        basisText: `${additionalFees.computerCoefficient} 月/台系数`,
+        chargeBasisText: "按系数",
+        estimatedItemFee: additionalFees.computerFee,
+        reference: `${displayLabName(additionalFees.computerSelectedLab)} 参考价`,
+        formulaText: `${displayLabName(additionalFees.computerSelectedLab)} ${computerUnitPrice}/月/台 × ${additionalFees.computerCoefficient} = ${formatWholeCurrency(additionalFees.computerFee)}`,
+        notes: "Computer Fee 当前按 SGS 报价计入",
+      },
+      {
+        rowOrder: 2,
+        phaseTitle: phase.title,
+        testCode: "Report Fee",
+        testName: "Report Fee",
+        basisText: `${additionalFees.reportCount} 份报告`,
+        chargeBasisText: "按报告份数",
+        estimatedItemFee: additionalFees.reportFee,
+        reference: `${displayLabName(additionalFees.reportSelectedLab)} 计入口径`,
+        formulaText: `${displayLabName(additionalFees.reportSelectedLab)} ${reportUnitPrice}/份 × ${additionalFees.reportCount} 份 = ${formatWholeCurrency(additionalFees.reportFee)}`,
+        notes: "Report Fee 当前按苏勃报价计入",
+      },
+    ];
   });
 }
 
@@ -464,6 +573,7 @@ function forecastSheet(rows: ExportRow[]): MlaFeeWorksheet {
       row.ownership === "内部费用" ? row.estimatedItemFee ?? "" : "",
       row.ownership === "委外费用" ? row.estimatedItemFee ?? "" : "",
       row.estimatedItemFee ?? "",
+      row.formulaText,
       row.notes,
     ],
   );
@@ -472,6 +582,47 @@ function forecastSheet(rows: ExportRow[]): MlaFeeWorksheet {
     name: "费用预估",
     rows: sheetRows,
   };
+}
+
+function appendForecastAdditionalFeeRows(rows: CellValue[][], additionalRows: AdditionalFeeExportRow[]) {
+  let currentPhase = "";
+  for (const row of additionalRows) {
+    if (row.phaseTitle !== currentPhase) {
+      if (rows.length > 0) {
+        rows.push([]);
+      }
+      rows.push([`${row.phaseTitle} 附加费用`, "Computer Fee -> Report Fee", ...Array.from({ length: Math.max(forecastHeaders.length - 2, 0) }, () => "")]);
+      rows.push(padRow(`Phase: ${row.phaseTitle}`, forecastHeaders.length));
+      rows.push(padRow(`${row.phaseTitle} / 费用汇总附加费用`, forecastHeaders.length));
+      rows.push(forecastHeaders);
+      currentPhase = row.phaseTitle;
+    }
+
+    rows.push([
+      "Additional Fee",
+      row.rowOrder,
+      row.phaseTitle,
+      "费用汇总附加费用",
+      row.testCode,
+      row.testName,
+      "",
+      row.basisText,
+      "",
+      row.chargeBasisText,
+      "委外费用",
+      "",
+      row.estimatedItemFee,
+      row.estimatedItemFee,
+      row.formulaText,
+      row.notes,
+    ]);
+  }
+}
+
+function forecastSheetWithAdditionalFees(rows: ExportRow[], additionalRows: AdditionalFeeExportRow[]): MlaFeeWorksheet {
+  const sheet = forecastSheet(rows);
+  appendForecastAdditionalFeeRows(sheet.rows, additionalRows);
+  return sheet;
 }
 
 function labFee(row: ExportRow, lab: EnvironmentFeeLabName): number | "" {
@@ -499,6 +650,7 @@ function labSheet(rows: ExportRow[], sheetName: (typeof labSheetNames)[number]):
       row.chargeBasisText,
       sheetName,
       labFee(row, lab),
+      row.formulaText,
       row.notes,
     ],
   );
@@ -567,7 +719,7 @@ function specialReference(row: ExportRow): string {
   return "固定规则";
 }
 
-function specialSheet(rows: ExportRow[]): MlaFeeWorksheet {
+function specialSheet(rows: ExportRow[], additionalRows: AdditionalFeeExportRow[]): MlaFeeWorksheet {
   const sheetRows: CellValue[][] = [];
   appendGroupedRows(
     sheetRows,
@@ -585,12 +737,95 @@ function specialSheet(rows: ExportRow[]): MlaFeeWorksheet {
       row.testTimeText,
       row.estimatedItemFee ?? "",
       specialReference(row),
+      row.formulaText,
       row.notes,
     ],
   );
+  appendSpecialAdditionalFeeRows(sheetRows, additionalRows);
 
   return {
     name: "特殊项目费用",
+    rows: sheetRows,
+  };
+}
+
+function appendSpecialAdditionalFeeRows(rows: CellValue[][], additionalRows: AdditionalFeeExportRow[]) {
+  let currentPhase = "";
+  for (const row of additionalRows) {
+    if (row.phaseTitle !== currentPhase) {
+      if (rows.length > 0) {
+        rows.push([]);
+      }
+      rows.push([`${row.phaseTitle} 附加费用`, "Computer Fee -> Report Fee", ...Array.from({ length: Math.max(specialHeaders.length - 2, 0) }, () => "")]);
+      rows.push(padRow(`Phase: ${row.phaseTitle}`, specialHeaders.length));
+      rows.push(padRow(`${row.phaseTitle} / 费用汇总附加费用`, specialHeaders.length));
+      rows.push(specialHeaders);
+      currentPhase = row.phaseTitle;
+    }
+
+    rows.push([
+      "Additional Fee",
+      row.rowOrder,
+      row.phaseTitle,
+      "费用汇总附加费用",
+      row.testCode,
+      row.testName,
+      "",
+      row.basisText,
+      "",
+      row.estimatedItemFee,
+      row.reference,
+      row.formulaText,
+      row.notes,
+    ]);
+  }
+}
+
+function validationSheet(rows: ExportRow[], additionalRows: AdditionalFeeExportRow[]): MlaFeeWorksheet {
+  const sheetRows: CellValue[][] = [validationHeaders];
+
+  for (const row of rows) {
+    if (row.estimatedItemFee === null) {
+      continue;
+    }
+
+    sheetRows.push([
+      row.ownership === "内部费用" ? "内部" : "预估规则",
+      "",
+      row.phaseTitle,
+      row.displayGroupTitle,
+      row.testCode,
+      row.testName,
+      row.sampleRange,
+      row.basisText,
+      row.estimatedItemFee,
+      row.estimatedItemFee,
+      0,
+      "一致",
+      row.formulaText || row.notes,
+    ]);
+  }
+
+  for (const row of additionalRows) {
+    sheetRows.push([
+      "附加费用",
+      "",
+      row.phaseTitle,
+      "费用汇总附加费用",
+      row.testCode,
+      row.testName,
+      "",
+      row.basisText,
+      row.estimatedItemFee,
+      row.estimatedItemFee,
+      0,
+      "一致",
+      row.formulaText,
+    ]);
+  }
+
+  return {
+    name: "费用规则校验",
     rows: sheetRows,
   };
 }
@@ -626,11 +861,13 @@ function normalizeExportContext(plan: EnvironmentPlanSheet, context?: ExportCont
 export function buildMlaEnvironmentFeeWorkbook(plan: EnvironmentPlanSheet, context?: ExportContext | PlatformCode): MlaFeeWorkbook {
   const exportContext = normalizeExportContext(plan, context);
   const rows = buildExportRows(plan);
+  const additionalFeeRows = buildAdditionalFeeRows(plan);
   const sheets = [
-    forecastSheet(rows),
+    forecastSheetWithAdditionalFees(rows, additionalFeeRows),
     ...labSheetNames.map((sheetName) => labSheet(rows, sheetName)),
     comparisonSheet(rows),
-    specialSheet(rows),
+    specialSheet(rows, additionalFeeRows),
+    validationSheet(rows, additionalFeeRows),
   ].map((sheet) => withMetadata(sheet, plan, exportContext));
 
   return {

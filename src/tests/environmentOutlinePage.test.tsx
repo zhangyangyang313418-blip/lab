@@ -256,7 +256,7 @@ describe("environment outline fee detail", () => {
       </MemoryRouter>,
     );
 
-    const feeButtons = screen.getAllByRole("button", { name: "PV / Group A / Optical Test 费用 ¥3,190.00" });
+    const feeButtons = screen.getAllByRole("button", { name: "PV / Group A / Optical Test 费用 ¥784.00" });
     expect(feeButtons.length).toBeGreaterThanOrEqual(2);
     const feeButton = feeButtons[0]!;
 
@@ -268,14 +268,14 @@ describe("environment outline fee detail", () => {
     const opticalEditor = within(editor as HTMLElement);
     expect(opticalEditor.getByText("51 点位样品")).toBeInTheDocument();
     expect(opticalEditor.getByText("1")).toBeInTheDocument();
-    expect(opticalEditor.getByText("单价 460")).toBeInTheDocument();
-    expect(opticalEditor.getByText("总价 ¥460")).toBeInTheDocument();
+    expect(opticalEditor.getByText("单价 134")).toBeInTheDocument();
+    expect(opticalEditor.getByText("总价 ¥134")).toBeInTheDocument();
     expect(opticalEditor.getByText("19 点位样品")).toBeInTheDocument();
     expect(opticalEditor.getByText("13")).toBeInTheDocument();
-    expect(opticalEditor.getByText("单价 210")).toBeInTheDocument();
-    expect(opticalEditor.getByText("总价 ¥2,730")).toBeInTheDocument();
-    expect(opticalEditor.getByText("合计 ¥3,190")).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "PV / Group A / Optical Test 费用 ¥3,190.00" }).length).toBeGreaterThanOrEqual(2);
+    expect(opticalEditor.getByText("单价 50")).toBeInTheDocument();
+    expect(opticalEditor.getByText("总价 ¥650")).toBeInTheDocument();
+    expect(opticalEditor.getByText("合计 ¥784")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "PV / Group A / Optical Test 费用 ¥784.00" }).length).toBeGreaterThanOrEqual(2);
   });
 
   it("shows the external L6 basis as samples by points while keeping the 33-point fee", async () => {

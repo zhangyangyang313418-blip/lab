@@ -65,7 +65,7 @@ describe("environment plan fees", () => {
     const groupA = pv?.groups.find((group) => group.id === "mla-group-a");
 
     expect(groupA?.rows.find((row) => row.id === "a-optical")?.sampleRange).toBe("1-14");
-    expect(groupA?.rows.find((row) => row.id === "a-optical")?.fee).toBe("3190");
+    expect(groupA?.rows.find((row) => row.id === "a-optical")?.fee).toBe("784");
   });
 
   it("uses the displayed baseline sample count for MLA baseline L1&L4 fees", () => {
@@ -184,9 +184,9 @@ describe("environment plan fees", () => {
     const plan = createSeedEnvironmentPlan("MLA", "L460-L", mlaLhdItems);
     const pv = plan.phases.find((phase) => phase.id === "pv");
 
-    expect(pv?.groups.find((group) => group.id === "mla-group-a")?.rows.find((row) => row.id === "a-post-optical")?.fee).toBe("3190");
-    expect(pv?.groups.find((group) => group.id === "mla-group-b")?.rows.find((row) => row.id === "b-post-optical")?.fee).toBe("2770");
-    expect(pv?.groups.find((group) => group.id === "mla-group-d8")?.rows.find((row) => row.id === "d8-post-optical")?.fee).toBe("1890");
+    expect(pv?.groups.find((group) => group.id === "mla-group-a")?.rows.find((row) => row.id === "a-post-optical")?.fee).toBe("784");
+    expect(pv?.groups.find((group) => group.id === "mla-group-b")?.rows.find((row) => row.id === "b-post-optical")?.fee).toBe("684");
+    expect(pv?.groups.find((group) => group.id === "mla-group-d8")?.rows.find((row) => row.id === "d8-post-optical")?.fee).toBe("450");
   });
 
   it("uses the confirmed D-8 pre and post evaluation sample quantities", () => {
@@ -197,7 +197,7 @@ describe("environment plan fees", () => {
     expect(groupD8?.rows.find((row) => row.id === "d8-optical")).toMatchObject({
       sampleRange: "1-15",
       feeBasisOverrides: { quantity: "15" },
-      fee: "3150",
+      fee: "750",
     });
     expect(groupD8?.rows.find((row) => row.id === "d8-l1l4")).toMatchObject({
       sampleRange: "1-15",
@@ -212,7 +212,7 @@ describe("environment plan fees", () => {
     expect(groupD8?.rows.find((row) => row.id === "d8-post-optical")).toMatchObject({
       sampleRange: "1-15",
       feeBasisOverrides: { quantity: "9" },
-      fee: "1890",
+      fee: "450",
     });
     expect(groupD8?.rows.find((row) => row.id === "d8-post-l6")).toMatchObject({
       sampleRange: "1-15",

@@ -15,6 +15,8 @@ import type {
 } from "../types/environmentFeeDetail";
 
 const labNames: EnvironmentFeeLabName[] = ["SGS", "华测", "苏劢"];
+export const opticalPoint19UnitPrice = 50;
+export const opticalPoint51UnitPrice = 134;
 const mlaOpticalGroupsWithOne51Point = new Set([
   "Group A",
   "Group B",
@@ -584,8 +586,8 @@ function getMlaOpticalBreakdown(
   if (mlaOptical19PointOnlyGroups.has(group.title)) {
     return {
       chargeBasis: "optical-split",
-      lines: [{ label: "19 点位样品", quantity, unitPrice: 210, total: quantity * 210 }],
-      total: quantity * 210,
+      lines: [{ label: "19 点位样品", quantity, unitPrice: opticalPoint19UnitPrice, total: quantity * opticalPoint19UnitPrice }],
+      total: quantity * opticalPoint19UnitPrice,
     };
   }
 
@@ -593,8 +595,8 @@ function getMlaOpticalBreakdown(
     const point51Count = 1;
     const point19Count = Math.max(quantity - point51Count, 0);
     const lines = [
-      { label: "51 点位样品", quantity: point51Count, unitPrice: 460, total: point51Count * 460 },
-      { label: "19 点位样品", quantity: point19Count, unitPrice: 210, total: point19Count * 210 },
+      { label: "51 点位样品", quantity: point51Count, unitPrice: opticalPoint51UnitPrice, total: point51Count * opticalPoint51UnitPrice },
+      { label: "19 点位样品", quantity: point19Count, unitPrice: opticalPoint19UnitPrice, total: point19Count * opticalPoint19UnitPrice },
     ].filter((line) => line.quantity > 0);
 
     return {

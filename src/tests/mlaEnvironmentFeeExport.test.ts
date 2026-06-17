@@ -40,12 +40,12 @@ describe("MLA environment fee workbook export", () => {
     const forecastData = dataRows(workbook, "费用预估");
 
     expect(workbook.filename).toBe("MLA测试项目及费用预估.xls");
-    expect(workbook.sheets.map((sheet) => sheet.name)).toEqual(["费用预估", "SGS", "华测", "苏勃", "费用对比", "特殊项目费用"]);
+    expect(workbook.sheets.map((sheet) => sheet.name)).toEqual(["费用预估", "SGS", "华测", "苏勃", "费用对比", "特殊项目费用", "费用规则校验"]);
     expect(forecast.slice(0, 5)).toEqual([
-      ["DV 组别顺序", "Group A -> Group B -> Group C -> Group D-1 -> Group D-2 -> Group D-3 -> Group D-4 -> Group D-5 -> Group D-6 -> Group D-7 -> Group D-9", "", "", "", "", "", "", "", "", "", "", "", "", ""],
-      ["Phase: DV", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
-      ["Group A：DV / Group A Sequence Tests", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
-      ["组别顺序", "组内顺序", "Phase", "Group", "测试编号", "测试项目", "样品范围", "计费基数", "测试时间", "计费方式", "费用归属", "内部费用", "委外费用", "费用合计", "备注"],
+      ["DV 组别顺序", "Group A -> Group B -> Group C -> Group D-1 -> Group D-2 -> Group D-3 -> Group D-4 -> Group D-5 -> Group D-6 -> Group D-7 -> Group D-9", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
+      ["Phase: DV", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
+      ["Group A：DV / Group A Sequence Tests", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
+      ["组别顺序", "组内顺序", "Phase", "Group", "测试编号", "测试项目", "样品范围", "计费基数", "测试时间", "计费方式", "费用归属", "内部费用", "委外费用", "费用合计", "费用计算公式", "备注"],
       [
       "Group A",
       1,
@@ -58,9 +58,10 @@ describe("MLA environment fee workbook export", () => {
       "168 h",
       "按样品数量",
       "内部费用",
-      3190,
+      784,
       "",
-      3190,
+      784,
+      "1台×51点位(¥134) + 13台×19点位(¥50) = 134 + 650 = 784",
       "Optical Test: 1 台按 51 点位，其余按 19 点位计费",
       ],
     ]);
@@ -79,7 +80,7 @@ describe("MLA environment fee workbook export", () => {
     const groupCOptical = forecastData.find((row) => row[2] === "PV" && row[3] === "Group C Sequence Tests" && row[5] === "Optical Test");
     expect(groupCOptical?.[6]).toBe("27-32");
     expect(groupCOptical?.[7]).toBe("6 个样品");
-    expect(groupCOptical?.[13]).toBe(1510);
+    expect(groupCOptical?.[13]).toBe(384);
 
     const groupD3L1L4Rows = forecastData.filter((row) => row[3] === "Group D Parallel Tests / D-3 PCBA" && row[5] === "L1&L4 Performance Evaluation & Functional Evaluation");
     expect(groupD3L1L4Rows).toHaveLength(4);
@@ -117,9 +118,9 @@ describe("MLA environment fee workbook export", () => {
       "168 h",
       "按样品数量",
       "内部费用",
-      3150,
+      750,
       "",
-      3150,
+      750,
     ]);
     expect(groupD8Rows.find((row) => row[1] === 2 && row[5] === "L1&L4 Performance Evaluation & Functional Evaluation")?.slice(6, 14)).toEqual([
       "77-91",
@@ -147,9 +148,9 @@ describe("MLA environment fee workbook export", () => {
       "72 h",
       "按样品数量",
       "内部费用",
-      1890,
+      450,
       "",
-      1890,
+      450,
     ]);
     expect(groupD8Rows.find((row) => row[1] === 10 && row[5] === "L6-photo&xray")?.slice(6, 14)).toEqual([
       "77-91",
@@ -240,7 +241,7 @@ describe("MLA environment fee workbook export", () => {
     expect(groupA?.[9]).toBe(Math.max(Number(groupA?.[4]), Number(groupA?.[5]), Number(groupA?.[6])) - Math.min(Number(groupA?.[4]), Number(groupA?.[5]), Number(groupA?.[6])));
   });
 
-  it("exports K14, E-1, and E-2 only in the special project sheet", () => {
+  it("exports K14, E-1, E-2, and additional fees in the special project sheet", () => {
     const state = createSeedAppState();
     const workbook = buildMlaEnvironmentFeeWorkbook(state.environmentPlan, state.projectSetup);
     const specialRows = dataRows(workbook, "特殊项目费用");
@@ -250,12 +251,86 @@ describe("MLA environment fee workbook export", () => {
       String(row[5]).includes("K14")
       || String(row[5]).includes("Restricted Substance")
       || String(row[5]).includes("Operating Noise")
-      || String(row[5]).includes("Transient Noise"),
+      || String(row[5]).includes("Transient Noise")
+      || row[5] === "Computer Fee"
+      || row[5] === "Report Fee",
     )).toBe(true);
     expect(specialRows.some((row) => row[2] === "PV" && row[3] === "Group A Sequence Tests" && String(row[5]).includes("K14"))).toBe(true);
     expect(specialRows.some((row) => row[0] === "Group E-1" && row[3] === "Group F Other Tests / Restricted Substance" && String(row[5]).includes("Restricted Substance"))).toBe(true);
     expect(specialRows.some((row) => row[0] === "Group E-2" && row[3] === "Group F Other Tests / Noise test" && String(row[5]).includes("Operating Noise"))).toBe(true);
     expect(specialRows.some((row) => row[2] === "PV" && row[3] === "Group F Other Tests / Restricted Substance" && String(row[5]).includes("Restricted Substance"))).toBe(true);
     expect(specialRows.some((row) => row[2] === "PV" && row[3] === "Group F Other Tests / Noise test" && String(row[5]).includes("Operating Noise"))).toBe(true);
+    expect(specialRows.some((row) => row[2] === "PV" && row[4] === "Computer Fee" && row[5] === "Computer Fee")).toBe(true);
+    expect(specialRows.some((row) => row[2] === "PV" && row[4] === "Report Fee" && row[5] === "Report Fee")).toBe(true);
+  });
+
+  it("keeps fee calculation formula columns and validation sheet in the export model", () => {
+    const state = createSeedAppState();
+    const workbook = buildMlaEnvironmentFeeWorkbook(state.environmentPlan, state.projectSetup);
+
+    expect(bodyRows(workbook, "费用预估").some((row) => row.includes("费用计算公式"))).toBe(true);
+    expect(bodyRows(workbook, "SGS").some((row) => row.includes("费用计算公式"))).toBe(true);
+    expect(bodyRows(workbook, "华测").some((row) => row.includes("费用计算公式"))).toBe(true);
+    expect(bodyRows(workbook, "苏勃").some((row) => row.includes("费用计算公式"))).toBe(true);
+    expect(bodyRows(workbook, "特殊项目费用").some((row) => row.includes("费用计算公式"))).toBe(true);
+
+    const validationRows = bodyRows(workbook, "费用规则校验");
+    expect(validationRows[0]).toEqual(["实验室", "Excel行号", "Phase", "Group", "测试编号", "测试项目", "样品范围", "计费基数", "当前费用", "规则费用", "差异", "校验结果", "规则/公式说明"]);
+    expect(validationRows.some((row) => row[4] === "Computer Fee" && row[11] === "一致")).toBe(true);
+    expect(validationRows.some((row) => row[4] === "Report Fee" && row[11] === "一致")).toBe(true);
+  });
+
+  it("exports computer and report fees in the forecast and special fee sheets", () => {
+    const state = createSeedAppState();
+    const workbook = buildMlaEnvironmentFeeWorkbook(state.environmentPlan, state.projectSetup);
+    const forecastRows = dataRows(workbook, "费用预估");
+    const specialRows = dataRows(workbook, "特殊项目费用");
+
+    const dvComputer = forecastRows.find((row) => row[2] === "DV" && row[4] === "Computer Fee");
+    const dvReport = forecastRows.find((row) => row[2] === "DV" && row[4] === "Report Fee");
+    const pvComputer = forecastRows.find((row) => row[2] === "PV" && row[4] === "Computer Fee");
+    const pvReport = forecastRows.find((row) => row[2] === "PV" && row[4] === "Report Fee");
+
+    expect(dvComputer?.slice(0, 15)).toEqual([
+      "Additional Fee",
+      1,
+      "DV",
+      "费用汇总附加费用",
+      "Computer Fee",
+      "Computer Fee",
+      "",
+      "48 月/台系数",
+      "",
+      "按系数",
+      "委外费用",
+      "",
+      12000,
+      12000,
+      "SGS 250/月/台 × 48 = 12,000",
+    ]);
+    expect(dvReport?.slice(0, 15)).toEqual([
+      "Additional Fee",
+      2,
+      "DV",
+      "费用汇总附加费用",
+      "Report Fee",
+      "Report Fee",
+      "",
+      "13 份报告",
+      "",
+      "按报告份数",
+      "委外费用",
+      "",
+      1950,
+      1950,
+      "苏勃 150/份 × 13 份 = 1,950",
+    ]);
+    expect(pvComputer?.[12]).toBe(12000);
+    expect(pvReport?.[12]).toBe(2100);
+
+    expect(specialRows.some((row) => row[2] === "DV" && row[4] === "Computer Fee" && row[9] === 12000)).toBe(true);
+    expect(specialRows.some((row) => row[2] === "DV" && row[4] === "Report Fee" && row[9] === 1950)).toBe(true);
+    expect(specialRows.some((row) => row[2] === "PV" && row[4] === "Computer Fee" && row[9] === 12000)).toBe(true);
+    expect(specialRows.some((row) => row[2] === "PV" && row[4] === "Report Fee" && row[9] === 2100)).toBe(true);
   });
 });

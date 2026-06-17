@@ -427,7 +427,7 @@ describe("environment fee detail calculations", () => {
     const optical = groupA?.rows.find((row) => row.outlineRowId === "ea-optical");
     const noise = groupE2?.rows.find((row) => row.outlineRowId === "ef2-item");
 
-    expect(optical?.estimatedItemFee).toBe(2770);
+    expect(optical?.estimatedItemFee).toBe(684);
     expect(optical?.notes).toContain("Optical Test");
     expect(optical?.notes).toContain("1 台按 51 点位");
     expect(optical?.notes).not.toContain("baseline 汇总");
@@ -1085,7 +1085,7 @@ describe("environment fee detail calculations", () => {
 
     const [groupD8] = createEnvironmentFeeDetailSections(phase);
 
-    expect(groupD8?.rows[0]?.estimatedItemFee).toBe(3150);
+    expect(groupD8?.rows[0]?.estimatedItemFee).toBe(750);
   });
 
   it("uses D-8 row-level quantity overrides for confirmed pre and post evaluation samples", () => {
@@ -1128,10 +1128,10 @@ describe("environment fee detail calculations", () => {
     const [groupD8] = createEnvironmentFeeDetailSections(phase);
     const rowsById = new Map(groupD8?.rows.map((row) => [row.outlineRowId, row]));
 
-    expect(rowsById.get("d8-optical")).toMatchObject({ quantity: 15, estimatedItemFee: 3150 });
+    expect(rowsById.get("d8-optical")).toMatchObject({ quantity: 15, estimatedItemFee: 750 });
     expect(rowsById.get("d8-l1l4")).toMatchObject({ quantity: 15, estimatedItemFee: 6000 });
     expect(rowsById.get("d8-post-l1l4")).toMatchObject({ quantity: 9, estimatedItemFee: 3600 });
-    expect(rowsById.get("d8-post-optical")).toMatchObject({ quantity: 9, estimatedItemFee: 1890 });
+    expect(rowsById.get("d8-post-optical")).toMatchObject({ quantity: 9, estimatedItemFee: 450 });
     expect(rowsById.get("d8-post-l6")).toMatchObject({ quantity: 9, estimatedItemFee: 3600 });
   });
 
@@ -1222,7 +1222,7 @@ describe("environment fee detail calculations", () => {
     const l6External = groupD3?.rows.find((row) => row.outlineRowId === "d3-post-l6-external");
     const noise = groupE2?.rows.find((row) => row.outlineRowId === "e2-item");
 
-    expect(optical?.estimatedItemFee).toBe(3190);
+    expect(optical?.estimatedItemFee).toBe(784);
     expect(optical?.notes).not.toContain("baseline 汇总");
     expect(l1l4?.quantity).toBe(14);
     expect(l1l4?.estimatedItemFee).toBe(5600);
@@ -1296,13 +1296,13 @@ describe("environment fee detail calculations", () => {
     const groupCL1L4 = groupC?.rows.find((row) => row.outlineRowId === "c-l1l4");
 
     expect(groupAOptical?.quantity).toBe(14);
-    expect(groupAOptical?.estimatedItemFee).toBe(3190);
+    expect(groupAOptical?.estimatedItemFee).toBe(784);
     expect(groupAL1L4?.quantity).toBe(14);
     expect(groupAL1L4?.estimatedItemFee).toBe(5600);
     expect(groupAPostL1L4?.quantity).toBe(14);
     expect(groupAPostL1L4?.estimatedItemFee).toBe(5600);
     expect(groupCOptical?.quantity).toBe(6);
-    expect(groupCOptical?.estimatedItemFee).toBe(1510);
+    expect(groupCOptical?.estimatedItemFee).toBe(384);
     expect(groupCL1L4?.quantity).toBe(6);
     expect(groupCL1L4?.estimatedItemFee).toBe(2400);
   });

@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+outputs/workbook-edits/node_modules
 
 # Build output
 dist/

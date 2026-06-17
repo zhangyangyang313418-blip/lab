@@ -633,7 +633,7 @@ describe("local draft persistence", () => {
               }
 
               if (group.id === "mla-group-a" && row.id === "a-post-optical") {
-                return { ...row, sampleRange: "1-12", fee: "2770" };
+                return { ...row, sampleRange: "1-12", fee: "684" };
               }
 
               if (group.id === "mla-group-a" && row.id === "a-post-l6") {
@@ -653,13 +653,13 @@ describe("local draft persistence", () => {
     const groupA = dvPhase?.groups.find((group) => group.id === "mla-group-a");
 
     expect(groupA?.rows.find((row) => row.id === "a-optical")?.sampleRange).toBe("1-14");
-    expect(groupA?.rows.find((row) => row.id === "a-optical")?.fee).toBe("3190");
+    expect(groupA?.rows.find((row) => row.id === "a-optical")?.fee).toBe("784");
     expect(groupA?.rows.find((row) => row.id === "a-l1l4")?.sampleRange).toBe("1-14");
     expect(groupA?.rows.find((row) => row.id === "a-l1l4")?.fee).toBe("5600");
     expect(groupA?.rows.find((row) => row.id === "a-post-l1l4")?.sampleRange).toBe("1-14");
     expect(groupA?.rows.find((row) => row.id === "a-post-l1l4")?.fee).toBe("5600");
     expect(groupA?.rows.find((row) => row.id === "a-post-optical")?.sampleRange).toBe("1-14");
-    expect(groupA?.rows.find((row) => row.id === "a-post-optical")?.fee).toBe("3190");
+    expect(groupA?.rows.find((row) => row.id === "a-post-optical")?.fee).toBe("784");
     expect(groupA?.rows.find((row) => row.id === "a-post-l6")?.sampleRange).toBe("1-14");
     expect(groupA?.rows.find((row) => row.id === "a-post-l6")?.fee).toBe("5600");
   });
@@ -739,7 +739,7 @@ describe("local draft persistence", () => {
               }
 
               if (row.id === "d8-post-optical") {
-                return { ...withoutFeeBasisOverrides(row), fee: "3150" };
+                return { ...withoutFeeBasisOverrides(row), fee: "750" };
               }
 
               return row;
@@ -757,7 +757,7 @@ describe("local draft persistence", () => {
 
     expect(pvGroupD8?.rows.find((row) => row.id === "d8-optical")).toMatchObject({
       feeBasisOverrides: { quantity: "15" },
-      fee: "3150",
+      fee: "750",
     });
     expect(pvGroupD8?.rows.find((row) => row.id === "d8-l1l4")).toMatchObject({
       feeBasisOverrides: { quantity: "15" },
@@ -769,7 +769,7 @@ describe("local draft persistence", () => {
     });
     expect(pvGroupD8?.rows.find((row) => row.id === "d8-post-optical")).toMatchObject({
       feeBasisOverrides: { quantity: "9" },
-      fee: "1890",
+      fee: "450",
     });
     expect(pvGroupD8?.rows.find((row) => row.id === "d8-post-l6")).toMatchObject({
       feeBasisOverrides: { quantity: "9" },

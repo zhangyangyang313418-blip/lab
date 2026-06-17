@@ -1,0 +1,1031 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>产品测试流程自动化项目工作手册</title>
+  <style>
+    :root {
+      --navy: #0b2545;
+      --blue: #15518e;
+      --blue-2: #1f6aa5;
+      --cyan: #1f8097;
+      --green: #176b58;
+      --amber: #9a5b0d;
+      --red: #9b3333;
+      --ink: #1f2937;
+      --muted: #667085;
+      --line: #d8e1eb;
+      --bg: #f3f6fa;
+      --panel: #ffffff;
+      --soft: #f7fafc;
+      --blue-soft: #eaf2fb;
+      --green-soft: #e8f5ef;
+      --amber-soft: #fff3df;
+      --red-soft: #fdecec;
+      --shadow: 0 18px 44px rgba(12, 35, 64, 0.10);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, #e8eef6 0, #f3f6fa 320px),
+        var(--bg);
+      font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      line-height: 1.62;
+    }
+
+    a {
+      color: var(--blue);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    code,
+    pre {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    .page {
+      width: min(1000px, calc(100% - 36px));
+      margin: 0 auto;
+      padding: 34px 0 56px;
+    }
+
+    .hero {
+      padding: 30px;
+      color: #fff;
+      background: var(--navy);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: #b8d5ee;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 32px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .hero p {
+      max-width: 850px;
+      margin: 12px 0 0;
+      color: #dce9f6;
+      font-size: 15px;
+    }
+
+    .meta-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin: 18px 0;
+    }
+
+    .metric {
+      padding: 14px 15px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 10px 26px rgba(12, 35, 64, 0.06);
+    }
+
+    .metric strong {
+      display: block;
+      color: var(--navy);
+      font-size: 22px;
+      line-height: 1.1;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .toc {
+      margin: 18px 0;
+      padding: 17px 18px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .toc h2 {
+      margin: 0 0 12px;
+      padding-left: 12px;
+      color: var(--navy);
+      border-left: 4px solid var(--blue);
+      font-size: 19px;
+      line-height: 1.3;
+    }
+
+    .toc-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 9px;
+    }
+
+    .toc-grid a {
+      display: block;
+      padding: 9px 11px;
+      color: #24425f;
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .executive-summary {
+      margin: 18px 0;
+      padding: 20px;
+      background: #eef5fc;
+      border: 1px solid #bcd5ed;
+      border-left: 6px solid var(--blue);
+      border-radius: 8px;
+      box-shadow: 0 10px 28px rgba(12, 35, 64, 0.07);
+    }
+
+    .executive-summary h2,
+    .section-title {
+      margin: 0 0 13px;
+      padding-left: 12px;
+      color: var(--navy);
+      border-left: 4px solid var(--blue);
+      font-size: 21px;
+      line-height: 1.3;
+      letter-spacing: 0;
+    }
+
+    .executive-summary p {
+      margin: 0 0 10px;
+    }
+
+    .executive-summary p:last-child {
+      margin-bottom: 0;
+    }
+
+    .section-card {
+      margin-top: 18px;
+      padding: 20px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .section-lead {
+      margin: 0 0 14px;
+      color: #35465a;
+      font-size: 15px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .info-card {
+      padding: 14px 15px;
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .info-card h3 {
+      margin: 0 0 8px;
+      color: var(--navy);
+      font-size: 16px;
+      line-height: 1.35;
+    }
+
+    .info-card p {
+      margin: 0;
+      color: #334155;
+      font-size: 14px;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 10px 0 0;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 3px 9px;
+      color: var(--blue);
+      background: var(--blue-soft);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .badge.green {
+      color: var(--green);
+      background: var(--green-soft);
+    }
+
+    .badge.amber {
+      color: var(--amber);
+      background: var(--amber-soft);
+    }
+
+    .badge.red {
+      color: var(--red);
+      background: var(--red-soft);
+    }
+
+    table {
+      width: 100%;
+      margin-top: 12px;
+      border-collapse: collapse;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      padding: 10px 11px;
+      border: 1px solid var(--line);
+      vertical-align: top;
+      text-align: left;
+    }
+
+    th {
+      color: #fff;
+      background: var(--navy);
+      font-weight: 700;
+    }
+
+    tbody tr:nth-child(even) {
+      background: var(--soft);
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .flow-step {
+      display: grid;
+      grid-template-columns: 112px 1fr 250px;
+      gap: 12px;
+      align-items: stretch;
+      padding: 12px;
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .phase {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      color: #fff;
+      background: var(--blue);
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .flow-main strong,
+    .flow-side strong {
+      display: block;
+      color: var(--navy);
+      margin-bottom: 4px;
+    }
+
+    .flow-main,
+    .flow-side {
+      color: #334155;
+      font-size: 14px;
+    }
+
+    .flow-side {
+      padding-left: 12px;
+      border-left: 3px solid #c7d8ea;
+    }
+
+    pre {
+      margin: 12px 0 0;
+      padding: 12px 13px;
+      color: #dbeafe;
+      background: #102a4c;
+      border-radius: 6px;
+      overflow: auto;
+      white-space: pre-wrap;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .notice {
+      margin-top: 12px;
+      padding: 12px 13px;
+      color: #39475a;
+      background: #fff8e8;
+      border: 1px solid #f0d59a;
+      border-left: 5px solid var(--amber);
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .danger {
+      background: #fff1f1;
+      border-color: #efc1c1;
+      border-left-color: var(--red);
+    }
+
+    .check-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 12px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .check-list li {
+      padding: 12px 13px;
+      color: #334155;
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .footer {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: right;
+    }
+
+    @media (max-width: 860px) {
+      .page {
+        width: min(100% - 24px, 1000px);
+        padding-top: 18px;
+      }
+
+      .hero {
+        padding: 22px;
+      }
+
+      h1 {
+        font-size: 27px;
+      }
+
+      .meta-strip,
+      .toc-grid,
+      .grid-2,
+      .grid-3,
+      .check-list {
+        grid-template-columns: 1fr;
+      }
+
+      .flow-step {
+        grid-template-columns: 1fr;
+      }
+
+      .phase {
+        justify-content: flex-start;
+        padding: 10px 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <p class="eyebrow">Product Test Evaluation Tool</p>
+      <h1>产品测试流程自动化项目工作手册</h1>
+      <p>本手册用于接手、维护和扩展 `/Users/clytia/Desktop/Codex/产品测试流程自动化`。重点覆盖测试申请流程、环境大纲、MLA / LHD / RHD / EMA 费用规则、Excel 交付、流程图资产、本地草稿迁移和回归验收。</p>
+    </header>
+
+    <section class="meta-strip" aria-label="项目指标">
+      <div class="metric"><strong>React + Vite</strong><span>前端应用技术栈</span></div>
+      <div class="metric"><strong>4 类平台</strong><span>MLA / LHD / RHD / EMA</span></div>
+      <div class="metric"><strong>37</strong><span>当前环境大纲草稿模板版本</span></div>
+      <div class="metric"><strong>7 sheets</strong><span>费用 Excel 标准交付结构</span></div>
+    </section>
+
+    <nav class="toc" aria-labelledby="toc-title">
+      <h2 id="toc-title">目录</h2>
+      <div class="toc-grid">
+        <a href="#summary">执行摘要</a>
+        <a href="#system">系统全景</a>
+        <a href="#flow">核心业务流程</a>
+        <a href="#fees">费用规则维护手册</a>
+        <a href="#files">文件与代码入口</a>
+        <a href="#sop">常见任务 SOP</a>
+        <a href="#verification">验收清单</a>
+        <a href="#risks">风险与维护原则</a>
+      </div>
+    </nav>
+
+    <section class="executive-summary" id="summary">
+      <h2>执行摘要</h2>
+      <p>产品测试流程自动化项目的核心价值，是把产品测试申请、测试大纲形成、测试项目匹配、环境可靠性费用计算、Excel 费用交付和流程图资产维护集中到一个可验证的系统里。它不是单纯的报价表，也不是单纯的流程图，而是业务规则、工程代码和交付模板三者共同组成的工作平台。</p>
+      <p>当前维护重点集中在 `/environment-outline`、MLA / LHD / RHD / EMA 环境费用规则、`JLR- MLA 费用规则.xlsx`、`JLR- EMA 费用规则.xlsx`、费用预估 Excel 导出、本地草稿迁移和流程图生成脚本。每次改规则都必须同时考虑：页面展示、费用计算、Excel 导出、测试断言、版本记录和交接文档。</p>
+      <div class="badge-row">
+        <span class="badge">当前代码版本：ENVIRONMENT_PLAN_TEMPLATE_VERSION = 37</span>
+        <span class="badge green">报价实验室：SGS / 华测 / 苏勃</span>
+        <span class="badge amber">信测不参与当前版本中值计算</span>
+        <span class="badge red">旧文档中 35/36 版本号可能滞后</span>
+      </div>
+    </section>
+
+    <section class="section-card" id="status">
+      <h2 class="section-title">当前状态快照</h2>
+      <p class="section-lead">本快照用于新线程快速判断当前项目基线。若状态文档与代码不一致，优先以当前代码和正式 Excel 文件为准，再回写交接文档。</p>
+      <table>
+        <thead>
+          <tr>
+            <th>项目</th>
+            <th>当前基线</th>
+            <th>后续动作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>本地草稿模板版本</td>
+            <td><code>ENVIRONMENT_PLAN_TEMPLATE_VERSION = 37</code></td>
+            <td>如环境大纲、费用默认值、样品范围影响旧草稿，继续递增版本并补 localStore 测试。</td>
+          </tr>
+          <tr>
+            <td>MLA 正式费用规则</td>
+            <td><code>outputs/mla-fee-detail-export/JLR- MLA 费用规则.xlsx</code></td>
+            <td>修改单价或规则后追加版本记录，并同步代码、测试和交接文档。</td>
+          </tr>
+          <tr>
+            <td>EMA 正式费用规则</td>
+            <td><code>outputs/ema-fee-detail-export/JLR- EMA 费用规则.xlsx</code></td>
+            <td>EMA 专属覆盖项只改 EMA pricing / basis，不污染 MLA 锁定规则。</td>
+          </tr>
+          <tr>
+            <td>Optical Test 最新规则</td>
+            <td>51 点位 134/个，19 点位 50/个；版本记录 V.2，日期 2026-06-17。</td>
+            <td>同步费用规则工作簿 AB 列备注、页面费用计算和环境费用测试。</td>
+          </tr>
+          <tr>
+            <td>Excel 费用预估模板</td>
+            <td><code>outputs/mla-fee-export-template/MLA测试项目及费用预估_test-flow组别顺序模板.xlsx</code></td>
+            <td>保持 7 个 sheet、公式列、蓝色费用工具区、原生图表和费用规则校验。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section-card" id="system">
+      <h2 class="section-title">系统全景</h2>
+      <p class="section-lead">系统由页面、规则数据、计算服务、导入导出脚本、流程图和交接文档共同构成。维护时要先判断任务落在哪一层，避免只改页面或只改 Excel。</p>
+      <div class="grid-3">
+        <article class="info-card">
+          <h3>业务输入层</h3>
+          <p>项目基本信息、测试描述、变更类型、平台模板、材料/EMC/环境测试项目和用户上传或手工调整的数据。</p>
+        </article>
+        <article class="info-card">
+          <h3>规则与计算层</h3>
+          <p>环境大纲 seed、MLA/EMA 费用单价、计费基数、特殊费用逻辑、中值选取、样品编号和本地草稿迁移。</p>
+        </article>
+        <article class="info-card">
+          <h3>交付输出层</h3>
+          <p>页面费用明细、费用弹窗、Excel 费用规则工作簿、费用预估模板、流程图 draw.io 文件和交接文档。</p>
+        </article>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>模块</th>
+            <th>页面 / 文件</th>
+            <th>作用</th>
+            <th>维护关注点</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>首页与项目输入</td>
+            <td><code>/</code>、<code>/input</code></td>
+            <td>录入项目、产品、测试需求和变更信息。</td>
+            <td>保证输入结构能驱动后续匹配和环境大纲。</td>
+          </tr>
+          <tr>
+            <td>环境大纲</td>
+            <td><code>/environment-outline</code></td>
+            <td>展示 DV/PV 测试组、测试项目、费用按钮、顶部费用汇总。</td>
+            <td>费用、样品范围、Computer Fee、Report Fee、草稿刷新。</td>
+          </tr>
+          <tr>
+            <td>结果页</td>
+            <td><code>/results</code></td>
+            <td>展示匹配后的测试项目并支持编辑、导出。</td>
+            <td>匹配规则、手工新增项、导出动作。</td>
+          </tr>
+          <tr>
+            <td>配置页</td>
+            <td><code>/config</code></td>
+            <td>维护测试项目配置、导入配置数据。</td>
+            <td>配置导入完整性、模板和规则一致性。</td>
+          </tr>
+          <tr>
+            <td>Excel 交付</td>
+            <td><code>outputs/*</code>、<code>scripts/*</code></td>
+            <td>生成或维护费用规则、费用预估、费用对比等工作簿。</td>
+            <td>保留格式、公式、图表、版本记录和正式命名。</td>
+          </tr>
+          <tr>
+            <td>流程图资产</td>
+            <td><code>docs/*.drawio</code></td>
+            <td>维护测试申请、资源软硬锁定等管理评审流程图。</td>
+            <td>优先更新生成脚本，避免手改 XML 后不可追踪。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section-card" id="flow">
+      <h2 class="section-title">核心业务流程</h2>
+      <p class="section-lead">产品测试平台的流程建议按三栏结构理解：左侧是角色和触发条件，中间是主流程，右侧是输入、输出和系统模块。系统分流应早于审批，资源确认应在审批后发生。</p>
+      <div class="flow">
+        <div class="flow-step">
+          <div class="phase">PHASE 01<br />测试申请</div>
+          <div class="flow-main"><strong>申请人提交项目与测试需求</strong>录入项目、产品、平台、样件、测试目标、变更描述和附件材料。</div>
+          <div class="flow-side"><strong>输出</strong>测试申请单、项目基础数据、附件索引。</div>
+        </div>
+        <div class="flow-step">
+          <div class="phase">PHASE 02<br />Test Flow 形成</div>
+          <div class="flow-main"><strong>系统形成结构化测试流</strong>按平台模板、变更类型和测试属性生成可计算的 Test Flow，而不是只生成普通文档。</div>
+          <div class="flow-side"><strong>模块</strong>环境大纲 seed、平台模板、测试项目配置。</div>
+        </div>
+        <div class="flow-step">
+          <div class="phase">PHASE 03<br />系统筛选与分流</div>
+          <div class="flow-main"><strong>判断内部 / 委外 / 混合路径</strong>根据能力、设备、费用归属和特殊规则决定执行路径。</div>
+          <div class="flow-side"><strong>分支</strong>内部测试、委外测试、内部 + 委外混合测试。</div>
+        </div>
+        <div class="flow-step">
+          <div class="phase">PHASE 04<br />测试申请审核</div>
+          <div class="flow-main"><strong>审批测试内容和费用口径</strong>确认测试项目、样品范围、费用规则、报价依据和交付模板。</div>
+          <div class="flow-side"><strong>异常</strong>退回修改、补充资料、重新提交。</div>
+        </div>
+        <div class="flow-step">
+          <div class="phase">PHASE 05<br />资源确认</div>
+          <div class="flow-main"><strong>确认设备、人力、排期和委外资源</strong>内部资源不足时返回排期反馈，必要时转委外或混合执行。</div>
+          <div class="flow-side"><strong>关联</strong>实验室资源看板、软锁定、硬锁定、委外报价。</div>
+        </div>
+        <div class="flow-step">
+          <div class="phase">PHASE 06<br />测试执行</div>
+          <div class="flow-main"><strong>按 Test Flow 执行并记录过程</strong>内部与委外路径分别保留测试记录、异常、过程附件和费用变化。</div>
+          <div class="flow-side"><strong>输出</strong>测试记录、过程日志、费用明细、问题项。</div>
+        </div>
+        <div class="flow-step">
+          <div class="phase">PHASE 07<br />报告确认</div>
+          <div class="flow-main"><strong>确认报告内容和数据一致性</strong>内部报告与委外报告分别确认，必要时补充复测或报告修订。</div>
+          <div class="flow-side"><strong>检查</strong>测试标准、样件编号、结果、附件、签核状态。</div>
+        </div>
+        <div class="flow-step">
+          <div class="phase">PHASE 08<br />报告归档</div>
+          <div class="flow-main"><strong>归档全链路材料</strong>归档申请、项目、产品、标准、Test Flow、测试记录、附件、过程日志和正式报告。</div>
+          <div class="flow-side"><strong>沉淀</strong>可追溯项目包和后续复用规则。</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card" id="fees">
+      <h2 class="section-title">费用规则维护手册</h2>
+      <p class="section-lead">费用维护的主线是：规则来源明确、代码同步完整、页面展示正确、Excel 交付保留格式、测试覆盖关键断言。当前 MLA 锁定规则和 EMA 专属规则分开维护。</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>规则域</th>
+            <th>当前结论</th>
+            <th>代码入口</th>
+            <th>验收重点</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>MLA / LHD</td>
+            <td>当前锁定模板可继续作为默认模板；报价只使用 SGS / 华测 / 苏勃；信测不参与本版。</td>
+            <td><code>mlaFeePricing.ts</code>、<code>mlaFeeBasis.ts</code>、<code>environmentPlan.ts</code></td>
+            <td>中值、样品数量、特殊项目、Excel 导出一致。</td>
+          </tr>
+          <tr>
+            <td>MLA / RHD</td>
+            <td>右舵大纲已补齐使用锁定 MLA 规则，<code>mla-rhd-group-*</code> 参与费用计算。</td>
+            <td><code>environmentFeeDetail.ts</code>、<code>environmentPlan.ts</code></td>
+            <td>Optical、Particle Exposure、L1&L4、L6、E-2、K 系列均覆盖。</td>
+          </tr>
+          <tr>
+            <td>EMA</td>
+            <td>EMA 已从临时复用 MLA 切换为专属规则覆盖，未差异化项目继续使用 MLA 通用规则。</td>
+            <td><code>emaFeePricing.ts</code>、<code>emaFeeBasis.ts</code></td>
+            <td>K7、K17、K20、K21、K22 和不测试项目断言。</td>
+          </tr>
+          <tr>
+            <td>本地草稿迁移</td>
+            <td>当前代码值：<strong>ENVIRONMENT_PLAN_TEMPLATE_VERSION = 37</strong>。旧文档中的 35 / 36 仅作历史记录。</td>
+            <td><code>src/services/localStore.ts</code>、<code>src/store/appState.tsx</code></td>
+            <td>旧草稿刷新、localStore 测试、用户刷新仍旧值时优先检查版本。</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <table>
+        <thead>
+          <tr>
+            <th>特殊费用项</th>
+            <th>当前规则</th>
+            <th>注意事项</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Computer Fee</td>
+            <td>SGS 250/月/台、华测 450/月/台、苏勃 150/月/台；默认系数 48；当前按 SGS 计入 TOTAL COST。</td>
+            <td>页面可双击展开修改系数；Excel 费用预估与特殊项目费用也必须体现。</td>
+          </tr>
+          <tr>
+            <td>Report Fee</td>
+            <td>SGS 0/份、华测 0/份、苏勃 150/份；报告份数默认按当前 Phase 实际组数量；当前按苏勃计入 TOTAL COST。</td>
+            <td>DV 默认 1950，PV 默认 2100；页面和 Excel 必须同步。</td>
+          </tr>
+          <tr>
+            <td>Optical Test</td>
+            <td>特殊计费单价：51 点位 134/个，19 点位 50/个；普通组 1 台按 51 点位，其余按 19 点位。</td>
+            <td>2026-06-17 V.2 规则；Group D-8 全部按 19 点位；检查两个正式费用规则工作簿版本记录。</td>
+          </tr>
+          <tr>
+            <td>L1&L4</td>
+            <td>按本组样机数量计费；无 sampleRange 时优先取当前 Group 的 totalSampleQty。</td>
+            <td>Group A baseline / post 为 1-14；Group D-3 为 8 个 PCBA 样品。</td>
+          </tr>
+          <tr>
+            <td>L6-photo&xray</td>
+            <td>固定单价 400/个样品，按样品数量计费，不展示三家实验室报价明细。</td>
+            <td>Group A post 按 14 个样品；Group D-3 按 8 个样品；D-8 post 按 9 个样品。</td>
+          </tr>
+          <tr>
+            <td>L6-SEM&SECTION</td>
+            <td>D-3 外部委外组合费用，按 3 样品 × 11 点位 = 33 点位取实验室总价中值。</td>
+            <td>Excel 计费基数展示为 33 个点位，不要误写成 33 个样品。</td>
+          </tr>
+          <tr>
+            <td>K28 HALT</td>
+            <td>拆分为 HALT Cold / Hot / Thermal Shock / Vibration / TST & Vibration 五项，每项 8h × 中值 800/h = 6400。</td>
+            <td>不要把 D-8 样品数量修正扩散到 HALT 五项小时计费。</td>
+          </tr>
+          <tr>
+            <td>Particle Exposure</td>
+            <td>保留特殊实验室总价逻辑，明细展示批次费、粉尘费、清洁费。</td>
+            <td>EMA 平台不测试 Particle Exposure，不参与 EMA 费用计算。</td>
+          </tr>
+          <tr>
+            <td>E-2 Operating Noise</td>
+            <td>无中值口径，参考 SGS 1700/台样机计费。</td>
+            <td>费用明细只展示 SGS，不展示华测/苏勃无报价信息。</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <table>
+        <thead>
+          <tr>
+            <th>EMA 专属覆盖项</th>
+            <th>规则</th>
+            <th>测试关注点</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>K52.351 Condensing humidity</td>
+            <td>EMA 平台不测试，不参与费用计算。</td>
+            <td>断言费用为不适用或不产生建议费用。</td>
+          </tr>
+          <tr>
+            <td>Particle Exposure</td>
+            <td>EMA 平台不测试，不参与费用计算。</td>
+            <td>不要复用 MLA 的 Particle Exposure 特殊总价逻辑。</td>
+          </tr>
+          <tr>
+            <td>K14 Dust Blowing Test</td>
+            <td>EMA 平台不测试，不参与费用计算。</td>
+            <td>不要套用 MLA 的 3000/批规则。</td>
+          </tr>
+          <tr>
+            <td>K7 Thermal Shock in Air</td>
+            <td>计费基数 305h，适用于 Group A 和 Group C。</td>
+            <td>不能只改 Group A。</td>
+          </tr>
+          <tr>
+            <td>K17 Audible Noise</td>
+            <td>SGS 4000 / 华测 3333 / 苏勃 1000，按 12 台样机计费，中值为华测 39996。</td>
+            <td>检查实验室费用和中值建议费用。</td>
+          </tr>
+          <tr>
+            <td>K21 Corrosive Gases</td>
+            <td>计费基数 1000h；SGS 100/h、华测 120/h、苏勃 150/h；中值建议费用 120000。</td>
+            <td>SGS 单价变化也要有断言，不能只看中值总价。</td>
+          </tr>
+          <tr>
+            <td>K22 Chemical Resistance</td>
+            <td>按 11 种试剂计费；SGS 650、华测 700、苏勃 300；中值为 SGS 7150。</td>
+            <td>与 MLA 条件 1 的 15 种试剂区分。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section-card" id="files">
+      <h2 class="section-title">文件与代码入口</h2>
+      <p class="section-lead">新线程接手时先读状态索引，不回看旧聊天。修改代码前先定位是模板结构、价格、计费基数、计算逻辑、页面展示、导出脚本还是本地迁移。</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>用途</th>
+            <th>文件</th>
+            <th>说明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>当前状态索引</td>
+            <td><code>docs/PROJECT_STATUS_INDEX.md</code></td>
+            <td>新线程第一入口，说明当前重点、文件入口、回归测试和上下文控制规则。</td>
+          </tr>
+          <tr>
+            <td>MLA / LHD 规则</td>
+            <td><code>docs/MLA费用交接.md</code>、<code>docs/LHD费用说明.md</code></td>
+            <td>记录锁定模板、特殊费用、样品范围、历史变更和维护方式。</td>
+          </tr>
+          <tr>
+            <td>EMA 规则</td>
+            <td><code>docs/EMA费用交接.md</code></td>
+            <td>记录 EMA 专属覆盖项、正式 Excel 命名和后续维护流程。</td>
+          </tr>
+          <tr>
+            <td>Excel 导出交接</td>
+            <td><code>docs/MLA测试项目及费用Excel导出交接.md</code></td>
+            <td>说明费用预估模板、样品编号、图表、公式区、费用规则校验等。</td>
+          </tr>
+          <tr>
+            <td>模板结构</td>
+            <td><code>src/data/seed/environmentPlan.ts</code></td>
+            <td>维护环境大纲默认行、测试时间、样品范围和部分数量 override。</td>
+          </tr>
+          <tr>
+            <td>MLA 价格</td>
+            <td><code>src/data/seed/mlaFeePricing.ts</code></td>
+            <td>维护 MLA 通用单价、组合费用段、固定费用和特殊项目备注。</td>
+          </tr>
+          <tr>
+            <td>MLA 计费基数</td>
+            <td><code>src/data/seed/mlaFeeBasis.ts</code></td>
+            <td>维护普通环境项和特殊项的小时、数量、批次等计费基数。</td>
+          </tr>
+          <tr>
+            <td>EMA 专属价格 / 基数</td>
+            <td><code>src/data/seed/emaFeePricing.ts</code>、<code>src/data/seed/emaFeeBasis.ts</code></td>
+            <td>维护 EMA 与 MLA 不同的费用规则，未覆盖项继续走 MLA 通用逻辑。</td>
+          </tr>
+          <tr>
+            <td>费用计算主逻辑</td>
+            <td><code>src/services/environmentFeeDetail.ts</code></td>
+            <td>计算费用明细、实验室报价、中值、特殊公式、计费基数说明和备注。</td>
+          </tr>
+          <tr>
+            <td>页面展示</td>
+            <td><code>src/pages/EnvironmentOutlinePage.tsx</code></td>
+            <td>维护费用按钮、弹窗、顶部 TOTAL COST、Computer Fee、Report Fee 编辑交互。</td>
+          </tr>
+          <tr>
+            <td>Excel 导出</td>
+            <td><code>src/services/mlaEnvironmentFeeExport.ts</code>、<code>scripts/export_mla_environment_fee_template.ts</code></td>
+            <td>维护费用预估、特殊项目费用、样品编号、公式列和保留格式模板导出。</td>
+          </tr>
+          <tr>
+            <td>本地草稿</td>
+            <td><code>src/services/localStore.ts</code>、<code>src/store/appState.tsx</code></td>
+            <td>维护草稿版本和旧草稿刷新逻辑；当前 ENVIRONMENT_PLAN_TEMPLATE_VERSION = 37。</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <table>
+        <thead>
+          <tr>
+            <th>正式交付物</th>
+            <th>路径</th>
+            <th>维护要求</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>MLA 费用规则 Excel</td>
+            <td><code>outputs/mla-fee-detail-export/JLR- MLA 费用规则.xlsx</code></td>
+            <td>必须包含费用规则去重表和版本记录；不要恢复旧命名文件。</td>
+          </tr>
+          <tr>
+            <td>EMA 费用规则 Excel</td>
+            <td><code>outputs/ema-fee-detail-export/JLR- EMA 费用规则.xlsx</code></td>
+            <td>EMA 专属规则来源；修改后同步代码、版本记录和交接文档。</td>
+          </tr>
+          <tr>
+            <td>费用预估模板</td>
+            <td><code>outputs/mla-fee-export-template/MLA测试项目及费用预估_test-flow组别顺序模板.xlsx</code></td>
+            <td>以完整 .xlsx 为基底，保留 7 个 sheet、公式、图表、工具区和校验页。</td>
+          </tr>
+          <tr>
+            <td>旧命名归档</td>
+            <td><code>outputs/fee-rule-archive/2026-06-08-old-names/</code></td>
+            <td>不要把 _修正版、_待修改、V.0 版本旧文件放回正式目录。</td>
+          </tr>
+          <tr>
+            <td>测试申请流程图</td>
+            <td><code>docs/测试申请三栏流程图.drawio</code></td>
+            <td>优先通过生成脚本维护，保持三栏结构和管理评审风格。</td>
+          </tr>
+          <tr>
+            <td>资源软硬锁定流程图</td>
+            <td><code>docs/设备资源软硬锁定流程图.drawio</code></td>
+            <td>用于设备匹配、软锁、工程师确认、样品到达、硬锁流程。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section-card" id="sop">
+      <h2 class="section-title">常见任务 SOP</h2>
+      <p class="section-lead">每类任务都要有清晰入口、修改范围、验证命令和交付输出。下面是建议的执行顺序。</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>任务</th>
+            <th>处理步骤</th>
+            <th>必须输出</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>修改 MLA / LHD 费用规则</td>
+            <td>先读 PROJECT_STATUS_INDEX、MLA费用交接、LHD费用说明；确认规则来源；修改 pricing / basis / calculation；补测试；必要时升草稿版本；更新文档。</td>
+            <td>代码改动、测试结果、费用变化摘要、文档更新。</td>
+          </tr>
+          <tr>
+            <td>导回 EMA Excel 费用</td>
+            <td>先检查 JLR- EMA 费用规则.xlsx 的费用规则去重表和版本记录；同步 emaFeePricing / emaFeeBasis；补 environmentFeeDetail 断言；更新 EMA 交接。</td>
+            <td>EMA 专属差异清单、代码同步、版本记录说明。</td>
+          </tr>
+          <tr>
+            <td>调整环境大纲行</td>
+            <td>修改 environmentPlan.ts；检查样品范围、测试时间、Group 样本量；如旧草稿会受影响，升 ENVIRONMENT_PLAN_TEMPLATE_VERSION；补 localStore 测试。</td>
+            <td>大纲变化、旧草稿刷新说明、相关测试。</td>
+          </tr>
+          <tr>
+            <td>更新费用预估 Excel 导出</td>
+            <td>以完整 .xlsx 基底为准；保留样式、公式、7 个 sheet、图表、隐藏数据源和校验页；更新 mlaEnvironmentFeeExport 或导出脚本；运行导出测试。</td>
+            <td>输出 workbook、模板结构检查、截图或关键校验结果。</td>
+          </tr>
+          <tr>
+            <td>维护流程图</td>
+            <td>先读 diagram-file-map；优先改 generate_*drawio*.mjs；重新生成 drawio；运行结构测试；不要编辑 docs/.$*.bkp。</td>
+            <td>drawio 文件、生成脚本变化、结构测试结果。</td>
+          </tr>
+          <tr>
+            <td>用户说刷新后仍是旧值</td>
+            <td>先检查 localStorage 草稿版本；确认 ENVIRONMENT_PLAN_TEMPLATE_VERSION 是否需要提升；检查 appState 是否正确重建环境大纲。</td>
+            <td>版本判断、迁移逻辑、localStore 测试结果。</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="notice">
+        <strong>启动提示词：</strong>请使用 product-test-mla-fee-maintenance。项目路径：/Users/clytia/Desktop/Codex/产品测试流程自动化。先读 docs/PROJECT_STATUS_INDEX.md、docs/MLA费用交接.md、docs/LHD费用说明.md 和必要的 EMA / Excel 导出交接文档；完成后跑相关测试、更新交接文档，并说明是否需要提升本地草稿模板版本。
+      </div>
+    </section>
+
+    <section class="section-card" id="verification">
+      <h2 class="section-title">验收清单</h2>
+      <p class="section-lead">不要用“看起来对”替代验证。费用规则、Excel 导出和草稿迁移都有明确测试入口。</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>改动类型</th>
+            <th>推荐验证命令</th>
+            <th>通过标准</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>费用计算规则</td>
+            <td><code>npm run test:run -- src/tests/environmentFeeDetail.test.ts</code></td>
+            <td>关键费用、计费基数、实验室报价、中值和备注断言通过。</td>
+          </tr>
+          <tr>
+            <td>环境大纲页面</td>
+            <td><code>npm run test:run -- src/tests/environmentOutlinePage.test.tsx src/tests/environmentOutlineLayout.test.ts</code></td>
+            <td>费用按钮、弹窗、TOTAL COST、Computer Fee、Report Fee 展示和交互正确。</td>
+          </tr>
+          <tr>
+            <td>本地草稿迁移</td>
+            <td><code>npm run test:run -- src/tests/localStore.test.ts</code></td>
+            <td>旧草稿能刷新到当前模板版本，用户不会继续看到旧费用或旧样品范围。</td>
+          </tr>
+          <tr>
+            <td>环境大纲结构</td>
+            <td><code>npm run test:run -- src/tests/environmentPlan.test.ts</code></td>
+            <td>默认模板、Group、测试行、样品数量和测试时间符合当前口径。</td>
+          </tr>
+          <tr>
+            <td>费用 Excel 导出</td>
+            <td><code>npm run test:run -- src/tests/mlaEnvironmentFeeExport.test.ts src/tests/mlaEnvironmentFeeTemplateExport.test.ts</code></td>
+            <td>样品编号、费用计算公式、7 个 sheet、图表、隐藏数据源、Computer Fee / Report Fee 均存在。</td>
+          </tr>
+          <tr>
+            <td>流程图生成</td>
+            <td><code>npm run test:run -- tests/generate_test_application_drawio.test.mjs</code></td>
+            <td>drawio 结构可生成，关键节点和三栏结构未丢失。</td>
+          </tr>
+          <tr>
+            <td>最终构建</td>
+            <td><code>npm run build</code></td>
+            <td>TypeScript 与 Vite 构建通过。</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <pre>cd "/Users/clytia/Desktop/Codex/产品测试流程自动化"
+npm run test:run -- src/tests/environmentFeeDetail.test.ts src/tests/environmentOutlinePage.test.tsx src/tests/localStore.test.ts
+npm run build</pre>
+    </section>
+
+    <section class="section-card" id="risks">
+      <h2 class="section-title">风险与维护原则</h2>
+      <p class="section-lead">这个项目的风险主要来自多来源规则不同步：代码、Excel、页面、交接文档和用户本地草稿任何一处落后，都会造成看似“改了但没生效”的问题。</p>
+
+      <ul class="check-list">
+        <li><strong>规则源头优先明确：</strong>Excel 被用户确认后，Excel 是输入源；代码和测试要同步，不能凭旧聊天恢复旧报价。</li>
+        <li><strong>正式文件名不能漂移：</strong>正式目录只保留 `JLR- MLA 费用规则.xlsx` 和 `JLR- EMA 费用规则.xlsx`，旧命名放归档。</li>
+        <li><strong>版本记录必须追加：</strong>每次确认费用变化，Excel 的版本记录和文档都要追加，不要覆盖历史。</li>
+        <li><strong>草稿版本要跟着规则走：</strong>影响旧草稿显示的环境大纲或费用变更，需要提升 `ENVIRONMENT_PLAN_TEMPLATE_VERSION = 37` 之后的版本。</li>
+        <li><strong>费用和样品范围不要混用：</strong>Excel 的样品范围是样品编号，计费基数按费用明细逻辑计算。</li>
+        <li><strong>保留 Excel 手工格式：</strong>不得用无样式新表覆盖用户手工确认的公式、列宽、图表和工具区。</li>
+        <li><strong>流程图优先改生成脚本：</strong>draw.io 文件应可追溯生成，避免手工 XML 改动变成不可维护资产。</li>
+        <li><strong>文档是下一轮上下文：</strong>确认后的业务口径写入交接文档，后续新线程不再依赖旧聊天历史。</li>
+      </ul>
+
+      <div class="notice danger">
+        <strong>当前需注意：</strong>部分历史交接文档仍写 `ENVIRONMENT_PLAN_TEMPLATE_VERSION = 35` 或 `36`，但当前代码 `src/services/localStore.ts` 中实际值为 `37`，且 Optical Test V.2 规则已关联该版本。后续整理文档时建议同步修正状态索引，避免新线程误判。
+      </div>
+    </section>
+
+    <footer class="footer">
+      手册生成日期：2026-06-17 ｜ 项目路径：/Users/clytia/Desktop/Codex/产品测试流程自动化
+    </footer>
+  </main>
+</body>
+</html>

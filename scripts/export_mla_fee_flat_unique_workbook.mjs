@@ -14,6 +14,8 @@ const outputPath = process.env.MLA_FEE_OUTPUT_PATH
   : path.join(outputDir, "JLR- MLA 费用规则.xlsx");
 const labNames = ["SGS", "华测", "苏劢"];
 const labDisplayNames = { SGS: "SGS", 华测: "华测", 苏劢: "苏勃" };
+const opticalPoint19UnitPrice = 50;
+const opticalPoint51UnitPrice = 134;
 const chamberPriceRules = {
   K1: {
     large: { SGS: 30, 华测: 25, 苏劢: 40 },
@@ -92,6 +94,9 @@ function getLab(row, labName) {
 
 function specialFormulaSummary(specialBreakdown) {
   if (!specialBreakdown) return "";
+  if (specialBreakdown.chargeBasis === "optical-split") {
+    return `Optical Test 特殊计算：51 点位 ${opticalPoint51UnitPrice}/个，19 点位 ${opticalPoint19UnitPrice}/个；普通组 1 台按 51 点位、其余按 19 点位，Group D-8 全部按 19 点位。`;
+  }
   return specialBreakdown.lines
     .filter((line) => labNames.includes(line.label))
     .map((line) => `${labDisplayNames[line.label] ?? line.label}: ${line.formula} = ${line.total}`)
@@ -397,6 +402,14 @@ const versionRows = [
     "新增顶部附加费用规则：Computer Fee 按实验室月/台单价 × 系数计算，默认系数 48，当前按 SGS 计入；Report Fee 按实验室每份报告单价 × 报告份数计算，默认每组一份，当前按苏勃 150/份计入；Total Cost 口径同步为各组测试费用 + Computer Fee + Report Fee。",
     "费用规则去重表；/environment-outline 顶部费用汇总",
     "对应系统本地草稿模板版本 ENVIRONMENT_PLAN_TEMPLATE_VERSION = 36。",
+  ],
+  [
+    "V.2",
+    "2026-06-17",
+    "费用规则修正",
+    "调整 Optical Test 特殊计费单价：19 点位由 210/个改为 50/个，51 点位由 460/个改为 134/个；AB列规则备注同步写明新单价和计算口径。",
+    "费用规则去重表!AB:AB；/environment-outline Optical Test 费用计算",
+    "对应系统本地草稿模板版本 ENVIRONMENT_PLAN_TEMPLATE_VERSION = 37。",
   ],
 ];
 
