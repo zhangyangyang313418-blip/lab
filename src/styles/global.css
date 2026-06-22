@@ -1351,6 +1351,14 @@ dd {
   font-size: 1.25rem;
 }
 
+.fee-detail__heading-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .fee-detail__meta {
   display: flex;
   flex-wrap: wrap;
@@ -1366,6 +1374,27 @@ dd {
   background: #fff;
   border-radius: 6px;
   padding: 6px 10px;
+}
+
+.fee-detail__toggle {
+  min-height: 38px;
+  border: 1px solid #1f5f8b;
+  border-radius: 7px;
+  padding: 8px 14px;
+  background: #123f63;
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.fee-detail__toggle:hover {
+  background: #0d3150;
+}
+
+.fee-detail__toggle:focus-visible {
+  outline: 3px solid rgba(43, 137, 194, 0.35);
+  outline-offset: 2px;
 }
 
 .fee-detail__scroll {

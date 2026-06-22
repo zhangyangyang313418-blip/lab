@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { createEnvironmentFeeDetailSections } from "../../services/environmentFeeDetail";
 import type { EnvironmentPlanPhase } from "../../types/environmentPlan";
 import type { EnvironmentFeeLabPriceValue } from "../../types/environmentFeeDetail";
@@ -48,23 +48,38 @@ function formatLabName(lab: string) {
 }
 
 export function EnvironmentFeeDetailTable({ phase }: { phase: EnvironmentPlanPhase }) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const sections = createEnvironmentFeeDetailSections(phase);
+  const headingId = `fee-detail-${phase.id}`;
+  const contentId = `fee-detail-content-${phase.id}`;
 
   return (
-    <section className="fee-detail" aria-labelledby={`fee-detail-${phase.id}`}>
+    <section className="fee-detail" aria-labelledby={headingId}>
       <div className="fee-detail__heading-row">
         <div>
           <p className="section-label">费用明细</p>
-          <h2 id={`fee-detail-${phase.id}`}>{phase.title} 费用细则</h2>
+          <h2 id={headingId}>{phase.title} 费用细则</h2>
         </div>
-        <div className="fee-detail__meta">
-          <span>项目 {phase.summary.projectCode}</span>
-          <span>阶段 {phase.summary.phaseValue}</span>
-          <span>L1&L4总计数量 {phase.summary.totalSampleQty}</span>
+        <div className="fee-detail__heading-actions">
+          <div className="fee-detail__meta">
+            <span>项目 {phase.summary.projectCode}</span>
+            <span>阶段 {phase.summary.phaseValue}</span>
+            <span>L1&L4总计数量 {phase.summary.totalSampleQty}</span>
+          </div>
+          <button
+            type="button"
+            className="fee-detail__toggle"
+            aria-expanded={isExpanded}
+            aria-controls={contentId}
+            onClick={() => setIsExpanded((expanded) => !expanded)}
+          >
+            {isExpanded ? `收起 ${phase.title} 费用明细` : `展开 ${phase.title} 费用明细`}
+          </button>
         </div>
       </div>
-      <div className="fee-detail__scroll">
-        <table className="fee-detail__table">
+      {isExpanded ? (
+        <div id={contentId} className="fee-detail__scroll">
+          <table className="fee-detail__table" aria-labelledby={headingId}>
           <thead>
             <tr>
               <th>Group</th>
@@ -112,8 +127,9 @@ export function EnvironmentFeeDetailTable({ phase }: { phase: EnvironmentPlanPha
               )),
             )}
           </tbody>
-        </table>
-      </div>
+          </table>
+        </div>
+      ) : null}
     </section>
   );
 }

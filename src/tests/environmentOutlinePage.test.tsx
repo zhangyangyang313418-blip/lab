@@ -16,14 +16,28 @@ describe("environment outline fee detail", () => {
     vi.restoreAllMocks();
   });
 
-  it("shows MLA fee detail below the outline and exposes calculated fee columns", () => {
+  it("keeps DV and PV fee details collapsed by default and expands them independently", async () => {
+    const user = userEvent.setup();
+
     render(
       <MemoryRouter initialEntries={["/environment-outline"]}>
         <App />
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole("heading", { name: "PV 费用细则", level: 2 })).toBeInTheDocument();
+    const dvToggle = screen.getByRole("button", { name: "展开 DV 费用明细" });
+    const pvToggle = screen.getByRole("button", { name: "展开 PV 费用明细" });
+
+    expect(dvToggle).toHaveAttribute("aria-expanded", "false");
+    expect(pvToggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("table", { name: "DV 费用细则" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("table", { name: "PV 费用细则" })).not.toBeInTheDocument();
+
+    await user.click(dvToggle);
+
+    expect(screen.getByRole("button", { name: "收起 DV 费用明细" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("table", { name: "DV 费用细则" })).toBeInTheDocument();
+    expect(screen.queryByRole("table", { name: "PV 费用细则" })).not.toBeInTheDocument();
     expect(screen.getAllByText("实验室单价中值").length).toBeGreaterThan(0);
     expect(screen.getAllByText("单项费用（预计）").length).toBeGreaterThan(0);
     expect(screen.getAllByText("SGS 单价").length).toBeGreaterThan(0);
@@ -39,6 +53,11 @@ describe("environment outline fee detail", () => {
       expect(screen.getByRole("button", { name: `PV / Group D-8 / ${label} 费用 ¥6,400.00` })).toBeInTheDocument();
     }
     expect(screen.getAllByText("¥720").length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole("button", { name: "收起 DV 费用明细" }));
+
+    expect(screen.getByRole("button", { name: "展开 DV 费用明细" })).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("table", { name: "DV 费用细则" })).not.toBeInTheDocument();
   });
 
   it("opens a read-only median fee calculation from an outline Fee", async () => {
