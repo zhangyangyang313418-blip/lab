@@ -4,7 +4,7 @@
 
 **Goal:** Produce an editable `.xlsx` confirmation workbook that preserves the user's template style and calculates MLA DV and PV sample/equipment demand independently.
 
-**Architecture:** Import the user-provided workbook with `@oai/artifact-tool`, preserve the PV template as the style source, copy the complete formatted block to a right-side PV area, and populate a DV block on the left. Derived item quantities, Group Max rows, and Phase totals remain native Excel formulas so changing sample inputs recalculates the workbook.
+**Architecture:** Import the user-confirmed workbook with `@oai/artifact-tool`, treat its `A:V / W / X:AS` layout as the style source, and populate independent DV and PV calculation blocks. Derived item quantities, Group Max rows, and Phase totals remain native Excel formulas so changing sample inputs recalculates the workbook.
 
 **Tech Stack:** JavaScript, `@oai/artifact-tool`, native Excel formulas, Codex bundled Node.js runtime.
 
@@ -13,7 +13,7 @@
 ### Task 1: Inspect and stage the template
 
 **Files:**
-- Read: `/Users/clytia/Desktop/MLA测试需求_单Sheet汇总及细则.xlsx`
+- Read: `outputs/mla-sample-equipment-demand/MLA样品及辅助设备需求_计算逻辑确认版.xlsx`
 - Create: `/tmp/codex-mla-sample-equipment-workbook/build.mjs`
 
 - [ ] **Step 1: Import the template and inspect the used range**
@@ -30,7 +30,7 @@ const usedRange = sheet.getUsedRange();
 ```js
 const preview = await workbook.render({
   sheetName: sheet.name,
-  range: "A1:U157",
+  range: "A1:AS159",
   scale: 1,
   format: "png",
 });
@@ -38,7 +38,7 @@ const preview = await workbook.render({
 
 - [ ] **Step 3: Verify the source contract**
 
-Confirm that the sheet is named `测试需求`, the used range includes `A1:U157`, and the title is `MLA样品及辅助设备需求汇总`.
+Confirm that the sheet is named `样品及辅助设备需求`, the used range includes `A1:AS159`, and the DV/PV titles are present in `A1` and `X1`.
 
 ### Task 2: Build the side-by-side phase layout
 
@@ -49,15 +49,14 @@ Confirm that the sheet is named `测试需求`, the used range includes `A1:U157
 
 ```js
 sheet.name = "样品及辅助设备需求";
-sheet.getRange("W1:AQ157").copyFrom(sheet.getRange("A1:U157"), "all");
-sheet.getRange("V1:V157").clear({ applyTo: "all" });
+sheet.getRange("W1:W159").format.fill = "#FFF200";
 ```
 
 - [ ] **Step 2: Set phase titles**
 
 ```js
 sheet.getRange("A1").values = [["MLA DV样品及辅助设备需求汇总"]];
-sheet.getRange("W1").values = [["MLA PV样品及辅助设备需求汇总"]];
+sheet.getRange("X1").values = [["MLA PV样品及辅助设备需求汇总"]];
 ```
 
 - [ ] **Step 3: Populate DV rows from the MLA template**
@@ -110,7 +109,7 @@ sheet.getRange(`E${maxRow}:T${maxRow}`).formulas = [[
 
 - [ ] **Step 4: Write phase-summary formulas**
 
-Use `SUM` for HUD, PCBA, projection accessories, harnesses, and Sensor accessories. Use `MAX` across Group summary rows for vibration/impact and dust/water fixtures. Include the separate HUD backup row of 3 in each phase HUD total.
+Use `SUM` for HUD, PCBA, projection accessories, 2m harnesses, and Sensor accessories. Use `MAX` across Group summary rows for vibration/impact fixtures, dust/water fixtures, HUD power 3m harnesses, and FPD LINK 3m harnesses. Include the separate HUD backup row of 3 in each phase HUD total.
 
 ### Task 4: Verify formulas and presentation
 
@@ -123,7 +122,7 @@ Use `SUM` for HUD, PCBA, projection accessories, harnesses, and Sensor accessori
 ```js
 await workbook.inspect({
   kind: "table",
-  range: "样品及辅助设备需求!A1:AQ24",
+  range: "样品及辅助设备需求!A1:AS25",
   include: "values,formulas",
   tableMaxRows: 24,
   tableMaxCols: 43,
@@ -146,7 +145,7 @@ await workbook.inspect({
 ```js
 await workbook.render({
   sheetName: "样品及辅助设备需求",
-  range: "A1:AQ157",
+  range: "A1:AS159",
   scale: 1,
   format: "png",
 });
