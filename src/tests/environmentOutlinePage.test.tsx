@@ -16,29 +16,21 @@ describe("environment outline fee detail", () => {
     vi.restoreAllMocks();
   });
 
-  it("shows MLA fee detail below the outline and exposes calculated fee columns", () => {
+  it("omits duplicate DV and PV fee detail tables while preserving fee access and export", () => {
     render(
       <MemoryRouter initialEntries={["/environment-outline"]}>
         <App />
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole("heading", { name: "PV 费用细则", level: 2 })).toBeInTheDocument();
-    expect(screen.getAllByText("实验室单价中值").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("单项费用（预计）").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("SGS 单价").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("华测 单项费用").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Particle Exposure").length).toBeGreaterThan(0);
-    for (const label of [
-      "K28 HALT Cold",
-      "K28 HALT Hot",
-      "K28 HALT Thermal Shock",
-      "K28 HALT Vibration",
-      "K28 HALT TST & Vibration",
-    ]) {
-      expect(screen.getByRole("button", { name: `PV / Group D-8 / ${label} 费用 ¥6,400.00` })).toBeInTheDocument();
-    }
-    expect(screen.getAllByText("¥720").length).toBeGreaterThan(0);
+    expect(screen.queryByRole("heading", { name: "DV 费用细则" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "PV 费用细则" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "展开 DV 费用明细" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "展开 PV 费用明细" })).not.toBeInTheDocument();
+    expect(screen.getAllByLabelText(/fee summary$/)).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: "导出 MLA 费用 Excel" })).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "DV / Group A / K1 Low Temperature Exposure 费用 ¥720.00" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "PV / Group A / K1 Low Temperature Exposure 费用 ¥720.00" })).toBeInTheDocument();
   });
 
   it("opens a read-only median fee calculation from an outline Fee", async () => {

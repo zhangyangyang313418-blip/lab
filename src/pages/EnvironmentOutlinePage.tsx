@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { EnvironmentFeeDetailTable } from "../components/environment/EnvironmentFeeDetailTable";
 import {
   createEnvironmentFeeDetailSections,
   getEnvironmentAdditionalFeeSummary,
@@ -1688,7 +1687,6 @@ function PhaseSection({ phase, editable }: { phase: EnvironmentPlanPhase; editab
 
         </div>
       </div>
-      {!editable ? <EnvironmentFeeDetailTable phase={phase} /> : null}
     </section>
   );
 }
