@@ -1,6 +1,6 @@
 # LHD费用说明
 
-更新时间：2026-06-12
+更新时间：2026-06-17
 
 ## 适用范围
 
@@ -14,8 +14,9 @@
 - `信测` 不参与当前版本报价展示和中值计算
 - `MLA / RHD` 右舵大纲沿用当前锁定的 MLA 费用规则；`mla-rhd-group-*` 已参与 Optical、Particle Exposure、L1&L4、L6、E-2 及 K 系列费用计算
 - baseline `Optical Test` 与 `L1&L4 Performance Evaluation & Functional Evaluation` 按各自 Group 样本量计算和导出，不再按跨组汇总样本量计算
-- Group A 样品范围：普通 sequence rows 为 `1-12`；只有 `K16.1 Mechanical Shock Package Drop`、测试前评估、测试后 `L1&L4 / Optical / L6-photo&xray` 使用 `1-14`
-- Group D-8 样品基数：前置 `Optical Test` / `L1&L4` 使用 `15 个样品`；HALT 五项保持 `8h / 800/h`；后置 `L1&L4 / Optical Test / L6-photo&xray` 使用 `9 个样品`
+- Group A 样品范围：普通 sequence rows 为 `1-12`；`K7 Thermal Shock in Air` 完成后、`K15 Vibration` 开始前需要一项中间 `L1&L4 Performance Evaluation & Functional Evaluation`，样本量 `12`、费用 `4800`；只有 `K16.1 Mechanical Shock Package Drop`、测试前评估、测试后 `L1&L4 / Optical / L6-photo&xray` 使用 `1-14`
+- Group D-3（K23）与 Group D-4（K8）不做测试前/测试后 `Optical Test`；费用 Excel 导出不得出现这两组的 Optical 费用行
+- Group D-8 PV 总样本量从 `15` 改为 `12`；前置 `Optical Test` / HALT 前 `L1&L4` 使用 `12 个样品`；HALT 五项保持 `8h / 800/h`；后置 `L1&L4 / Optical Test / L6-photo&xray` 使用 `9 个样品`
 - 后续若有修改，应先更新本文件，再改代码
 
 补充结论：
@@ -68,6 +69,7 @@
 
 ### 展开费用展示规则
 
+- `/environment-outline` 不再展示底部 DV、PV 费用细则表；费用明细统一通过现有 Excel 模板导出。页面继续保留顶部费用汇总和流程图单项费用按钮，此调整不改变费用计算、导出或本地草稿。
 - 费用计算仍按当前规则取实验室总价中值，不因展开展示改变。
 - 展开费用弹窗上方保留完整公式；下方实验室明细默认只展示各实验室名称、是否中值和报价总价摘要，避免重复展示完整计算过程。
 - `Particle Exposure` 例外：实验室明细必须保留批次费、粉尘费、清洁费的报价计算细节。
@@ -106,8 +108,8 @@
   - SGS `800/h`，华测 `600/h`，苏勃 `1500/h`
   - 当前按中值 `800/h` 计费，每项 `6400`
 - `Group D-8` 前后评估
-  - 前置 `Optical Test`：`15 个样品`，费用 `750`
-  - 前置 `L1&L4`：`15 个样品`，费用 `6000`
+  - 前置 `Optical Test`：`12 个样品`，费用 `600`
+  - 前置 `L1&L4`：`12 个样品`，费用 `4800`
   - 后置 `L1&L4`：`9 个样品`，费用 `3600`
   - 后置 `Optical Test`：`9 个样品`，费用 `450`
   - 后置 `L6-photo&xray`：`9 个样品`，费用 `3600`
@@ -319,7 +321,7 @@
 当前：
 
 ```text
-ENVIRONMENT_PLAN_TEMPLATE_VERSION = 36
+ENVIRONMENT_PLAN_TEMPLATE_VERSION = 40
 ```
 
 这个版本已覆盖的刷新目标包括：
@@ -334,8 +336,10 @@ ENVIRONMENT_PLAN_TEMPLATE_VERSION = 36
 - MLA RHD 旧草稿刷新到锁定 MLA 费用规则：补齐右舵 Optical、Particle Exposure、L1&L4、L6、E-2 及 K 系列费用
 - baseline `Optical Test` / `L1&L4` 旧草稿刷新到按各自 Group 样本量计算和导出
 - Group A post `L1&L4 / Optical / L6-photo&xray` 旧草稿刷新到 `1-14` 全部样品
+- Group A 在 `K7` 后、`K15` 前补齐中间 `L1&L4`，样本量 `12`，费用 `4800`
+- Group D-3 / K23 与 Group D-4 / K8 旧草稿移除残留 Optical 行，Excel 导出同步不再生成这些 Optical 费用
 - Group D-3 `L1&L4` 旧草稿刷新到 `8 个样品 / 3200`
-- Group D-8 前后评估旧草稿刷新到前置 `15 个样品`、后置 `9 个样品`
+- Group D-8 前后评估旧草稿刷新到前置 `12 个样品`、后置 `9 个样品`
 
 ## 修改后的最少验证
 

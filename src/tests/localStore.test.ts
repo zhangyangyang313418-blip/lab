@@ -708,7 +708,7 @@ describe("local draft persistence", () => {
     expect(pvGroupD3?.rows.find((row) => row.id === "d3-post-l1l4")?.fee).toBe("3200");
   });
 
-  it("refreshes stale D-8 evaluation rows to the confirmed 15 and 9 sample basis", () => {
+  it("refreshes stale D-8 evaluation rows to the confirmed 12 and 9 sample basis", () => {
     const state = createSeedAppState();
     const mlaDraft = appReducer(state, {
       type: "applyProjectSetup",
@@ -755,23 +755,29 @@ describe("local draft persistence", () => {
       .find((phase) => phase.id === "pv")
       ?.groups.find((group) => group.id === "mla-group-d8");
 
+    expect(pvGroupD8?.totalSampleQty).toBe("12");
     expect(pvGroupD8?.rows.find((row) => row.id === "d8-optical")).toMatchObject({
-      feeBasisOverrides: { quantity: "15" },
-      fee: "750",
+      sampleRange: "1-12",
+      feeBasisOverrides: { quantity: "12" },
+      fee: "600",
     });
     expect(pvGroupD8?.rows.find((row) => row.id === "d8-l1l4")).toMatchObject({
-      feeBasisOverrides: { quantity: "15" },
-      fee: "6000",
+      sampleRange: "1-12",
+      feeBasisOverrides: { quantity: "12" },
+      fee: "4800",
     });
     expect(pvGroupD8?.rows.find((row) => row.id === "d8-post-l1l4")).toMatchObject({
+      sampleRange: "1-12",
       feeBasisOverrides: { quantity: "9" },
       fee: "3600",
     });
     expect(pvGroupD8?.rows.find((row) => row.id === "d8-post-optical")).toMatchObject({
+      sampleRange: "1-12",
       feeBasisOverrides: { quantity: "9" },
       fee: "450",
     });
     expect(pvGroupD8?.rows.find((row) => row.id === "d8-post-l6")).toMatchObject({
+      sampleRange: "1-12",
       feeBasisOverrides: { quantity: "9" },
       fee: "3600",
     });
@@ -818,6 +824,87 @@ describe("local draft persistence", () => {
     expect(dvPhase?.summary.computerFeeCoefficient).toBe("48");
     expect(dvPhase?.summary.reportFee).toBe(defaultReportFee);
     expect(dvPhase?.summary.reportFeeCount).toBe("");
+  });
+
+  it("refreshes version 37 MLA Group A drafts with the mid-sequence L1&L4 row", () => {
+    const state = createSeedAppState();
+    const mlaDraft = appReducer(state, {
+      type: "applyProjectSetup",
+      updates: {
+        platform: "MLA",
+        steeringSides: ["LHD"],
+        projectCode: "L463",
+        reuseEnvironmentTemplate: true,
+        reuseMaterialTemplate: false,
+        reuseEmcTemplate: false,
+      },
+    });
+
+    saveProjectDraft({
+      ...mlaDraft,
+      environmentPlan: {
+        ...mlaDraft.environmentPlan,
+        phases: mlaDraft.environmentPlan.phases.map((phase) => ({
+          ...phase,
+          groups: phase.groups.map((group) =>
+            group.id === "mla-group-a"
+              ? {
+                ...group,
+                rows: group.rows.filter((row) => row.id !== "a-mid-l1l4"),
+              }
+              : group,
+          ),
+        })),
+      },
+      environmentPlanVersion: 37,
+    });
+
+    const hydrated = createInitialAppState();
+    const pvGroupA = hydrated.environmentPlan.phases
+      .find((phase) => phase.id === "pv")
+      ?.groups.find((group) => group.id === "mla-group-a");
+    const rows = pvGroupA?.rows ?? [];
+    const k7Index = rows.findIndex((row) => row.id === "a-k7");
+    const midL1L4Index = rows.findIndex((row) => row.id === "a-mid-l1l4");
+    const k15Index = rows.findIndex((row) => row.id === "a-k15");
+
+    expect(midL1L4Index).toBe(k7Index + 1);
+    expect(k15Index).toBe(midL1L4Index + 1);
+    expect(rows[midL1L4Index]).toMatchObject({
+      label: "L1&L4 Performance Evaluation & Functional Evaluation",
+      sampleRange: "1-12",
+      fee: "4800",
+    });
+  });
+
+  it("refreshes version 38 MLA K8 and K23 group drafts without optical rows", () => {
+    const state = createSeedAppState();
+    const mlaDraft = appReducer(state, {
+      type: "applyProjectSetup",
+      updates: {
+        platform: "MLA",
+        steeringSides: ["LHD"],
+        projectCode: "L463",
+        reuseEnvironmentTemplate: true,
+        reuseMaterialTemplate: false,
+        reuseEmcTemplate: false,
+      },
+    });
+
+    saveProjectDraft({
+      ...mlaDraft,
+      environmentPlanVersion: 38,
+    });
+
+    const hydrated = createInitialAppState();
+    const pvPhase = hydrated.environmentPlan.phases.find((phase) => phase.id === "pv");
+    const groupD3 = pvPhase?.groups.find((group) => group.id === "mla-group-d3");
+    const groupD4 = pvPhase?.groups.find((group) => group.id === "mla-group-d4");
+
+    expect(groupD3?.rows.some((row) => row.id === "d3-optical")).toBe(false);
+    expect(groupD3?.rows.some((row) => row.id === "d3-k23")).toBe(true);
+    expect(groupD4?.rows.some((row) => row.id === "d4-optical")).toBe(false);
+    expect(groupD4?.rows.some((row) => row.id === "d4-k8")).toBe(true);
   });
 
   it("rebuilds the environment outline when a saved draft platform no longer matches the selected platform", () => {

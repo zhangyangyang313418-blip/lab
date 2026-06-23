@@ -445,7 +445,7 @@
     <section class="meta-strip" aria-label="项目指标">
       <div class="metric"><strong>React + Vite</strong><span>前端应用技术栈</span></div>
       <div class="metric"><strong>4 类平台</strong><span>MLA / LHD / RHD / EMA</span></div>
-      <div class="metric"><strong>37</strong><span>当前环境大纲草稿模板版本</span></div>
+      <div class="metric"><strong>40</strong><span>当前环境大纲草稿模板版本</span></div>
       <div class="metric"><strong>7 sheets</strong><span>费用 Excel 标准交付结构</span></div>
     </section>
 
@@ -468,10 +468,10 @@
       <p>产品测试流程自动化项目的核心价值，是把产品测试申请、测试大纲形成、测试项目匹配、环境可靠性费用计算、Excel 费用交付和流程图资产维护集中到一个可验证的系统里。它不是单纯的报价表，也不是单纯的流程图，而是业务规则、工程代码和交付模板三者共同组成的工作平台。</p>
       <p>当前维护重点集中在 `/environment-outline`、MLA / LHD / RHD / EMA 环境费用规则、`JLR- MLA 费用规则.xlsx`、`JLR- EMA 费用规则.xlsx`、费用预估 Excel 导出、本地草稿迁移和流程图生成脚本。每次改规则都必须同时考虑：页面展示、费用计算、Excel 导出、测试断言、版本记录和交接文档。</p>
       <div class="badge-row">
-        <span class="badge">当前代码版本：ENVIRONMENT_PLAN_TEMPLATE_VERSION = 37</span>
+        <span class="badge">当前代码版本：ENVIRONMENT_PLAN_TEMPLATE_VERSION = 40</span>
         <span class="badge green">报价实验室：SGS / 华测 / 苏勃</span>
         <span class="badge amber">信测不参与当前版本中值计算</span>
-        <span class="badge red">旧文档中 35/36 版本号可能滞后</span>
+        <span class="badge red">旧文档中 35/36/37/38/39 版本号可能滞后</span>
       </div>
     </section>
 
@@ -489,7 +489,7 @@
         <tbody>
           <tr>
             <td>本地草稿模板版本</td>
-            <td><code>ENVIRONMENT_PLAN_TEMPLATE_VERSION = 37</code></td>
+            <td><code>ENVIRONMENT_PLAN_TEMPLATE_VERSION = 40</code></td>
             <td>如环境大纲、费用默认值、样品范围影响旧草稿，继续递增版本并补 localStore 测试。</td>
           </tr>
           <tr>
@@ -665,7 +665,7 @@
           </tr>
           <tr>
             <td>本地草稿迁移</td>
-            <td>当前代码值：<strong>ENVIRONMENT_PLAN_TEMPLATE_VERSION = 37</strong>。旧文档中的 35 / 36 仅作历史记录。</td>
+            <td>当前代码值：<strong>ENVIRONMENT_PLAN_TEMPLATE_VERSION = 40</strong>。旧文档中的 35 / 36 / 37 / 38 / 39 仅作历史记录。</td>
             <td><code>src/services/localStore.ts</code>、<code>src/store/appState.tsx</code></td>
             <td>旧草稿刷新、localStore 测试、用户刷新仍旧值时优先检查版本。</td>
           </tr>
@@ -694,17 +694,17 @@
           <tr>
             <td>Optical Test</td>
             <td>特殊计费单价：51 点位 134/个，19 点位 50/个；普通组 1 台按 51 点位，其余按 19 点位。</td>
-            <td>2026-06-17 V.2 规则；Group D-8 全部按 19 点位；检查两个正式费用规则工作簿版本记录。</td>
+            <td>2026-06-17 V.2 规则；Group D-3/K23 与 Group D-4/K8 不做 Optical；D-8 前置按 12 个样品、后置按 9 个样品。</td>
           </tr>
           <tr>
             <td>L1&L4</td>
             <td>按本组样机数量计费；无 sampleRange 时优先取当前 Group 的 totalSampleQty。</td>
-            <td>Group A baseline / post 为 1-14；Group D-3 为 8 个 PCBA 样品。</td>
+            <td>Group A baseline / post 为 1-14；K7 后、K15 前中间项为 1-12 / 12 个样品；Group D-3 为 8 个 PCBA 样品。</td>
           </tr>
           <tr>
             <td>L6-photo&xray</td>
             <td>固定单价 400/个样品，按样品数量计费，不展示三家实验室报价明细。</td>
-            <td>Group A post 按 14 个样品；Group D-3 按 8 个样品；D-8 post 按 9 个样品。</td>
+            <td>Group A post 按 14 个样品；Group D-3 按 8 个样品；D-8 前置按 12 个样品，post 按 9 个样品。</td>
           </tr>
           <tr>
             <td>L6-SEM&SECTION</td>
@@ -848,7 +848,7 @@
           <tr>
             <td>本地草稿</td>
             <td><code>src/services/localStore.ts</code>、<code>src/store/appState.tsx</code></td>
-            <td>维护草稿版本和旧草稿刷新逻辑；当前 ENVIRONMENT_PLAN_TEMPLATE_VERSION = 37。</td>
+            <td>维护草稿版本和旧草稿刷新逻辑；当前 ENVIRONMENT_PLAN_TEMPLATE_VERSION = 40。</td>
           </tr>
         </tbody>
       </table>
@@ -1011,7 +1011,7 @@ npm run build</pre>
         <li><strong>规则源头优先明确：</strong>Excel 被用户确认后，Excel 是输入源；代码和测试要同步，不能凭旧聊天恢复旧报价。</li>
         <li><strong>正式文件名不能漂移：</strong>正式目录只保留 `JLR- MLA 费用规则.xlsx` 和 `JLR- EMA 费用规则.xlsx`，旧命名放归档。</li>
         <li><strong>版本记录必须追加：</strong>每次确认费用变化，Excel 的版本记录和文档都要追加，不要覆盖历史。</li>
-        <li><strong>草稿版本要跟着规则走：</strong>影响旧草稿显示的环境大纲或费用变更，需要提升 `ENVIRONMENT_PLAN_TEMPLATE_VERSION = 37` 之后的版本。</li>
+        <li><strong>草稿版本要跟着规则走：</strong>影响旧草稿显示的环境大纲或费用变更，需要提升 `ENVIRONMENT_PLAN_TEMPLATE_VERSION = 40` 之后的版本。</li>
         <li><strong>费用和样品范围不要混用：</strong>Excel 的样品范围是样品编号，计费基数按费用明细逻辑计算。</li>
         <li><strong>保留 Excel 手工格式：</strong>不得用无样式新表覆盖用户手工确认的公式、列宽、图表和工具区。</li>
         <li><strong>流程图优先改生成脚本：</strong>draw.io 文件应可追溯生成，避免手工 XML 改动变成不可维护资产。</li>
@@ -1019,7 +1019,7 @@ npm run build</pre>
       </ul>
 
       <div class="notice danger">
-        <strong>当前需注意：</strong>部分历史交接文档仍写 `ENVIRONMENT_PLAN_TEMPLATE_VERSION = 35` 或 `36`，但当前代码 `src/services/localStore.ts` 中实际值为 `37`，且 Optical Test V.2 规则已关联该版本。后续整理文档时建议同步修正状态索引，避免新线程误判。
+        <strong>当前需注意：</strong>部分历史交接文档仍写 `ENVIRONMENT_PLAN_TEMPLATE_VERSION = 35`、`36`、`37`、`38` 或 `39`，但当前代码 `src/services/localStore.ts` 中实际值为 `40`，且 PV D-8 样本量 12 的修正已关联该版本。后续整理文档时建议同步修正状态索引，避免新线程误判。
       </div>
     </section>
 

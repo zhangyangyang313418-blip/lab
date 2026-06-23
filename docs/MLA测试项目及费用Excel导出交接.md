@@ -185,10 +185,10 @@ Group D-4 = 53-58
 Group D-5 = 59-64
 Group D-6 = 65-70
 Group D-7 = 71-76
-Group D-8 = 77-91
-Group D-9 = 92-97
-Group E-1 = 98
-Group E-2 = 99-123
+Group D-8 = 77-88
+Group D-9 = 89-94
+Group E-1 = 95
+Group E-2 = 96-120
 ```
 
 已更新：

@@ -6,6 +6,33 @@ const mlaLhdItems = seedPlatformTemplates.find(
   (template) => template.platform === "MLA" && template.steeringSide === "LHD",
 )?.items ?? [];
 
+const groupAMidL1L4Templates = [
+  {
+    platform: "MLA",
+    steeringSide: "LHD",
+    groupId: "mla-group-a",
+    rowId: "a-mid-l1l4",
+  },
+  {
+    platform: "MLA",
+    steeringSide: "RHD",
+    groupId: "mla-rhd-group-a",
+    rowId: "a-mid-l1l4",
+  },
+  {
+    platform: "EMA",
+    steeringSide: "LHD",
+    groupId: "ema-group-a",
+    rowId: "ea-mid-l1l4",
+  },
+  {
+    platform: "EMA",
+    steeringSide: "RHD",
+    groupId: "ema-rhd-group-a",
+    rowId: "ea-mid-l1l4",
+  },
+] as const;
+
 function getSampleRangeQuantity(sampleRange: string | undefined): number | null {
   const match = sampleRange?.match(/^(\d+)-(\d+)$/);
   if (!match) {
@@ -21,7 +48,7 @@ describe("environment plan fees", () => {
     const pv = plan.phases.find((phase) => phase.id === "pv");
     const groupA = pv?.groups.find((group) => group.id === "mla-group-a");
 
-    expect(pv?.summary.totalSampleQty).toBe("123");
+    expect(pv?.summary.totalSampleQty).toBe("120");
     expect(groupA?.rows.find((row) => row.id === "a-l1l4")?.fee).toBe("5600");
   });
 
@@ -49,12 +76,24 @@ describe("environment plan fees", () => {
     expect(pv?.groups.find((group) => group.id === "mla-group-d4")?.totalSamplePrefix).toBe("PCBA");
   });
 
+  it("omits optical checks from MLA LHD K8 and K23 PCBA groups", () => {
+    const plan = createSeedEnvironmentPlan("MLA", "L481-L", mlaLhdItems);
+    const pv = plan.phases.find((phase) => phase.id === "pv");
+    const groupD3 = pv?.groups.find((group) => group.id === "mla-group-d3");
+    const groupD4 = pv?.groups.find((group) => group.id === "mla-group-d4");
+
+    expect(groupD3?.rows.some((row) => row.label === "Optical Test")).toBe(false);
+    expect(groupD3?.rows.some((row) => row.label === "K23 Thermal Shock Endurance")).toBe(true);
+    expect(groupD4?.rows.some((row) => row.label === "Optical Test")).toBe(false);
+    expect(groupD4?.rows.some((row) => row.label === "K8 Dewing Test")).toBe(true);
+  });
+
   it("scopes baseline optical sample range to each group", () => {
     const plan = createSeedEnvironmentPlan("MLA", "L481-L", mlaLhdItems);
     const pv = plan.phases.find((phase) => phase.id === "pv");
     const groupA = pv?.groups.find((group) => group.id === "mla-group-a");
 
-    expect(pv?.summary.totalSampleQty).toBe("123");
+    expect(pv?.summary.totalSampleQty).toBe("120");
     expect(groupA?.rows.find((row) => row.id === "a-optical")?.sampleRange).toBe("1-14");
     expect(groupA?.rows.find((row) => row.id === "a-l1l4")?.sampleRange).toBe("1-14");
   });
@@ -75,6 +114,31 @@ describe("environment plan fees", () => {
 
     expect(dv?.summary.totalSampleQty).toBe("108");
     expect(groupA?.rows.find((row) => row.id === "a-l1l4")?.fee).toBe("5600");
+  });
+
+  it("keeps the Group A mid-sequence L1&L4 check between K7 and K15 for MLA and EMA", () => {
+    for (const templateCase of groupAMidL1L4Templates) {
+      const items = seedPlatformTemplates.find(
+        (template) => template.platform === templateCase.platform && template.steeringSide === templateCase.steeringSide,
+      )?.items ?? [];
+      const plan = createSeedEnvironmentPlan(templateCase.platform, "L460-L", items);
+      const pv = plan.phases.find((phase) => phase.id === "pv");
+      const groupA = pv?.groups.find((group) => group.id === templateCase.groupId);
+      const rows = groupA?.rows ?? [];
+      const k7Index = rows.findIndex((row) => row.label === "K7 Thermal Shock in Air");
+      const midL1L4Index = rows.findIndex((row) => row.id === templateCase.rowId);
+      const k15Index = rows.findIndex((row) => row.label === "K15 Vibration");
+      const midL1L4 = rows[midL1L4Index];
+
+      expect(k7Index).toBeGreaterThanOrEqual(0);
+      expect(midL1L4Index).toBe(k7Index + 1);
+      expect(k15Index).toBe(midL1L4Index + 1);
+      expect(midL1L4).toMatchObject({
+        label: "L1&L4 Performance Evaluation & Functional Evaluation",
+        sampleRange: "1-12",
+        fee: "4800",
+      });
+    }
   });
 
   it("splits D-3 L6 into internal and external rows while other L6 rows stay internal-only", () => {
@@ -156,7 +220,9 @@ describe("environment plan fees", () => {
 
       expect(l6InternalRows.length).toBeGreaterThan(0);
       for (const { group, row } of l6InternalRows) {
-        const quantity = getSampleRangeQuantity(row.sampleRange) ?? Number(group.totalSampleQty || 0);
+        const quantity = Number(row.feeBasisOverrides?.quantity || 0)
+          || getSampleRangeQuantity(row.sampleRange)
+          || Number(group.totalSampleQty || 0);
 
         if (quantity === 12) {
           expect(row.testHours).toBe("7");
@@ -194,28 +260,30 @@ describe("environment plan fees", () => {
     const pv = plan.phases.find((phase) => phase.id === "pv");
     const groupD8 = pv?.groups.find((group) => group.id === "mla-group-d8");
 
+    expect(groupD8?.totalSampleQty).toBe("12");
     expect(groupD8?.rows.find((row) => row.id === "d8-optical")).toMatchObject({
-      sampleRange: "1-15",
-      feeBasisOverrides: { quantity: "15" },
-      fee: "750",
+      sampleRange: "1-12",
+      feeBasisOverrides: { quantity: "12" },
+      fee: "600",
     });
     expect(groupD8?.rows.find((row) => row.id === "d8-l1l4")).toMatchObject({
-      sampleRange: "1-15",
-      feeBasisOverrides: { quantity: "15" },
-      fee: "6000",
+      sampleRange: "1-12",
+      feeBasisOverrides: { quantity: "12" },
+      fee: "4800",
     });
     expect(groupD8?.rows.find((row) => row.id === "d8-post-l1l4")).toMatchObject({
-      sampleRange: "1-15",
+      sampleRange: "1-12",
       feeBasisOverrides: { quantity: "9" },
       fee: "3600",
     });
     expect(groupD8?.rows.find((row) => row.id === "d8-post-optical")).toMatchObject({
-      sampleRange: "1-15",
+      sampleRange: "1-12",
       feeBasisOverrides: { quantity: "9" },
       fee: "450",
     });
     expect(groupD8?.rows.find((row) => row.id === "d8-post-l6")).toMatchObject({
-      sampleRange: "1-15",
+      sampleRange: "1-12",
+      testHours: "3",
       feeBasisOverrides: { quantity: "9" },
       fee: "3600",
     });

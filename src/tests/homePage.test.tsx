@@ -200,7 +200,7 @@ describe("app bootstrap", () => {
 
     expect(screen.getByRole("heading", { name: "环境测试大纲", level: 1 })).toBeInTheDocument();
     expect(screen.getByDisplayValue("108")).toBeInTheDocument();
-    expect(screen.getAllByDisplayValue("¥790,006.00").length).toBeGreaterThan(0);
+    expect(screen.getAllByDisplayValue("¥794,806.00").length).toBeGreaterThan(0);
     expect(screen.getAllByDisplayValue("111").length).toBeGreaterThan(0);
     expect(screen.getAllByText("• 以上时间为测试时间，实际测试执行时，需考虑样品流转时间，会增加约 20d").length).toBeGreaterThan(0);
     expect(screen.getByLabelText("DV Baseline Optical Test 样品")).toHaveValue("68");

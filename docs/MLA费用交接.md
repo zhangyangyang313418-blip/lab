@@ -1,6 +1,6 @@
 # MLA 费用交接
 
-更新时间：2026-06-12
+更新时间：2026-06-17
 
 ## 新线程使用方式
 
@@ -30,7 +30,7 @@ http://127.0.0.1:5173/environment-outline
 当前本地草稿模板版本：
 
 ```text
-ENVIRONMENT_PLAN_TEMPLATE_VERSION = 36
+ENVIRONMENT_PLAN_TEMPLATE_VERSION = 40
 ```
 
 Git 状态：
@@ -50,9 +50,10 @@ Git 状态：
 - `/environment-outline` 顶部新增独立费用汇总行：`TOTAL COST` 后跟各组费用、`Computer Fee`、`Report Fee`；总费用口径为各组测试费用合计 + 电脑费用 + 报告费用。
 - 页面中涉及 RHD 右舵的费用计算已补齐使用锁定 MLA 费用规则；`mla-rhd-group-*` 会参与 Optical、Particle Exposure、L1&L4、L6、E-2 及 K 系列费用计算。
 - baseline `Optical Test` 与 `L1&L4 Performance Evaluation & Functional Evaluation` 已改为按各自 Group 样本量计算和导出；例如 Group A 使用 `1-14 / 14 个样品`，Group C 使用 `1-6 / 6 个样品`，不再导出跨组汇总样本量。
-- Group A 样品范围已确认：普通 sequence rows 为 `1-12`；只有 `K16.1 Mechanical Shock Package Drop`、测试前评估、测试后 `L1&L4 / Optical / L6-photo&xray` 使用 `1-14` 全部样品。
+- Group A 样品范围已确认：普通 sequence rows 为 `1-12`；`K7 Thermal Shock in Air` 完成后、`K15 Vibration` 开始前需要一项中间 `L1&L4 Performance Evaluation & Functional Evaluation`，样本量 `12`，费用 `4800`；只有 `K16.1 Mechanical Shock Package Drop`、测试前评估、测试后 `L1&L4 / Optical / L6-photo&xray` 使用 `1-14` 全部样品。
+- Group D-3（`K23 Thermal Shock Endurance`）与 Group D-4（`K8 Dewing Test`）不做测试前/测试后 `Optical Test`；费用 Excel 导出也不得生成这些 Optical 行。
 - Group D-3 已确认按 `8` 个 PCBA 样品；`L1&L4` 与 `L6-photo&xray` 使用 `8 个样品`，`L6-SEM&SECTION` 仍按 `33 个点位`。
-- Group D-8 已确认前置 `Optical Test` / `L1&L4` 使用 `15 个样品`；HALT 五项仍按 `8h × 800/h = 6400`；后置 `L1&L4` / `Optical Test` / `L6-photo&xray` 使用 `9 个样品`。
+- Group D-8 PV 总样本量已从 `15` 改为 `12`；前置 `Optical Test` / HALT 前 `L1&L4` 使用 `12 个样品`；HALT 五项仍按 `8h × 800/h = 6400`；后置 `L1&L4` / `Optical Test` / `L6-photo&xray` 使用 `9 个样品`。
 - 如果用户后续说“刷新后还是旧值”，优先检查是否需要再升 `ENVIRONMENT_PLAN_TEMPLATE_VERSION`。
 
 ## 2026-06-11 环境大纲附加费用
@@ -65,17 +66,50 @@ Git 状态：
 - Excel 导出的 `费用预估` 与 `特殊项目费用` 也必须体现这两项；默认 DV 电脑费 `12000`、报告费 `1950`，PV 电脑费 `12000`、报告费 `2100`
 - 已将 `ENVIRONMENT_PLAN_TEMPLATE_VERSION` 升到 `36`，用于刷新旧环境大纲草稿中的附加费用字段和总费用
 
-## 2026-06-12 MLA Group D-8 样品基数修正
+## 2026-06-17 Group A 中间 L1&L4 补齐
+
+用户确认 MLA 和 EMA 的 Group A 在 `K7 Thermal Shock in Air` 完成后、`K15 Vibration` 开始前，需要增加一项 `L1&L4 Performance Evaluation & Functional Evaluation`：
+
+- MLA LHD 新增模板行 `a-mid-l1l4`；MLA RHD、EMA LHD、EMA RHD 已有对应中间行并由测试锁定
+- 中间 `L1&L4` 样本量为 `12`，样品范围 `1-12`
+- 费用按 `12 × 400 = 4800`
+- 行顺序必须保持 `K7` -> 中间 `L1&L4` -> `K15`
+- 已将 `ENVIRONMENT_PLAN_TEMPLATE_VERSION` 升到 `38`，用于刷新 version 37 及更早旧草稿中缺失的 MLA LHD Group A 中间 L1&L4 行
+
+## 2026-06-17 K8/K23 组别 Optical 导出修正
+
+用户确认拥有 `K8` 与 `K23` 项目的组别没有测试前及测试后的光学测试；页面大纲与 Excel 费用导出必须一致：
+
+- MLA LHD `Group D-3 / K23 Thermal Shock Endurance` 移除前置 `Optical Test`
+- MLA LHD `Group D-4 / K8 Dewing Test` 移除前置 `Optical Test`
+- 两组本来没有后置 `Optical Test`，后续不得在模板或导出层补生成
+- Excel `费用预估` 不再出现 `Group D Parallel Tests / D-3 PCBA` 与 `Group D Parallel Tests / D-4 Dewing Test` 的 `Optical Test` 费用行
+- 已将 `ENVIRONMENT_PLAN_TEMPLATE_VERSION` 升到 `39`，用于刷新 version 38 及更早旧草稿中残留的 `d3-optical`、`d4-optical`
+
+## 2026-06-17 PV Group D-8 样本量修正
+
+用户确认 PV 中 `Group D-8` 的默认总样本量从 `15` 改为 `12`，本轮只影响 HALT 前置评估，不扩散到 HALT 五项小时计费和后置评估计费基数：
+
+- `Group D-8 / Optical Test` 前置行：按 `12 个样品`，费用 `12 × 50 = 600`
+- `Group D-8 / L1&L4 Performance Evaluation & Functional Evaluation` 前置行：按 `12 个样品`，费用 `12 × 400 = 4800`
+- `Group D-8 / K28 HALT Cold / Hot / Thermal Shock / Vibration / TST & Vibration`：保持每项 `8h × 800/h = 6400`
+- `Group D-8` 后置 `L1&L4`：继续按 `9 个样品`，费用 `9 × 400 = 3600`
+- `Group D-8` 后置 `Optical Test`：继续按 `9 个样品`，费用 `9 × 50 = 450`
+- `Group D-8` 后置 `L6-photo&xray`：继续按 `9 个样品`，费用 `9 × 400 = 3600`
+- Excel 导出中 D-8 样品范围随组总样本量变为 `77-88`；后续 D-9 / E-1 / E-2 连续编号也前移
+- 已将 `ENVIRONMENT_PLAN_TEMPLATE_VERSION` 升到 `40`，用于刷新 version 39 及更早旧草稿中的 D-8 `15` 样本旧口径
+
+## 2026-06-12 MLA Group D-8 样品基数修正（历史口径，已被 2026-06-17 覆盖）
 
 用户确认 `D-8 HALT` 相关计费不改 `8h / 800/h`，本轮仅修正同组光学、L1&L4 和 L6 的样品数量：
 
-- `Group D-8 / Optical Test` 前置行：按 `15 个样品`，费用 `15 × 50 = 750`
-- `Group D-8 / L1&L4 Performance Evaluation & Functional Evaluation` 前置行：按 `15 个样品`，费用 `15 × 400 = 6000`
+- `Group D-8 / Optical Test` 前置行：历史口径为 `15 个样品`，当前已改为 `12 个样品`
+- `Group D-8 / L1&L4 Performance Evaluation & Functional Evaluation` 前置行：历史口径为 `15 个样品`，当前已改为 `12 个样品`
 - `Group D-8 / K28 HALT Cold / Hot / Thermal Shock / Vibration / TST & Vibration`：保持每项 `8h × 800/h = 6400`
 - `Group D-8` 后置 `L1&L4`：按 `9 个样品`，费用 `9 × 400 = 3600`
 - `Group D-8` 后置 `Optical Test`：按 `9 个样品`，费用 `9 × 50 = 450`
 - `Group D-8` 后置 `L6-photo&xray`：按 `9 个样品`，费用 `9 × 400 = 3600`
-- Excel 导出中 D-8 样品范围仍按该组全量连续编号展示，例如 `77-91`；计费基数列单独展示 `15 个样品` 或 `9 个样品`
+- 历史 Excel 导出中 D-8 样品范围曾为 `77-91`；当前 2026-06-17 口径已改为 `77-88`，计费基数列单独展示 `12 个样品` 或 `9 个样品`
 - 本轮对应迁移节点为 `35`，用于刷新旧草稿中 D-8 前后评估行旧基数和旧费用；合入附加费用后当前最新版本为 `36`
 
 ## 2026-06-11 MLA Group D-3 样品基数修正
@@ -380,7 +414,7 @@ Git 状态：
 - `src/services/environmentFeeDetail.ts`：费用明细计算主逻辑。
 - `src/pages/EnvironmentOutlinePage.tsx`：环境大纲页面和费用计算弹窗展示。
 - `src/store/appState.tsx`：环境大纲编辑状态更新；手动新增测试项完整名称匹配逻辑在这里。
-- `src/services/localStore.ts`：本地草稿版本号，当前 `ENVIRONMENT_PLAN_TEMPLATE_VERSION = 36`。
+- `src/services/localStore.ts`：本地草稿版本号，当前 `ENVIRONMENT_PLAN_TEMPLATE_VERSION = 40`。
 - `src/tests/environmentFeeDetail.test.ts`：费用规则回归测试。
 - `src/tests/environmentPlan.test.ts`：模板结构与默认时间回归测试。
 - `src/tests/localStore.test.ts`：旧草稿迁移回归测试。

@@ -1,6 +1,6 @@
 # EMA 费用交接
 
-更新时间：2026-06-12
+更新时间：2026-06-17
 
 ## 新线程使用方式
 
@@ -74,7 +74,7 @@ MLA 通用价格和计费基数：
 本地草稿刷新版本：
 
 - `src/services/localStore.ts`
-- 当前 `ENVIRONMENT_PLAN_TEMPLATE_VERSION = 35`
+- 当前 `ENVIRONMENT_PLAN_TEMPLATE_VERSION = 40`
 
 Environment Outline 页面费用展示和 Excel 下载：
 
@@ -121,7 +121,7 @@ npm run build
 ## 注意事项
 
 - `苏勃` 在页面和 Excel 中展示为 `苏勃`，代码内部实验室键仍沿用 `苏劢`。
-- EMA LHD / RHD 的分组、样本范围、测试时间来自 `environmentPlan.ts`，不要为了费用规则改动随意调整大纲结构。
+- EMA LHD / RHD 的分组、样本范围、测试时间来自 `environmentPlan.ts`，不要为了费用规则改动随意调整大纲结构。Group A 当前在 `K7` 后、`K15` 前保留中间 `L1&L4`，样本量 `12`，费用 `4800`。
 - `K7` 已明确 Group A 和 Group C 都是 `305h`，不要只改 Group A。
 - `K21` 的 SGS 单价是 `100/h`，但三家中值建议费用仍为 `120000`，不要因为总价未变而漏掉 SGS 单价断言。
 - 正式 Excel 目录中只保留标准命名文件；旧命名文件放归档目录。

@@ -113,27 +113,27 @@ describe("MLA environment fee workbook export", () => {
 
     const groupD8Rows = forecastData.filter((row) => row[2] === "PV" && row[3] === "Group D Parallel Tests / D-8");
     expect(groupD8Rows.find((row) => row[1] === 1 && row[5] === "Optical Test")?.slice(6, 14)).toEqual([
-      "77-91",
-      "15 个样品",
+      "77-88",
+      "12 个样品",
       "168 h",
       "按样品数量",
       "内部费用",
-      750,
+      600,
       "",
-      750,
+      600,
     ]);
     expect(groupD8Rows.find((row) => row[1] === 2 && row[5] === "L1&L4 Performance Evaluation & Functional Evaluation")?.slice(6, 14)).toEqual([
-      "77-91",
-      "15 个样品",
+      "77-88",
+      "12 个样品",
       "72 h",
       "按样品数量",
       "委外费用",
       "",
-      6000,
-      6000,
+      4800,
+      4800,
     ]);
     expect(groupD8Rows.find((row) => row[1] === 8 && row[5] === "L1&L4 Performance Evaluation & Functional Evaluation")?.slice(6, 14)).toEqual([
-      "77-91",
+      "77-88",
       "9 个样品",
       "72 h",
       "按样品数量",
@@ -143,7 +143,7 @@ describe("MLA environment fee workbook export", () => {
       3600,
     ]);
     expect(groupD8Rows.find((row) => row[1] === 9 && row[5] === "Optical Test")?.slice(6, 14)).toEqual([
-      "77-91",
+      "77-88",
       "9 个样品",
       "72 h",
       "按样品数量",
@@ -153,7 +153,7 @@ describe("MLA environment fee workbook export", () => {
       450,
     ]);
     expect(groupD8Rows.find((row) => row[1] === 10 && row[5] === "L6-photo&xray")?.slice(6, 14)).toEqual([
-      "77-91",
+      "77-88",
       "9 个样品",
       "72 h",
       "按样品数量",
@@ -174,8 +174,9 @@ describe("MLA environment fee workbook export", () => {
     const pvGroupAOptical = forecastRows.find((row) => row[2] === "PV" && row[3] === "Group A Sequence Tests" && row[5] === "Optical Test");
     const pvGroupAK1 = forecastRows.find((row) => row[2] === "PV" && row[3] === "Group A Sequence Tests" && row[5] === "K1 Low Temperature Exposure");
     const pvGroupADrop = forecastRows.find((row) => row[2] === "PV" && row[3] === "Group A Sequence Tests" && row[5] === "K16.1 Mechanical Shock Package Drop");
-    const pvGroupAPostL1L4 = forecastRows.find((row) => row[2] === "PV" && row[3] === "Group A Sequence Tests" && row[1] === 19 && row[5] === "L1&L4 Performance Evaluation & Functional Evaluation");
-    const pvGroupAPostOptical = forecastRows.find((row) => row[2] === "PV" && row[3] === "Group A Sequence Tests" && row[1] === 20 && row[5] === "Optical Test");
+    const pvGroupAMidL1L4 = forecastRows.find((row) => row[2] === "PV" && row[3] === "Group A Sequence Tests" && row[5] === "L1&L4 Performance Evaluation & Functional Evaluation" && row[6] === "1-12");
+    const pvGroupAPostL1L4 = forecastRows.find((row) => row[2] === "PV" && row[3] === "Group A Sequence Tests" && row[5] === "L1&L4 Performance Evaluation & Functional Evaluation" && row[6] === "1-14");
+    const pvGroupAPostOptical = forecastRows.find((row) => row[2] === "PV" && row[3] === "Group A Sequence Tests" && row[5] === "Optical Test" && row[6] === "1-14" && row[1] !== 1);
     const pvGroupAPostL6 = forecastRows.find((row) => row[2] === "PV" && row[3] === "Group A Sequence Tests" && row[5] === "L6-photo&xray");
     const pvGroupAK14 = specialRows.find((row) => row[2] === "PV" && row[3] === "Group A Sequence Tests" && row[5] === "K14 Dust Blowing Test");
     const pvGroupCOptical = forecastRows.find((row) => row[2] === "PV" && row[3] === "Group C Sequence Tests" && row[5] === "Optical Test");
@@ -189,6 +190,8 @@ describe("MLA environment fee workbook export", () => {
     expect(pvGroupAOptical?.[7]).toBe("14 个样品");
     expect(pvGroupAK1?.[6]).toBe("1-12");
     expect(pvGroupADrop?.[6]).toBe("1-14");
+    expect(pvGroupAMidL1L4?.[7]).toBe("12 个样品");
+    expect(pvGroupAMidL1L4?.[13]).toBe(4800);
     expect(pvGroupAPostL1L4?.[6]).toBe("1-14");
     expect(pvGroupAPostOptical?.[6]).toBe("1-14");
     expect(pvGroupAPostL6?.[6]).toBe("1-14");
@@ -196,10 +199,27 @@ describe("MLA environment fee workbook export", () => {
     expect(pvGroupCOptical?.[6]).toBe("27-32");
     expect(pvGroupCOptical?.[7]).toBe("6 个样品");
     expect(pvGroupD3L6?.[6]).toBe("45-52");
-    expect(pvGroupD8Halt?.[6]).toBe("77-91");
-    expect(pvGroupD9Condensing?.[6]).toBe("92-97");
-    expect(pvGroupE1?.[6]).toBe("98");
-    expect(pvGroupE2?.[6]).toBe("99-123");
+    expect(pvGroupD8Halt?.[6]).toBe("77-88");
+    expect(pvGroupD9Condensing?.[6]).toBe("89-94");
+    expect(pvGroupE1?.[6]).toBe("95");
+    expect(pvGroupE2?.[6]).toBe("96-120");
+  });
+
+  it("omits optical rows from exported fee groups that only run K8 or K23", () => {
+    const state = createSeedAppState();
+    const workbook = buildMlaEnvironmentFeeWorkbook(state.environmentPlan, state.projectSetup);
+    const forecastRows = dataRows(workbook, "费用预估");
+    const k8AndK23Groups = [
+      "Group D Parallel Tests / D-3 PCBA",
+      "Group D Parallel Tests / D-4 Dewing Test",
+    ];
+
+    for (const groupName of k8AndK23Groups) {
+      const groupRows = forecastRows.filter((row) => row[3] === groupName);
+
+      expect(groupRows.some((row) => row[5] === "Optical Test")).toBe(false);
+      expect(groupRows.some((row) => /K8|K23/.test(String(row[5])))).toBe(true);
+    }
   });
 
   it("keeps lab sheets to outsourced non-special rows and prices them by each lab", () => {

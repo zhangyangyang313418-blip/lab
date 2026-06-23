@@ -1011,7 +1011,7 @@ describe("environment fee detail calculations", () => {
         phaseLabel: "阶段",
         phaseValue: "PV",
         totalSampleLabel: "样本总数量",
-        totalSampleQty: "15",
+        totalSampleQty: "12",
         longestDurationLabel: "最长测试时间(天)",
         longestDurationDays: "14",
         totalCostLabel: "总费用",
@@ -1022,7 +1022,7 @@ describe("environment fee detail calculations", () => {
           id: "mla-group-d8",
           title: "Group D-8",
           totalSampleLabel: "Total样机数量",
-          totalSampleQty: "15",
+          totalSampleQty: "12",
           totalDurationLabel: "组测试时间(天)",
           totalDurationDays: "14",
           totalCostLabel: "组费用",
@@ -1078,14 +1078,14 @@ describe("environment fee detail calculations", () => {
           totalDurationDays: "14",
           totalCostLabel: "组费用",
           totalCost: "",
-          rows: [{ id: "d8-post-optical", label: "Optical Test", testHours: "3", sampleRange: "1-15" }],
+          rows: [{ id: "d8-post-optical", label: "Optical Test", testHours: "3", sampleRange: "1-12" }],
         },
       ],
     };
 
     const [groupD8] = createEnvironmentFeeDetailSections(phase);
 
-    expect(groupD8?.rows[0]?.estimatedItemFee).toBe(750);
+    expect(groupD8?.rows[0]?.estimatedItemFee).toBe(600);
   });
 
   it("uses D-8 row-level quantity overrides for confirmed pre and post evaluation samples", () => {
@@ -1098,7 +1098,7 @@ describe("environment fee detail calculations", () => {
         phaseLabel: "阶段",
         phaseValue: "PV",
         totalSampleLabel: "样本总数量",
-        totalSampleQty: "15",
+        totalSampleQty: "12",
         longestDurationLabel: "最长测试时间(天)",
         longestDurationDays: "14",
         totalCostLabel: "总费用",
@@ -1109,17 +1109,17 @@ describe("environment fee detail calculations", () => {
           id: "mla-group-d8",
           title: "Group D-8",
           totalSampleLabel: "Total样机数量",
-          totalSampleQty: "15",
+          totalSampleQty: "12",
           totalDurationLabel: "组测试时间(天)",
           totalDurationDays: "14",
           totalCostLabel: "组费用",
           totalCost: "",
           rows: [
-            { id: "d8-optical", label: "Optical Test", testHours: "7", sampleRange: "1-15", feeBasisOverrides: { quantity: "15" } },
-            { id: "d8-l1l4", label: "L1&L4 Performance Evaluation & Functional Evaluation", testHours: "3", sampleRange: "1-15", feeBasisOverrides: { quantity: "15" } },
-            { id: "d8-post-l1l4", label: "L1&L4 Performance Evaluation & Functional Evaluation", testHours: "3", sampleRange: "1-15", feeBasisOverrides: { quantity: "9" } },
-            { id: "d8-post-optical", label: "Optical Test", testHours: "3", sampleRange: "1-15", feeBasisOverrides: { quantity: "9" } },
-            { id: "d8-post-l6", label: "L6-photo&xray", testHours: "3", sampleRange: "1-15", feeBasisOverrides: { quantity: "9" } },
+            { id: "d8-optical", label: "Optical Test", testHours: "7", sampleRange: "1-12", feeBasisOverrides: { quantity: "12" } },
+            { id: "d8-l1l4", label: "L1&L4 Performance Evaluation & Functional Evaluation", testHours: "3", sampleRange: "1-12", feeBasisOverrides: { quantity: "12" } },
+            { id: "d8-post-l1l4", label: "L1&L4 Performance Evaluation & Functional Evaluation", testHours: "3", sampleRange: "1-12", feeBasisOverrides: { quantity: "9" } },
+            { id: "d8-post-optical", label: "Optical Test", testHours: "3", sampleRange: "1-12", feeBasisOverrides: { quantity: "9" } },
+            { id: "d8-post-l6", label: "L6-photo&xray", testHours: "3", sampleRange: "1-12", feeBasisOverrides: { quantity: "9" } },
           ],
         },
       ],
@@ -1128,8 +1128,8 @@ describe("environment fee detail calculations", () => {
     const [groupD8] = createEnvironmentFeeDetailSections(phase);
     const rowsById = new Map(groupD8?.rows.map((row) => [row.outlineRowId, row]));
 
-    expect(rowsById.get("d8-optical")).toMatchObject({ quantity: 15, estimatedItemFee: 750 });
-    expect(rowsById.get("d8-l1l4")).toMatchObject({ quantity: 15, estimatedItemFee: 6000 });
+    expect(rowsById.get("d8-optical")).toMatchObject({ quantity: 12, estimatedItemFee: 600 });
+    expect(rowsById.get("d8-l1l4")).toMatchObject({ quantity: 12, estimatedItemFee: 4800 });
     expect(rowsById.get("d8-post-l1l4")).toMatchObject({ quantity: 9, estimatedItemFee: 3600 });
     expect(rowsById.get("d8-post-optical")).toMatchObject({ quantity: 9, estimatedItemFee: 450 });
     expect(rowsById.get("d8-post-l6")).toMatchObject({ quantity: 9, estimatedItemFee: 3600 });
