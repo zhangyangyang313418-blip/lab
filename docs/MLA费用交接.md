@@ -132,7 +132,7 @@ Git 状态：
 - post `L1&L4` / post `Optical Test` / post `L6-photo&xray` 使用 `1-14`
 - Excel 导出层按 Phase / Group 顺序生成全局样品编号，但保留行级 `sampleRange` 差异；不再把 Group A 所有行强制覆盖成整组 `1-14`
 - 已将 `ENVIRONMENT_PLAN_TEMPLATE_VERSION` 升到 `33`，用于刷新旧草稿中 Group A post 评估行的样品范围与费用
-- 最新生成样例：`outputs/mla-fee-export-template/MLA测试项目及费用预估_test-flow组别顺序模板.xls`
+- 当前正式模板：`outputs/mla-fee-export-template/MLA费用导出模板.xlsx`
 
 ## 2026-06-09 MLA 导出 baseline 样本量口径修正
 
@@ -142,7 +142,7 @@ Git 状态：
 - baseline `L1&L4` 不再取 phase / pre-test 总样本量；无 `sampleRange` 时优先取当前 Group `totalSampleQty`
 - 默认大纲会给 baseline `Optical` / `L1&L4` 补当前 Group 的样本范围，例如 `Group A = 1-14`、`Group C = 1-6`
 - 已将 `ENVIRONMENT_PLAN_TEMPLATE_VERSION` 升到 `32`，用于刷新旧草稿中 `Optical` / `L1&L4` 的样本范围和费用
-- 最新生成样例：`outputs/mla-fee-export-template/MLA测试项目及费用预估_test-flow组别顺序模板.xls`
+- 当前正式模板：`outputs/mla-fee-export-template/MLA费用导出模板.xlsx`
 
 ## 2026-06-04 EMA 费用临时复用 MLA 模板
 
