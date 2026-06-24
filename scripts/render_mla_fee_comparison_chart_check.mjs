@@ -3,7 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const workbookPath = resolve(
-  process.argv[2] ?? "outputs/mla-fee-export-template/MLA测试项目及费用预估_test-flow组别顺序模板.xlsx",
+  process.argv[2] ?? "outputs/mla-fee-export-template/MLA费用导出模板.xlsx",
 );
 const outputPath = resolve(
   process.argv[3] ?? "outputs/mla-fee-export-template/fee_comparison_native_chart_check.png",

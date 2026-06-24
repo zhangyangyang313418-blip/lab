@@ -11,7 +11,7 @@ import xml.etree.ElementTree as ET
 ROOT = Path("/Users/clytia/Desktop/Codex/产品测试流程自动化")
 SOURCE = ROOT / "outputs/workbook-edits/final/MLA测试项目及费用预估_费用预估模板已同步后续页面.xlsx"
 OUTPUT = ROOT / "outputs/workbook-edits/final/MLA测试项目及费用预估_费用预估模板已同步后续页面_格式锁定.xlsx"
-EXPORT_TEMPLATE = ROOT / "outputs/mla-fee-export-template/MLA测试项目及费用预估_test-flow组别顺序模板.xlsx"
+EXPORT_TEMPLATE = ROOT / "outputs/mla-fee-export-template/MLA费用导出模板.xlsx"
 
 NS = {
     "m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main",

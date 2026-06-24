@@ -21,7 +21,7 @@ FINAL_BASE = Path(
 )
 EXPORT_OUTPUT = Path(
     "/Users/clytia/Desktop/Codex/产品测试流程自动化/outputs/mla-fee-export-template/"
-    "MLA测试项目及费用预估_test-flow组别顺序模板.xlsx"
+    "MLA费用导出模板.xlsx"
 )
 
 STYLE_BY_COLUMN = {

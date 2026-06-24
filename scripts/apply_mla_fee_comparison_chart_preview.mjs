@@ -4,7 +4,7 @@ import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 
 const workbookPath = resolve(
-  process.argv[2] ?? "outputs/mla-fee-export-template/MLA测试项目及费用预估_test-flow组别顺序模板.xlsx",
+  process.argv[2] ?? "outputs/mla-fee-export-template/MLA费用导出模板.xlsx",
 );
 
 const legend = [

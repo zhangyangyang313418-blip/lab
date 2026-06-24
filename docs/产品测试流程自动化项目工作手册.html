@@ -439,14 +439,14 @@
     <header class="hero">
       <p class="eyebrow">Product Test Evaluation Tool</p>
       <h1>产品测试流程自动化项目工作手册</h1>
-      <p>本手册用于接手、维护和扩展 `/Users/clytia/Desktop/Codex/产品测试流程自动化`。重点覆盖测试申请流程、环境大纲、MLA / LHD / RHD / EMA 费用规则、Excel 交付、流程图资产、本地草稿迁移和回归验收。</p>
+      <p>本手册用于接手、维护和扩展 `/Users/clytia/Desktop/Codex/产品测试流程自动化`。重点覆盖测试申请流程、环境大纲、MLA / LHD / RHD / EMA 费用规则、费用与样品设备 Excel 交付、流程图资产、本地草稿迁移和回归验收。</p>
     </header>
 
     <section class="meta-strip" aria-label="项目指标">
       <div class="metric"><strong>React + Vite</strong><span>前端应用技术栈</span></div>
       <div class="metric"><strong>4 类平台</strong><span>MLA / LHD / RHD / EMA</span></div>
       <div class="metric"><strong>40</strong><span>当前环境大纲草稿模板版本</span></div>
-      <div class="metric"><strong>7 sheets</strong><span>费用 Excel 标准交付结构</span></div>
+      <div class="metric"><strong>8 sheets</strong><span>MLA 费用与样品设备需求模板</span></div>
     </section>
 
     <nav class="toc" aria-labelledby="toc-title">
@@ -456,6 +456,7 @@
         <a href="#system">系统全景</a>
         <a href="#flow">核心业务流程</a>
         <a href="#fees">费用规则维护手册</a>
+        <a href="#demand">样品设备需求</a>
         <a href="#files">文件与代码入口</a>
         <a href="#sop">常见任务 SOP</a>
         <a href="#verification">验收清单</a>
@@ -466,11 +467,12 @@
     <section class="executive-summary" id="summary">
       <h2>执行摘要</h2>
       <p>产品测试流程自动化项目的核心价值，是把产品测试申请、测试大纲形成、测试项目匹配、环境可靠性费用计算、Excel 费用交付和流程图资产维护集中到一个可验证的系统里。它不是单纯的报价表，也不是单纯的流程图，而是业务规则、工程代码和交付模板三者共同组成的工作平台。</p>
-      <p>当前维护重点集中在 `/environment-outline`、MLA / LHD / RHD / EMA 环境费用规则、`JLR- MLA 费用规则.xlsx`、`JLR- EMA 费用规则.xlsx`、费用预估 Excel 导出、本地草稿迁移和流程图生成脚本。每次改规则都必须同时考虑：页面展示、费用计算、Excel 导出、测试断言、版本记录和交接文档。</p>
+      <p>当前维护重点集中在 `/environment-outline`、MLA / LHD / RHD / EMA 环境费用规则、`JLR- MLA 费用规则.xlsx`、`JLR- EMA 费用规则.xlsx`、费用预估 Excel 导出、MLA 样品及辅助设备需求工作簿、本地草稿迁移和流程图生成脚本。每次改规则都必须同时考虑：页面展示、费用计算、Excel 导出、样品设备需求、测试断言、版本记录和交接文档。</p>
       <div class="badge-row">
         <span class="badge">当前代码版本：ENVIRONMENT_PLAN_TEMPLATE_VERSION = 40</span>
         <span class="badge green">报价实验室：SGS / 华测 / 苏勃</span>
         <span class="badge amber">信测不参与当前版本中值计算</span>
+        <span class="badge">样品设备需求：2026-06-22 计算逻辑确认版</span>
         <span class="badge red">旧文档中 35/36/37/38/39 版本号可能滞后</span>
       </div>
     </section>
@@ -509,8 +511,13 @@
           </tr>
           <tr>
             <td>Excel 费用预估模板</td>
-            <td><code>outputs/mla-fee-export-template/MLA测试项目及费用预估_test-flow组别顺序模板.xlsx</code></td>
-            <td>保持 7 个 sheet、公式列、蓝色费用工具区、原生图表和费用规则校验。</td>
+            <td><code>outputs/mla-fee-export-template/MLA费用导出模板.xlsx</code></td>
+            <td>保持 8 个 sheet、公式列、蓝色费用工具区、原生图表和费用规则校验。</td>
+          </tr>
+          <tr>
+            <td>MLA 样品及辅助设备需求</td>
+            <td><code>outputs/mla-sample-equipment-demand/MLA样品及辅助设备需求_计算逻辑确认版.xlsx</code></td>
+            <td>当前为 1 个 sheet、DV/PV 左右并排、159 行 × 45 列、1060 个公式；按组内峰值、Phase 峰值和 DV/PV 独立口径复核。</td>
           </tr>
         </tbody>
       </table>
@@ -571,7 +578,7 @@
           <tr>
             <td>Excel 交付</td>
             <td><code>outputs/*</code>、<code>scripts/*</code></td>
-            <td>生成或维护费用规则、费用预估、费用对比等工作簿。</td>
+            <td>生成或维护费用规则、费用预估、费用对比、样品及辅助设备需求等工作簿。</td>
             <td>保留格式、公式、图表、版本记录和正式命名。</td>
           </tr>
           <tr>
@@ -777,6 +784,56 @@
       </table>
     </section>
 
+    <section class="section-card" id="demand">
+      <h2 class="section-title">样品及辅助设备需求手册</h2>
+      <p class="section-lead">样品及辅助设备需求工作簿用于把 Test Flow 转成项目准备清单。它和费用规则不是同一张表，但依赖相同的 Group、样本量和前后置测试逻辑，因此每次改环境大纲样品范围时都要一起检查。</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>交付项</th>
+            <th>当前口径</th>
+            <th>维护关注点</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>正式工作簿</td>
+            <td><code>outputs/mla-sample-equipment-demand/MLA样品及辅助设备需求_计算逻辑确认版.xlsx</code></td>
+            <td>当前名称包含“计算逻辑确认版”，属于已生成的规则确认工作簿；不要用临时文件覆盖。如重出版本，应保留确认口径和检查摘要。</td>
+          </tr>
+          <tr>
+            <td>结构</td>
+            <td>1 个 sheet：<code>样品及辅助设备需求</code>；范围 <code>A1:AS159</code>；DV 在左、PV 在右。</td>
+            <td>左右区域必须保持同构，便于 PM 一屏对比 DV/PV 需求；后续若接入网页导出，应把该页作为费用预估工作簿前置页。</td>
+          </tr>
+          <tr>
+            <td>计算逻辑</td>
+            <td>组内测试按顺序执行；样品及耗材按组内峰值准备；工装跨时段复用并按 Phase 峰值申请；DV 与 PV 独立计算。</td>
+            <td>不能把费用的合计口径直接套到设备需求，尤其不要把组内逐项数量简单相加。</td>
+          </tr>
+          <tr>
+            <td>关键汇总</td>
+            <td>DV 合计 HUD 97、PCBA 14；PV 合计 HUD 109、PCBA 14；Sensor 周边合计 126。</td>
+            <td>Group D-8 PV 的 12 台样本量修正会影响 PV 汇总，后续变更要重新检查公式。</td>
+          </tr>
+          <tr>
+            <td>特殊要求</td>
+            <td>Group B K22 额外 3 个带 cover lens 的 top housing；K18 测试线束必须全新；D-3/D-4 需要 PGU 模组等功能测试件；E-1/E-2 允许特殊样品状态。</td>
+            <td>这些备注不是装饰文本，属于采购和实验室准备条件。</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="notice">
+        <strong>复核方法：</strong>优先查看同目录 <code>.inspect.ndjson</code> 摘要，确认 workbook、sheet、region 和 formula 记录存在；若重新生成 xlsx，再抽查顶部汇总公式是否仍是按各 Group 明细区间取 <code>MAX</code>。
+      </div>
+
+      <div class="notice">
+        <strong>边界提醒：</strong>当前工作簿先用于确认 MLA LHD 计算逻辑；如果用户后续要求“接入网页费用导出”，需要把相同规则接入 <code>mlaEnvironmentFeeExport</code> 或对应导出脚本，并重新验证费用预估工作簿第一页、公式和样式是否保留。
+      </div>
+    </section>
+
     <section class="section-card" id="files">
       <h2 class="section-title">文件与代码入口</h2>
       <p class="section-lead">新线程接手时先读状态索引，不回看旧聊天。修改代码前先定位是模板结构、价格、计费基数、计算逻辑、页面展示、导出脚本还是本地迁移。</p>
@@ -874,8 +931,13 @@
           </tr>
           <tr>
             <td>费用预估模板</td>
-            <td><code>outputs/mla-fee-export-template/MLA测试项目及费用预估_test-flow组别顺序模板.xlsx</code></td>
-            <td>以完整 .xlsx 为基底，保留 7 个 sheet、公式、图表、工具区和校验页。</td>
+            <td><code>outputs/mla-fee-export-template/MLA费用导出模板.xlsx</code></td>
+            <td>以完整 .xlsx 为基底，保留 8 个 sheet、公式、图表、工具区和校验页。</td>
+          </tr>
+          <tr>
+            <td>样品及辅助设备需求</td>
+            <td><code>outputs/mla-sample-equipment-demand/MLA样品及辅助设备需求_计算逻辑确认版.xlsx</code></td>
+            <td>PM 准备清单口径；通过导出测试检查 sheet 范围、公式数量和 DV/PV 区域。</td>
           </tr>
           <tr>
             <td>旧命名归档</td>
@@ -926,12 +988,17 @@
           </tr>
           <tr>
             <td>更新费用预估 Excel 导出</td>
-            <td>以完整 .xlsx 基底为准；保留样式、公式、7 个 sheet、图表、隐藏数据源和校验页；更新 mlaEnvironmentFeeExport 或导出脚本；运行导出测试。</td>
+            <td>以完整 .xlsx 基底为准；保留样式、公式、8 个 sheet、图表、隐藏数据源和校验页；更新 mlaEnvironmentFeeExport 或导出脚本；运行导出测试。</td>
             <td>输出 workbook、模板结构检查、截图或关键校验结果。</td>
           </tr>
           <tr>
+            <td>更新样品及辅助设备需求</td>
+            <td>先确认环境大纲 Group、样本量和特殊备注；保持 DV/PV 并排结构；按组内峰值和 Phase 峰值重算；用 inspect 摘要检查公式、范围和关键合计。</td>
+            <td>确认版 workbook、DV/PV 关键合计、特殊要求清单、检查摘要。</td>
+          </tr>
+          <tr>
             <td>维护流程图</td>
-            <td>先读 diagram-file-map；优先改 generate_*drawio*.mjs；重新生成 drawio；运行结构测试；不要编辑 docs/.$*.bkp。</td>
+            <td>先读 PROJECT_STATUS_INDEX 的流程图入口；优先改 generate_*drawio*.mjs；重新生成 drawio；运行结构测试；不要编辑 docs/.$*.bkp。</td>
             <td>drawio 文件、生成脚本变化、结构测试结果。</td>
           </tr>
           <tr>
@@ -983,7 +1050,12 @@
           <tr>
             <td>费用 Excel 导出</td>
             <td><code>npm run test:run -- src/tests/mlaEnvironmentFeeExport.test.ts src/tests/mlaEnvironmentFeeTemplateExport.test.ts</code></td>
-            <td>样品编号、费用计算公式、7 个 sheet、图表、隐藏数据源、Computer Fee / Report Fee 均存在。</td>
+            <td>样品编号、费用计算公式、8 个 sheet、图表、隐藏数据源、Computer Fee / Report Fee 均存在。</td>
+          </tr>
+          <tr>
+            <td>样品及辅助设备需求</td>
+            <td><code>npm run test:run -- src/tests/mlaEnvironmentFeeExport.test.ts src/tests/mlaEnvironmentFeeTemplateExport.test.ts</code></td>
+            <td>检查第一页名称、<code>A1:AS159</code>、159 行 × 45 列、1060 个公式，以及 DV/PV 需求区域。</td>
           </tr>
           <tr>
             <td>流程图生成</td>
@@ -1013,6 +1085,7 @@ npm run build</pre>
         <li><strong>版本记录必须追加：</strong>每次确认费用变化，Excel 的版本记录和文档都要追加，不要覆盖历史。</li>
         <li><strong>草稿版本要跟着规则走：</strong>影响旧草稿显示的环境大纲或费用变更，需要提升 `ENVIRONMENT_PLAN_TEMPLATE_VERSION = 40` 之后的版本。</li>
         <li><strong>费用和样品范围不要混用：</strong>Excel 的样品范围是样品编号，计费基数按费用明细逻辑计算。</li>
+        <li><strong>样品设备需求按峰值准备：</strong>样品、耗材、工装和线束需求不是费用合计，组内顺序和跨时段复用会影响最终采购数量。</li>
         <li><strong>保留 Excel 手工格式：</strong>不得用无样式新表覆盖用户手工确认的公式、列宽、图表和工具区。</li>
         <li><strong>流程图优先改生成脚本：</strong>draw.io 文件应可追溯生成，避免手工 XML 改动变成不可维护资产。</li>
         <li><strong>文档是下一轮上下文：</strong>确认后的业务口径写入交接文档，后续新线程不再依赖旧聊天历史。</li>
@@ -1024,7 +1097,7 @@ npm run build</pre>
     </section>
 
     <footer class="footer">
-      手册生成日期：2026-06-17 ｜ 项目路径：/Users/clytia/Desktop/Codex/产品测试流程自动化
+      手册更新日期：2026-06-23 ｜ 项目路径：/Users/clytia/Desktop/Codex/产品测试流程自动化
     </footer>
   </main>
 </body>

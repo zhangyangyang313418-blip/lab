@@ -40,7 +40,7 @@ describe("MLA environment fee workbook export", () => {
     const forecastData = dataRows(workbook, "费用预估");
 
     expect(workbook.filename).toBe("MLA测试项目及费用预估.xls");
-    expect(workbook.sheets.map((sheet) => sheet.name)).toEqual(["费用预估", "SGS", "华测", "苏勃", "费用对比", "特殊项目费用", "费用规则校验"]);
+    expect(workbook.sheets.map((sheet) => sheet.name)).toEqual(["样品及辅助设备需求", "费用预估", "SGS", "华测", "苏勃", "费用对比", "特殊项目费用", "费用规则校验"]);
     expect(forecast.slice(0, 5)).toEqual([
       ["DV 组别顺序", "Group A -> Group B -> Group C -> Group D-1 -> Group D-2 -> Group D-3 -> Group D-4 -> Group D-5 -> Group D-6 -> Group D-7 -> Group D-9", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
       ["Phase: DV", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
@@ -162,6 +162,75 @@ describe("MLA environment fee workbook export", () => {
       "",
       3600,
     ]);
+  });
+
+  it("adds a sample and auxiliary equipment demand sheet before the fee forecast", () => {
+    const state = createSeedAppState();
+    const workbook = buildMlaEnvironmentFeeWorkbook(state.environmentPlan, state.projectSetup);
+    const demandRows = bodyRows(workbook, "样品及辅助设备需求");
+
+    expect(demandRows[0]).toEqual([
+      "Phase",
+      "需求层级",
+      "组别顺序",
+      "Group",
+      "样品类型",
+      "样品编号",
+      "样品数量",
+      "测试项目数",
+      "HUD样机",
+      "PCBA",
+      "振动/冲击工装",
+      "防尘防水工装",
+      "投图板",
+      "视频源板电源线",
+      "视频源板与PC串口线",
+      "HUD电源线2m",
+      "FPD LINK线2m",
+      "HUD电源线3m",
+      "FPD LINK线3m",
+      "HUB",
+      "USB延长线",
+      "Sensor",
+      "Sensor小板",
+      "Sensor线",
+      "特殊要求",
+    ]);
+
+    const pvGroupB = demandRows.find((row) => row[0] === "PV" && row[1] === "Group Max" && row[3] === "Group B Sequence Tests");
+    expect(pvGroupB?.slice(4, 18)).toEqual([
+      "HUD",
+      "15-26",
+      12,
+      7,
+      12,
+      "",
+      "",
+      "",
+      12,
+      12,
+      12,
+      24,
+      24,
+      "",
+    ]);
+    expect(String(pvGroupB?.[24])).toContain("K18 线束必须为全新的");
+
+    const pvGroupD8 = demandRows.find((row) => row[0] === "PV" && row[1] === "Group Max" && row[3] === "Group D Parallel Tests / D-8");
+    expect(pvGroupD8?.[10]).toBe(3);
+    expect(pvGroupD8?.[17]).toBe(3);
+    expect(pvGroupD8?.[18]).toBe(3);
+
+    const pvGroupC = demandRows.find((row) => row[0] === "PV" && row[1] === "Group Max" && row[3] === "Group C Sequence Tests");
+    expect(pvGroupC?.slice(19, 24)).toEqual([6, 18, 18, 18, 18]);
+
+    const pvBackup = demandRows.find((row) => row[0] === "PV" && row[1] === "备样" && row[3] === "HUD 备样");
+    expect(pvBackup?.[8]).toBe(3);
+
+    const pvTotal = demandRows.find((row) => row[0] === "PV" && row[1] === "Phase Total");
+    expect(pvTotal?.[8]).toBe(109);
+    expect(pvTotal?.[9]).toBe(14);
+    expect(pvTotal?.[10]).toBe(6);
   });
 
   it("exports sample identifiers as continuous phase group ranges", () => {

@@ -55,6 +55,37 @@ interface AdditionalFeeExportRow {
   notes: string;
 }
 
+interface DemandTotals {
+  hudSamples: number;
+  pcbaSamples: number;
+  vibrationFixture: number;
+  dustWaterFixture: number;
+  projectionBoard: number;
+  videoPowerCable: number;
+  serialCable: number;
+  hudPower2m: number;
+  fpdLink2m: number;
+  hudPower3m: number;
+  fpdLink3m: number;
+  hub: number;
+  usbExtension: number;
+  sensor: number;
+  sensorBoard: number;
+  sensorCable: number;
+}
+
+interface GroupDemandRow {
+  phaseTitle: string;
+  flowGroupTitle: string;
+  displayGroupTitle: string;
+  sampleType: "HUD" | "PCBA";
+  sampleRange: string;
+  sampleQuantity: number;
+  testItemCount: number;
+  totals: DemandTotals;
+  notes: string;
+}
+
 type ExportContext = Pick<ProjectSetup, "oem" | "platform" | "steeringSides" | "projectCode" | "projectType" | "isFullyReused" | "reuseEnvironmentTemplate">;
 
 const labSheetNames = ["SGS", "华测", "苏勃"] as const;
@@ -118,6 +149,33 @@ const specialHeaders = [
 ];
 
 const validationHeaders = ["实验室", "Excel行号", "Phase", "Group", "测试编号", "测试项目", "样品范围", "计费基数", "当前费用", "规则费用", "差异", "校验结果", "规则/公式说明"];
+const sampleDemandHeaders = [
+  "Phase",
+  "需求层级",
+  "组别顺序",
+  "Group",
+  "样品类型",
+  "样品编号",
+  "样品数量",
+  "测试项目数",
+  "HUD样机",
+  "PCBA",
+  "振动/冲击工装",
+  "防尘防水工装",
+  "投图板",
+  "视频源板电源线",
+  "视频源板与PC串口线",
+  "HUD电源线2m",
+  "FPD LINK线2m",
+  "HUD电源线3m",
+  "FPD LINK线3m",
+  "HUB",
+  "USB延长线",
+  "Sensor",
+  "Sensor小板",
+  "Sensor线",
+  "特殊要求",
+];
 
 function escapeXml(value: string): string {
   return value
@@ -552,6 +610,326 @@ function appendGroupedRows(
   }
 }
 
+function emptyDemandTotals(): DemandTotals {
+  return {
+    hudSamples: 0,
+    pcbaSamples: 0,
+    vibrationFixture: 0,
+    dustWaterFixture: 0,
+    projectionBoard: 0,
+    videoPowerCable: 0,
+    serialCable: 0,
+    hudPower2m: 0,
+    fpdLink2m: 0,
+    hudPower3m: 0,
+    fpdLink3m: 0,
+    hub: 0,
+    usbExtension: 0,
+    sensor: 0,
+    sensorBoard: 0,
+    sensorCable: 0,
+  };
+}
+
+function demandValue(value: number): number | "" {
+  return value > 0 ? value : "";
+}
+
+function maxDemandTotals(left: DemandTotals, right: DemandTotals): DemandTotals {
+  return {
+    hudSamples: Math.max(left.hudSamples, right.hudSamples),
+    pcbaSamples: Math.max(left.pcbaSamples, right.pcbaSamples),
+    vibrationFixture: Math.max(left.vibrationFixture, right.vibrationFixture),
+    dustWaterFixture: Math.max(left.dustWaterFixture, right.dustWaterFixture),
+    projectionBoard: Math.max(left.projectionBoard, right.projectionBoard),
+    videoPowerCable: Math.max(left.videoPowerCable, right.videoPowerCable),
+    serialCable: Math.max(left.serialCable, right.serialCable),
+    hudPower2m: Math.max(left.hudPower2m, right.hudPower2m),
+    fpdLink2m: Math.max(left.fpdLink2m, right.fpdLink2m),
+    hudPower3m: Math.max(left.hudPower3m, right.hudPower3m),
+    fpdLink3m: Math.max(left.fpdLink3m, right.fpdLink3m),
+    hub: Math.max(left.hub, right.hub),
+    usbExtension: Math.max(left.usbExtension, right.usbExtension),
+    sensor: Math.max(left.sensor, right.sensor),
+    sensorBoard: Math.max(left.sensorBoard, right.sensorBoard),
+    sensorCable: Math.max(left.sensorCable, right.sensorCable),
+  };
+}
+
+function sumPhaseDemandTotals(groups: GroupDemandRow[]): DemandTotals {
+  const totals = emptyDemandTotals();
+
+  for (const group of groups) {
+    totals.hudSamples += group.totals.hudSamples;
+    totals.pcbaSamples += group.totals.pcbaSamples;
+    totals.vibrationFixture = Math.max(totals.vibrationFixture, group.totals.vibrationFixture);
+    totals.dustWaterFixture = Math.max(totals.dustWaterFixture, group.totals.dustWaterFixture);
+    totals.projectionBoard += group.totals.projectionBoard;
+    totals.videoPowerCable += group.totals.videoPowerCable;
+    totals.serialCable += group.totals.serialCable;
+    totals.hudPower2m += group.totals.hudPower2m;
+    totals.fpdLink2m += group.totals.fpdLink2m;
+    totals.hudPower3m = Math.max(totals.hudPower3m, group.totals.hudPower3m);
+    totals.fpdLink3m = Math.max(totals.fpdLink3m, group.totals.fpdLink3m);
+    totals.hub += group.totals.hub;
+    totals.usbExtension += group.totals.usbExtension;
+    totals.sensor += group.totals.sensor;
+    totals.sensorBoard += group.totals.sensorBoard;
+    totals.sensorCable += group.totals.sensorCable;
+  }
+
+  return totals;
+}
+
+function parseDemandQuantity(value: string | undefined): number | null {
+  if (value?.trim().match(/^\d+$/)) {
+    return Number(value);
+  }
+
+  const parsedRange = parseSampleIdentifierRange(value);
+  if (parsedRange) {
+    return parsedRange.end - parsedRange.start + 1;
+  }
+
+  const parsedNumber = Number(value);
+  return Number.isFinite(parsedNumber) && parsedNumber > 0 ? parsedNumber : null;
+}
+
+function demandQuantity(row: EnvironmentPlanRow, group: EnvironmentPlanGroup): number {
+  return parseDemandQuantity(row.feeBasisOverrides?.quantity)
+    ?? parseDemandQuantity(row.sampleRange)
+    ?? parseDemandQuantity(group.totalSampleQty)
+    ?? 0;
+}
+
+function isPcbaDemandGroup(group: EnvironmentPlanGroup): boolean {
+  return group.totalSamplePrefix === "PCBA" || /^Group D-[34]$/.test(group.title);
+}
+
+function regexEscape(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function hasDemandCode(text: string, code: string): boolean {
+  return new RegExp(`\\b${regexEscape(code)}\\b`, "i").test(text);
+}
+
+function hasAnyDemandCode(text: string, codes: string[]): boolean {
+  return codes.some((code) => hasDemandCode(text, code));
+}
+
+function vibrationFixtureQuantity(quantity: number): number {
+  if (quantity <= 0) {
+    return 0;
+  }
+
+  return quantity < 6 ? 3 : 6;
+}
+
+function setProjectionDemand(totals: DemandTotals, quantity: number, harnessLength: "2m" | "3m" = "2m") {
+  totals.projectionBoard = Math.max(totals.projectionBoard, quantity);
+  totals.videoPowerCable = Math.max(totals.videoPowerCable, quantity);
+  totals.serialCable = Math.max(totals.serialCable, quantity);
+
+  if (harnessLength === "3m") {
+    totals.hudPower3m = Math.max(totals.hudPower3m, quantity);
+    totals.fpdLink3m = Math.max(totals.fpdLink3m, quantity);
+    return;
+  }
+
+  totals.hudPower2m = Math.max(totals.hudPower2m, quantity);
+  totals.fpdLink2m = Math.max(totals.fpdLink2m, quantity);
+}
+
+function itemDemandTotals(row: EnvironmentPlanRow, group: EnvironmentPlanGroup): { totals: DemandTotals; notes: string[] } {
+  const quantity = demandQuantity(row, group);
+  const text = `${row.id} ${row.label}`;
+  const totals = emptyDemandTotals();
+  const notes: string[] = [];
+
+  if (/L1\s*&\s*L4|Performance Evaluation.*Functional Evaluation/i.test(text)) {
+    setProjectionDemand(totals, quantity);
+  }
+
+  if (hasAnyDemandCode(text, ["K1", "K2", "K3", "K4", "K5", "K6", "K9"])) {
+    setProjectionDemand(totals, quantity);
+  }
+
+  if (hasAnyDemandCode(text, ["K7", "K20", "K21", "K22", "K23"])) {
+    setProjectionDemand(totals, quantity > 0 ? 1 : 0);
+  }
+
+  if (hasDemandCode(text, "K18")) {
+    setProjectionDemand(totals, quantity > 0 ? 1 : 0);
+    totals.hudPower2m = Math.max(totals.hudPower2m, quantity * 2);
+    totals.fpdLink2m = Math.max(totals.fpdLink2m, quantity * 2);
+    notes.push("K18 线束必须为全新的");
+  }
+
+  if (/Particle Exposure/i.test(text) || hasAnyDemandCode(text, ["K10", "K13", "K14"])) {
+    const fixtureQuantity = Math.min(quantity, 3);
+    totals.dustWaterFixture = Math.max(totals.dustWaterFixture, fixtureQuantity);
+    setProjectionDemand(totals, fixtureQuantity);
+  }
+
+  if (hasAnyDemandCode(text, ["K15", "K16.4"])) {
+    const fixtureQuantity = vibrationFixtureQuantity(quantity);
+    totals.vibrationFixture = Math.max(totals.vibrationFixture, fixtureQuantity);
+    setProjectionDemand(totals, fixtureQuantity, "3m");
+  }
+
+  if (hasDemandCode(text, "K17")) {
+    totals.vibrationFixture = Math.max(totals.vibrationFixture, quantity > 0 ? 1 : 0);
+    setProjectionDemand(totals, quantity > 0 ? 1 : 0);
+  }
+
+  if (hasDemandCode(text, "K28")) {
+    totals.vibrationFixture = Math.max(totals.vibrationFixture, 3);
+    setProjectionDemand(totals, 3, "3m");
+  }
+
+  if (hasAnyDemandCode(text, ["K3", "K4", "K5", "K9", "K24", "K26", "K27", "K52.351"])) {
+    totals.hub = Math.max(totals.hub, quantity);
+    totals.usbExtension = Math.max(totals.usbExtension, quantity * 3);
+    totals.sensor = Math.max(totals.sensor, quantity * 3);
+    totals.sensorBoard = Math.max(totals.sensorBoard, quantity * 3);
+    totals.sensorCable = Math.max(totals.sensorCable, quantity * 3);
+  }
+
+  if (hasDemandCode(text, "K22")) {
+    notes.push("额外提供 3 个带 cover lens 的 top housing");
+  }
+
+  if (/Restricted Substance/i.test(text)) {
+    notes.push("样品可以为故障状态");
+  }
+
+  if (/Operating Noise|Transient Noise|Noise test/i.test(text)) {
+    notes.push("样品无需满足光学性能");
+  }
+
+  return { totals, notes };
+}
+
+function demandRowCells(row: GroupDemandRow | { phaseTitle: string; level: string; displayName?: string; totals: DemandTotals; sampleQuantity?: number; testItemCount?: number; notes?: string }): CellValue[] {
+  const isGroup = "flowGroupTitle" in row;
+  const totals = row.totals;
+
+  return [
+    row.phaseTitle,
+    isGroup ? "Group Max" : row.level,
+    isGroup ? row.flowGroupTitle : "",
+    isGroup ? row.displayGroupTitle : row.displayName ?? row.level,
+    isGroup ? row.sampleType : "",
+    isGroup ? row.sampleRange : "",
+    isGroup ? row.sampleQuantity : row.sampleQuantity ?? "",
+    isGroup ? row.testItemCount : row.testItemCount ?? "",
+    demandValue(totals.hudSamples),
+    demandValue(totals.pcbaSamples),
+    demandValue(totals.vibrationFixture),
+    demandValue(totals.dustWaterFixture),
+    demandValue(totals.projectionBoard),
+    demandValue(totals.videoPowerCable),
+    demandValue(totals.serialCable),
+    demandValue(totals.hudPower2m),
+    demandValue(totals.fpdLink2m),
+    demandValue(totals.hudPower3m),
+    demandValue(totals.fpdLink3m),
+    demandValue(totals.hub),
+    demandValue(totals.usbExtension),
+    demandValue(totals.sensor),
+    demandValue(totals.sensorBoard),
+    demandValue(totals.sensorCable),
+    isGroup ? row.notes : row.notes ?? "",
+  ];
+}
+
+function buildGroupDemandRows(phase: EnvironmentPlanPhase): GroupDemandRow[] {
+  const sampleScopes = getGroupSampleIdentifierScopes(phase);
+
+  return phase.groups.map((group) => {
+    const sampleType = isPcbaDemandGroup(group) ? "PCBA" : "HUD";
+    const sampleQuantity = parseDemandQuantity(group.totalSampleQty) ?? 0;
+    const scope = sampleScopes.get(group.id);
+    const notes = new Set<string>();
+    let totals = emptyDemandTotals();
+
+    for (const row of group.rows) {
+      const itemDemand = itemDemandTotals(row, group);
+      totals = maxDemandTotals(totals, itemDemand.totals);
+      itemDemand.notes.forEach((note) => notes.add(note));
+    }
+
+    if (sampleType === "PCBA") {
+      totals.pcbaSamples = sampleQuantity;
+    } else {
+      totals.hudSamples = sampleQuantity;
+    }
+
+    if (group.title === "Group D-3") {
+      notes.add("额外提供与 PCBA 样品数相同的 PGU 模组/电机组件，并保留测试前 X-RAY 要求");
+    }
+
+    if (group.title === "Group D-4") {
+      notes.add("额外提供与 PCBA 样品数相同的 PGU 模组/电机组件/开孔 bottom housing");
+    }
+
+    return {
+      phaseTitle: phase.title,
+      flowGroupTitle: group.title,
+      displayGroupTitle: displayGroupTitle(group.title, group.rows[0]?.label),
+      sampleType,
+      sampleRange: scope?.range ?? "",
+      sampleQuantity,
+      testItemCount: group.rows.length,
+      totals,
+      notes: Array.from(notes).join("；"),
+    };
+  });
+}
+
+function sampleDemandSheet(plan: EnvironmentPlanSheet): MlaFeeWorksheet {
+  const rows: CellValue[][] = [sampleDemandHeaders];
+
+  for (const phase of plan.phases) {
+    const groupRows = buildGroupDemandRows(phase);
+    rows.push([]);
+    rows.push(padRow(`Phase: ${phase.title}`, sampleDemandHeaders.length));
+
+    for (const groupRow of groupRows) {
+      rows.push(demandRowCells(groupRow));
+    }
+
+    const backupTotals = emptyDemandTotals();
+    backupTotals.hudSamples = 3;
+    rows.push(demandRowCells({
+      phaseTitle: phase.title,
+      level: "备样",
+      displayName: "HUD 备样",
+      totals: backupTotals,
+      sampleQuantity: 3,
+      notes: "DV/PV 各固定增加 3 台 HUD 备样；备样不增加辅助设备或耗材",
+    }));
+
+    const phaseTotals = sumPhaseDemandTotals(groupRows);
+    phaseTotals.hudSamples += backupTotals.hudSamples;
+    rows.push(demandRowCells({
+      phaseTitle: phase.title,
+      level: "Phase Total",
+      displayName: "Phase Total",
+      totals: phaseTotals,
+      sampleQuantity: groupRows.reduce((sum, row) => sum + row.sampleQuantity, 0) + 3,
+      testItemCount: groupRows.reduce((sum, row) => sum + row.testItemCount, 0),
+      notes: "HUD/PCBA/耗材按 Group 合计；振动/冲击工装、防尘防水工装、3m 线束按 Phase 最大值准备",
+    }));
+  }
+
+  return {
+    name: "样品及辅助设备需求",
+    rows,
+  };
+}
+
 function forecastSheet(rows: ExportRow[]): MlaFeeWorksheet {
   const sheetRows: CellValue[][] = [];
   appendGroupedRows(
@@ -863,6 +1241,7 @@ export function buildMlaEnvironmentFeeWorkbook(plan: EnvironmentPlanSheet, conte
   const rows = buildExportRows(plan);
   const additionalFeeRows = buildAdditionalFeeRows(plan);
   const sheets = [
+    sampleDemandSheet(plan),
     forecastSheetWithAdditionalFees(rows, additionalFeeRows),
     ...labSheetNames.map((sheetName) => labSheet(rows, sheetName)),
     comparisonSheet(rows),
