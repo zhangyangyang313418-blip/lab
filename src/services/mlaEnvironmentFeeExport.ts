@@ -177,51 +177,6 @@ const sampleDemandHeaders = [
   "特殊要求",
 ];
 
-function escapeXml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
-
-function formatText(value: unknown): string {
-  if (value === null || value === undefined) {
-    return "";
-  }
-
-  if (Array.isArray(value)) {
-    return value.join("；");
-  }
-
-  return String(value);
-}
-
-function cellXml(value: CellValue): string {
-  if (value === null || value === undefined || value === "") {
-    return "<Cell><Data ss:Type=\"String\"></Data></Cell>";
-  }
-
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return `<Cell><Data ss:Type="Number">${value}</Data></Cell>`;
-  }
-
-  if (typeof value === "boolean") {
-    return `<Cell><Data ss:Type="Boolean">${value ? 1 : 0}</Data></Cell>`;
-  }
-
-  return `<Cell><Data ss:Type="String">${escapeXml(formatText(value))}</Data></Cell>`;
-}
-
-function worksheetXml(sheet: MlaFeeWorksheet): string {
-  const rowsXml = sheet.rows
-    .map((row) => `<Row>${row.map((cell) => cellXml(cell)).join("")}</Row>`)
-    .join("");
-
-  return `<Worksheet ss:Name="${escapeXml(sheet.name)}"><Table>${rowsXml}</Table></Worksheet>`;
-}
-
 function phaseScope(plan: EnvironmentPlanSheet): string {
   return plan.phases.map((phase) => phase.title).join(" + ");
 }
@@ -246,16 +201,6 @@ function withMetadata(sheet: MlaFeeWorksheet, plan: EnvironmentPlanSheet, contex
       ...sheet.rows,
     ],
   };
-}
-
-function workbookXml(sheets: MlaFeeWorksheet[]): string {
-  return `<?xml version="1.0" encoding="UTF-8"?>\n`
-    + `<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" `
-    + `xmlns:o="urn:schemas-microsoft-com:office:office" `
-    + `xmlns:x="urn:schemas-microsoft-com:office:excel" `
-    + `xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">`
-    + sheets.map(worksheetXml).join("")
-    + `</Workbook>`;
 }
 
 function isL6ExternalPointBasis(row: EnvironmentFeeDetailRow): boolean {
@@ -1209,7 +1154,7 @@ function validationSheet(rows: ExportRow[], additionalRows: AdditionalFeeExportR
 }
 
 function workbookFilename(platform: PlatformCode): string {
-  return `${platform}测试项目及费用预估.xls`;
+  return `${platform}测试项目及费用预估.xlsx`;
 }
 
 function normalizeExportContext(plan: EnvironmentPlanSheet, context?: ExportContext | PlatformCode): ExportContext {
@@ -1253,28 +1198,4 @@ export function buildMlaEnvironmentFeeWorkbook(plan: EnvironmentPlanSheet, conte
     filename: workbookFilename(exportContext.platform),
     sheets,
   };
-}
-
-function workbookBlob(workbook: MlaFeeWorkbook): Blob {
-  return new Blob([workbookXml(workbook.sheets)], { type: "application/vnd.ms-excel;charset=utf-8" });
-}
-
-export function downloadMlaEnvironmentFeeWorkbook(plan: EnvironmentPlanSheet, context?: ExportContext | PlatformCode): void {
-  if (typeof document === "undefined" || typeof window === "undefined") {
-    return;
-  }
-
-  const workbook = buildMlaEnvironmentFeeWorkbook(plan, context);
-  const url = URL.createObjectURL(workbookBlob(workbook));
-  const link = document.createElement("a");
-
-  link.href = url;
-  link.download = workbook.filename;
-  link.rel = "noopener";
-  link.style.display = "none";
-
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
 }

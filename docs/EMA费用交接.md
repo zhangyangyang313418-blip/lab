@@ -1,6 +1,6 @@
 # EMA 费用交接
 
-更新时间：2026-06-17
+更新时间：2026-06-24
 
 ## 新线程使用方式
 
@@ -37,6 +37,25 @@ outputs/fee-rule-archive/2026-06-24-ema-fee-export-template/
 ```
 
 该目录保存 `EMA费用导出模板_2026-06-24_已确认.xlsx`。不要再把 `_修正版`、`_待修改` 或 `V.0 版本` 命名的文件放回正式交付目录。
+
+## EMA 费用导出模板
+
+`/environment-outline` 页面导出 EMA 费用时，已不再生成 SpreadsheetML `.xls`。当前浏览器导出直接加载并修改正式 `.xlsx` 模板 ZIP：
+
+```text
+outputs/ema-fee-export-template/EMA费用导出模板.xlsx
+public/templates/EMA费用导出模板.xlsx
+```
+
+模板资产由以下命令同步：
+
+```bash
+npm run prepare:fee-templates
+```
+
+运行时必须通过模板内 `_PT_*` hidden defined-name marker 定位动态区域和原型行，支持用户手动新增/删除 Group 或测试项目，并保留 8 个 Sheet、样式、公式、合并单元格、筛选、条件格式、图表、隐藏校验页和 `chart1.xml` 缓存。模板加载失败、Sheet/图表缺失或出现 `#REF!` 等公式错误时必须阻止下载，不允许回退旧 `.xls`。
+
+当前 EMA 模板没有 VBA/宏，导出文件保持 `.xlsx`；如果后续替换为带宏模板，必须保留宏相关 ZIP 部件，不得直接生成全新 workbook。
 
 ## 当前 EMA 专属费用规则
 
@@ -80,6 +99,10 @@ Environment Outline 页面费用展示和 Excel 下载：
 
 - `src/pages/EnvironmentOutlinePage.tsx`
 - `src/services/mlaEnvironmentFeeExport.ts`
+- `src/services/templateFeeWorkbookExport.ts`
+- `src/services/feeWorkbookTemplateManifest.ts`
+- `src/services/ooxmlPackage.ts`
+- `src/services/ooxmlWorksheetTransform.ts`
 
 MLA 费用规则 Excel 生成脚本：
 
@@ -93,6 +116,7 @@ MLA 费用规则 Excel 生成脚本：
 ```bash
 npm run test:run -- src/tests/environmentFeeDetail.test.ts src/tests/localStore.test.ts
 npm run test:run -- src/tests/environmentOutlinePage.test.tsx
+npm run test:run -- src/tests/templateFeeWorkbookExport.test.ts src/tests/feeWorkbookTemplateManifest.test.ts src/tests/ooxmlPackage.test.ts src/tests/ooxmlWorksheetTransform.test.ts
 npm run build
 ```
 

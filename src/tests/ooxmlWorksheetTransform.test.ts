@@ -39,6 +39,24 @@ describe("OOXML worksheet row transformation", () => {
     expect(result.worksheetXml).toContain('<autoFilter ref="A1:B5"/>');
   });
 
+  it("updates formulas above a marked region when they reference generated rows", () => {
+    const result = replaceMarkedWorksheetRows({
+      worksheetXml: worksheet.replace(
+        '<row r="1"><c r="A1"><v>1</v></c></row>',
+        '<row r="1"><c r="A1"><f>SUM(A2:A3)</f><v>5</v></c></row>',
+      ),
+      startRow: 2,
+      endRow: 3,
+      rowXml: [
+        '<row r="2"><c r="A2"><v>20</v></c></row>',
+        '<row r="3"><c r="A3"><v>30</v></c></row>',
+        '<row r="4"><c r="A4"><v>40</v></c></row>',
+      ],
+    });
+
+    expect(result.worksheetXml).toContain('<row r="1"><c r="A1"><f>SUM(A2:A4)</f>');
+  });
+
   it("contracts references when rows are deleted", () => {
     const result = replaceMarkedWorksheetRows({
       worksheetXml: worksheet,

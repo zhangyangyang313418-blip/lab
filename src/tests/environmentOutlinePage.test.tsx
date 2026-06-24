@@ -1,15 +1,28 @@
 import "@testing-library/jest-dom/vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import App from "../App";
 import { appReducer, createSeedAppState } from "../store/appState";
 import { saveProjectDraft } from "../services/localStore";
+
+const templateFeeExportMock = vi.hoisted(() => ({
+  buildTemplateFeeWorkbook: vi.fn(),
+}));
+
+vi.mock("../services/templateFeeWorkbookExport", () => templateFeeExportMock);
+
+import App from "../App";
 
 describe("environment outline fee detail", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    templateFeeExportMock.buildTemplateFeeWorkbook.mockReset();
+    templateFeeExportMock.buildTemplateFeeWorkbook.mockResolvedValue({
+      filename: "MLA测试项目及费用预估.xlsx",
+      mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      bytes: new Uint8Array([80, 75, 3, 4]),
+    });
   });
 
   afterEach(() => {
@@ -177,9 +190,9 @@ describe("environment outline fee detail", () => {
     expect(within(feeRow as HTMLElement).getByLabelText("DV Report Fee 费用 ¥2,100.00")).toBeInTheDocument();
   });
 
-  it("downloads the MLA fee workbook from the environment outline page", async () => {
+  it("downloads the MLA fee workbook as a template-based xlsx from the environment outline page", async () => {
     const user = userEvent.setup();
-    const createObjectUrlMock = vi.fn(() => "blob:mla-fee-export");
+    const createObjectUrlMock = vi.fn<(blob: Blob) => string>(() => "blob:mla-fee-export");
     const revokeObjectUrlMock = vi.fn();
     const clickMock = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
 
@@ -203,9 +216,54 @@ describe("environment outline fee detail", () => {
 
     await user.click(exportButtons[0]!);
 
+    await waitFor(() => expect(templateFeeExportMock.buildTemplateFeeWorkbook).toHaveBeenCalledTimes(1));
+    expect(templateFeeExportMock.buildTemplateFeeWorkbook.mock.calls[0]?.[1]).toMatchObject({ platform: "MLA" });
     expect(createObjectUrlMock).toHaveBeenCalledTimes(1);
+    const blob = createObjectUrlMock.mock.calls[0]?.[0];
+    expect(blob).toBeInstanceOf(Blob);
+    if (!(blob instanceof Blob)) {
+      throw new Error("Expected createObjectURL to receive a Blob");
+    }
+    expect(blob.type).toBe("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     expect(clickMock).toHaveBeenCalledTimes(1);
+    const clickedLink = clickMock.mock.contexts[0] as HTMLAnchorElement | undefined;
+    expect(clickedLink).toBeInstanceOf(HTMLAnchorElement);
+    if (!(clickedLink instanceof HTMLAnchorElement)) {
+      throw new Error("Expected anchor click context");
+    }
+    expect(clickedLink.download).toBe("MLA测试项目及费用预估.xlsx");
+    expect(clickedLink.download.endsWith(".xls")).toBe(false);
     expect(revokeObjectUrlMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables fee export while generating and displays template errors without xls fallback", async () => {
+    const user = userEvent.setup();
+    let rejectExport!: (error: Error) => void;
+    templateFeeExportMock.buildTemplateFeeWorkbook.mockReturnValue(new Promise((_resolve, reject) => {
+      rejectExport = reject;
+    }));
+    const createObjectUrlMock = vi.fn<(blob: Blob) => string>(() => "blob:should-not-be-created");
+    Object.defineProperty(window.URL, "createObjectURL", {
+      configurable: true,
+      value: createObjectUrlMock,
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/environment-outline"]}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    const exportButton = screen.getAllByRole("button", { name: "导出 MLA 费用 Excel" })[0]!;
+    await user.click(exportButton);
+
+    expect(exportButton).toBeDisabled();
+    expect(screen.getAllByRole("button", { name: "正在生成费用 Excel..." })).toHaveLength(2);
+
+    rejectExport(new Error("MLA 费用模板加载失败：404"));
+
+    expect(await screen.findByText("MLA 费用模板加载失败：404")).toBeInTheDocument();
+    expect(createObjectUrlMock).not.toHaveBeenCalled();
   });
 
   it("uses the selected platform in the environment outline header and fee export labels", () => {

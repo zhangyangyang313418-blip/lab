@@ -511,8 +511,8 @@
           </tr>
           <tr>
             <td>Excel 费用预估模板</td>
-            <td><code>outputs/mla-fee-export-template/MLA费用导出模板.xlsx</code></td>
-            <td>保持 8 个 sheet、公式列、蓝色费用工具区、原生图表和费用规则校验。</td>
+            <td><code>outputs/mla-fee-export-template/MLA费用导出模板.xlsx</code><br><code>outputs/ema-fee-export-template/EMA费用导出模板.xlsx</code><br><code>public/templates/MLA费用导出模板.xlsx</code><br><code>public/templates/EMA费用导出模板.xlsx</code></td>
+            <td>浏览器导出基于正式 .xlsx 模板 ZIP/XML 写入；通过 <code>_PT_*</code> marker 动态扩展行，保留 8 个 sheet、公式列、蓝色费用工具区、原生图表、chart1.xml 缓存和隐藏费用规则校验；不再生成 SpreadsheetML .xls。</td>
           </tr>
           <tr>
             <td>MLA 样品及辅助设备需求</td>
@@ -931,8 +931,8 @@
           </tr>
           <tr>
             <td>费用预估模板</td>
-            <td><code>outputs/mla-fee-export-template/MLA费用导出模板.xlsx</code></td>
-            <td>以完整 .xlsx 为基底，保留 8 个 sheet、公式、图表、工具区和校验页。</td>
+            <td><code>outputs/mla-fee-export-template/MLA费用导出模板.xlsx</code><br><code>outputs/ema-fee-export-template/EMA费用导出模板.xlsx</code><br><code>public/templates/MLA费用导出模板.xlsx</code><br><code>public/templates/EMA费用导出模板.xlsx</code></td>
+            <td>以正式 .xlsx 为母版，运行 <code>npm run prepare:fee-templates</code> 同步浏览器资产；保留 8 个 sheet、公式、图表、工具区、校验页和宏相关 ZIP 部件（若模板未来带宏）。</td>
           </tr>
           <tr>
             <td>样品及辅助设备需求</td>
@@ -988,8 +988,8 @@
           </tr>
           <tr>
             <td>更新费用预估 Excel 导出</td>
-            <td>以完整 .xlsx 基底为准；保留样式、公式、8 个 sheet、图表、隐藏数据源和校验页；更新 mlaEnvironmentFeeExport 或导出脚本；运行导出测试。</td>
-            <td>输出 workbook、模板结构检查、截图或关键校验结果。</td>
+            <td>以正式 .xlsx 模板 ZIP 为准；通过模板内 <code>_PT_*</code> marker 定位动态区，不依赖固定行号；保留样式、公式、8 个 sheet、图表、隐藏数据源、chart1.xml 缓存和校验页；模板失败或公式错误时阻止下载，不回退 .xls。</td>
+            <td>输出 workbook、模板结构检查、图表辅助区/cache 检查、截图或关键校验结果。</td>
           </tr>
           <tr>
             <td>更新样品及辅助设备需求</td>
@@ -1049,8 +1049,8 @@
           </tr>
           <tr>
             <td>费用 Excel 导出</td>
-            <td><code>npm run test:run -- src/tests/mlaEnvironmentFeeExport.test.ts src/tests/mlaEnvironmentFeeTemplateExport.test.ts</code></td>
-            <td>样品编号、费用计算公式、8 个 sheet、图表、隐藏数据源、Computer Fee / Report Fee 均存在。</td>
+            <td><code>npm run test:run -- src/tests/mlaEnvironmentFeeExport.test.ts src/tests/mlaEnvironmentFeeTemplateExport.test.ts src/tests/templateFeeWorkbookExport.test.ts src/tests/ooxmlWorksheetTransform.test.ts</code></td>
+            <td>样品编号、费用计算公式、真实 .xlsx ZIP、8 个 sheet、图表、隐藏数据源、chart1.xml 缓存、Computer Fee / Report Fee 均存在。</td>
           </tr>
           <tr>
             <td>样品及辅助设备需求</td>

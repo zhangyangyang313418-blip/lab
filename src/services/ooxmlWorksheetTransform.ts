@@ -47,7 +47,7 @@ function parseCellReference(reference: string): { column: string; row: number } 
   if (!match) {
     return null;
   }
-  return { column: match[1], row: Number(match[2]) };
+  return { column: match[1]!, row: Number(match[2]!) };
 }
 
 function rewriteA1References(
@@ -166,14 +166,25 @@ export function replaceMarkedWorksheetRows(
     throw new Error("Worksheet is missing sheetData");
   }
 
-  const rows = [...sheetDataMatch[1].matchAll(/<row\b[^>]*\br="(\d+)"[^>]*>[\s\S]*?<\/row>/g)]
-    .map((match) => ({ row: Number(match[1]), xml: match[0] }));
-  const before = rows.filter((row) => row.row < startRow).map((row) => row.xml);
+  const sheetData = sheetDataMatch[1] ?? "";
+  const rows = [...sheetData.matchAll(/<row\b[^>]*\br="(\d+)"[^>]*>[\s\S]*?<\/row>/g)]
+    .map((match) => ({ row: Number(match[1]!), xml: match[0] }));
+  const before = rows.filter((row) => row.row < startRow);
   const after = rows.filter((row) => row.row > endRow);
   const replacementCount = rowXml.length;
   const delta = replacementCount - (endRow - startRow + 1);
   const newEndRow = replacementEnd(startRow, replacementCount);
 
+  const shiftedBefore = before.map((row) => (
+    rewriteRowXml(
+      row.xml,
+      row.row,
+      startRow,
+      endRow,
+      replacementCount,
+      true,
+    )
+  ));
   const replacements = rowXml.map((xml, index) => (
     rewriteRowXml(xml, startRow + index, startRow, endRow, replacementCount, false)
   ));
@@ -188,7 +199,7 @@ export function replaceMarkedWorksheetRows(
     )
   ));
 
-  const nextSheetData = `<sheetData>${[...before, ...replacements, ...shiftedAfter].join("")}</sheetData>`;
+  const nextSheetData = `<sheetData>${[...shiftedBefore, ...replacements, ...shiftedAfter].join("")}</sheetData>`;
   const beforeSheetData = worksheetXml.slice(0, sheetDataMatch.index);
   const afterSheetData = worksheetXml.slice((sheetDataMatch.index ?? 0) + sheetDataMatch[0].length);
   const rewrittenBefore = rewriteWorksheetOutsideSheetData(

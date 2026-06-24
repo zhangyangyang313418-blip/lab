@@ -27,13 +27,30 @@ export const requiredTemplateMarkers = [
   "_PT_FORECAST_PROTO_ADDITIONAL",
   "_PT_SGS_DYNAMIC_START",
   "_PT_SGS_DYNAMIC_END",
+  "_PT_SGS_PROTO_PHASE",
+  "_PT_SGS_PROTO_GROUP",
+  "_PT_SGS_PROTO_HEADER",
   "_PT_SGS_PROTO_DATA",
+  "_PT_SGS_PROTO_TOTAL",
   "_PT_CTI_DYNAMIC_START",
   "_PT_CTI_DYNAMIC_END",
+  "_PT_CTI_PROTO_PHASE",
+  "_PT_CTI_PROTO_GROUP",
+  "_PT_CTI_PROTO_HEADER",
   "_PT_CTI_PROTO_DATA",
+  "_PT_CTI_PROTO_TOTAL",
   "_PT_SUBO_DYNAMIC_START",
   "_PT_SUBO_DYNAMIC_END",
+  "_PT_SUBO_PROTO_PHASE",
+  "_PT_SUBO_PROTO_GROUP",
+  "_PT_SUBO_PROTO_HEADER",
   "_PT_SUBO_PROTO_DATA",
+  "_PT_SUBO_PROTO_TOTAL",
+  "_PT_COMPARE_DYNAMIC_START",
+  "_PT_COMPARE_DYNAMIC_END",
+  "_PT_COMPARE_PROTO_PHASE",
+  "_PT_COMPARE_PROTO_HEADER",
+  "_PT_COMPARE_PROTO_DATA",
   "_PT_COMPARE_HELPER_RANGE",
   "_PT_SPECIAL_DYNAMIC_START",
   "_PT_SPECIAL_DYNAMIC_END",
@@ -124,8 +141,8 @@ function parseDefinedNameReference(value: string): ResolvedTemplateMarker {
     throw new Error(`Invalid template marker reference: ${decoded}`);
   }
   return {
-    sheetName: match[1].replace(/''/g, "'"),
-    ref: match[2],
+    sheetName: match[1]!.replace(/''/g, "'"),
+    ref: match[2]!,
   };
 }
 
@@ -133,12 +150,14 @@ export function resolveTemplateMarkers(workbookXml: string): ResolvedTemplateMar
   const found = new Map<string, ResolvedTemplateMarker[]>();
 
   for (const match of workbookXml.matchAll(/<definedName\b([^>]*)>([\s\S]*?)<\/definedName>/g)) {
-    const name = match[1].match(/\bname="([^"]+)"/)?.[1];
+    const attrs = match[1] ?? "";
+    const reference = match[2] ?? "";
+    const name = attrs.match(/\bname="([^"]+)"/)?.[1];
     if (!name?.startsWith("_PT_")) {
       continue;
     }
     const values = found.get(name) ?? [];
-    values.push(parseDefinedNameReference(match[2]));
+    values.push(parseDefinedNameReference(reference));
     found.set(name, values);
   }
 

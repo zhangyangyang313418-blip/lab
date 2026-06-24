@@ -1,6 +1,6 @@
 # Product Test Evaluation Tool Status Index
 
-更新时间：2026-06-17
+更新时间：2026-06-24
 
 ## 目的
 
@@ -30,6 +30,7 @@ npm run build
 - 环境箱项目按样本量自动选价：`> 6` 使用大环境箱，`<= 6` 使用小环境箱。
 - 本地草稿迁移版本当前为 `ENVIRONMENT_PLAN_TEMPLATE_VERSION = 40`。
 - `/environment-outline` 顶部新增独立费用汇总行：`TOTAL COST` 后跟各组费用、`Computer Fee`、`Report Fee`；总费用口径为各组测试费用合计 + 电脑费用 + 报告费用。
+- `/environment-outline` 费用 Excel 导出已改为基于 MLA/EMA 正式 `.xlsx` 模板的 ZIP/XML 写入；禁止回退 SpreadsheetML `.xls`。动态增删 Group/测试项目时通过模板 `_PT_*` marker 扩展行、公式、图表辅助区和 `chart1.xml` 缓存。
 - EMA 费用已按 `outputs/ema-fee-detail-export/JLR- EMA 费用规则.xlsx` 导回专属规则；MLA 锁定费用不变。
 - MLA RHD 右舵费用已补齐使用锁定 MLA 费用规则：`mla-rhd-group-*` 会参与 Optical、Particle Exposure、L1&L4、L6、E-2 及 K 系列费用计算。
 - MLA/LHD/RHD 导出和费用明细中，baseline `Optical Test` 与 `L1&L4` 按各自 Group 样本量计算与展示，不再使用跨组汇总样本量。
@@ -63,6 +64,23 @@ npm run build
 - `src/tests/localStore.test.ts`
 - `src/tests/homePage.test.tsx`
 - `src/tests/environmentPlan.test.ts`
+- `src/tests/templateFeeWorkbookExport.test.ts`
+- `src/tests/feeWorkbookTemplateManifest.test.ts`
+- `src/tests/ooxmlPackage.test.ts`
+- `src/tests/ooxmlWorksheetTransform.test.ts`
+- `src/tests/mlaEnvironmentFeeTemplateExport.test.ts`
+
+### 费用 Excel 模板导出
+
+- `outputs/mla-fee-export-template/MLA费用导出模板.xlsx`
+- `outputs/ema-fee-export-template/EMA费用导出模板.xlsx`
+- `public/templates/MLA费用导出模板.xlsx`
+- `public/templates/EMA费用导出模板.xlsx`
+- `scripts/prepare_fee_export_template_assets.mjs`
+- `src/services/templateFeeWorkbookExport.ts`
+- `src/services/feeWorkbookTemplateManifest.ts`
+- `src/services/ooxmlPackage.ts`
+- `src/services/ooxmlWorksheetTransform.ts`
 
 ### 流程图
 

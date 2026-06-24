@@ -39,7 +39,7 @@ describe("MLA environment fee workbook export", () => {
     const forecast = bodyRows(workbook, "费用预估");
     const forecastData = dataRows(workbook, "费用预估");
 
-    expect(workbook.filename).toBe("MLA测试项目及费用预估.xls");
+    expect(workbook.filename).toBe("MLA测试项目及费用预估.xlsx");
     expect(workbook.sheets.map((sheet) => sheet.name)).toEqual(["样品及辅助设备需求", "费用预估", "SGS", "华测", "苏勃", "费用对比", "特殊项目费用", "费用规则校验"]);
     expect(forecast.slice(0, 5)).toEqual([
       ["DV 组别顺序", "Group A -> Group B -> Group C -> Group D-1 -> Group D-2 -> Group D-3 -> Group D-4 -> Group D-5 -> Group D-6 -> Group D-7 -> Group D-9", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],

@@ -5,7 +5,7 @@ import {
   getEnvironmentAdditionalFeeSummary,
   getEnvironmentSpecialFeeBreakdown,
 } from "../services/environmentFeeDetail";
-import { downloadMlaEnvironmentFeeWorkbook } from "../services/mlaEnvironmentFeeExport";
+import { buildTemplateFeeWorkbook } from "../services/templateFeeWorkbookExport";
 import { AppLayout } from "../components/layout/AppLayout";
 import { useAppState } from "../store/appState";
 import type { EnvironmentFeeChargeBasis, EnvironmentFeeDetailRow, EnvironmentFeeLabQuote } from "../types/environmentFeeDetail";
@@ -1697,7 +1697,39 @@ export function EnvironmentOutlinePage() {
   const editable = !state.projectSetup.reuseEnvironmentTemplate;
   const canUndoEnvironmentPlan = Boolean(state.lastEnvironmentPlan);
   const platform = state.projectSetup.platform;
-  const exportFees = () => downloadMlaEnvironmentFeeWorkbook(state.environmentPlan, state.projectSetup);
+  const [isExportingFees, setIsExportingFees] = useState(false);
+  const [feeExportError, setFeeExportError] = useState<string | null>(null);
+  const exportFees = async () => {
+    if (isExportingFees) {
+      return;
+    }
+
+    setFeeExportError(null);
+    setIsExportingFees(true);
+    try {
+      const workbook = await buildTemplateFeeWorkbook(state.environmentPlan, state.projectSetup);
+      const arrayBuffer = new ArrayBuffer(workbook.bytes.byteLength);
+      new Uint8Array(arrayBuffer).set(workbook.bytes);
+      const blob = new Blob([arrayBuffer], { type: workbook.mime });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = workbook.filename;
+      link.rel = "noopener";
+      link.style.display = "none";
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setFeeExportError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsExportingFees(false);
+    }
+  };
+  const feeExportButtonText = isExportingFees ? "正在生成费用 Excel..." : `导出 ${platform} 费用 Excel`;
 
   return (
     <AppLayout
@@ -1718,10 +1750,17 @@ export function EnvironmentOutlinePage() {
           >
             撤回上一步
           </button>
-          <button type="button" className="secondary-button" onClick={exportFees}>
-            {`导出 ${platform} 费用 Excel`}
+          <button type="button" className="secondary-button" disabled={isExportingFees} onClick={exportFees}>
+            {feeExportButtonText}
           </button>
         </div>
+
+        {feeExportError ? (
+          <section className="panel flow-edit-notice" role="alert">
+            <strong>费用 Excel 导出失败</strong>
+            <span>{feeExportError}</span>
+          </section>
+        ) : null}
 
         {editable ? (
           <section className="panel flow-edit-notice">
@@ -1746,8 +1785,8 @@ export function EnvironmentOutlinePage() {
           >
             撤回上一步
           </button>
-          <button type="button" className="secondary-button" onClick={exportFees}>
-            {`导出 ${platform} 费用 Excel`}
+          <button type="button" className="secondary-button" disabled={isExportingFees} onClick={exportFees}>
+            {feeExportButtonText}
           </button>
           <button type="button" className="primary-button" onClick={() => navigate("/results")}>
             确认进入结果页

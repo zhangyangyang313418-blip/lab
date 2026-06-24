@@ -1,6 +1,6 @@
 # MLA 测试项目及费用 Excel 导出交接
 
-更新时间：2026-06-15
+更新时间：2026-06-24
 
 ## 当前结论
 
@@ -17,7 +17,10 @@
 - 导出时先按 Phase / Group 顺序确定每个 Group 的连续样品编号，再按行级 `sampleRange` 映射到全局编号；Group A 内允许 `1-12` 与 `1-14` 并存。
 - `计费基数` 继续按费用明细逻辑计算，不和 `样品范围` 混用。
 - `/environment-outline` 顶部费用汇总中的 `Computer Fee` 与 `Report Fee` 也必须进入 Excel 导出；`费用预估` 和 `特殊项目费用` 均追加 DV / PV 的附加费用区块。
-- 网页按钮导出的 SpreadsheetML `.xls` 已把 `样品及辅助设备需求` 接到第一页；完整导出顺序为 `样品及辅助设备需求`、`费用预估`、`SGS`、`华测`、`苏勃`、`费用对比`、`特殊项目费用`、`费用规则校验`。
+- `/environment-outline` 页面费用导出已切换为正式 `.xlsx` 模板 ZIP 层 OOXML 写入：禁止再生成 SpreadsheetML `.xls`，模板加载失败、Sheet 缺失、图表缺失或公式错误时必须阻止下载，不允许回退旧格式。
+- 浏览器导出完整顺序为 `样品及辅助设备需求`、`费用预估`、`SGS`、`华测`、`苏勃`、`费用对比`、`特殊项目费用`、`费用规则校验`，并保留隐藏的 `费用规则校验`、模板样式、公式、合并单元格、条件格式、筛选、图表和图表缓存。
+- 动态增删 Group 或测试项目时，运行时只通过模板内显式 `_PT_*` defined-name marker 定位动态区和原型行，不依赖固定行号或样式猜测；新增行复制 marker 指定原型行样式，并同步更新 row/cell 地址、公式引用、合并单元格、条件格式、筛选范围、图表辅助区和 `chart1.xml` 缓存。
+- 如果后续模板带 VBA/宏，浏览器导出必须保留 `xl/vbaProject.bin` 等宏相关 ZIP 部件，不得直接生成全新 workbook；当前 MLA/EMA 费用导出模板没有宏，因此输出仍为 `.xlsx`，不会新增宏部件。
 
 ## 最新文件
 
@@ -28,6 +31,21 @@ outputs/mla-fee-export-template/MLA费用导出模板.xlsx
 ```
 
 该文件已恢复为保留用户手工格式和公式工具区的完整 `.xlsx` 版本，并合入了全部特殊项目标识、按 Group 样本量计算后的费用数据、蓝色费用汇总表、实验室页备注修正，以及 `Computer Fee` / `Report Fee` 附加费用。
+
+浏览器运行时使用的模板资产：
+
+```text
+public/templates/MLA费用导出模板.xlsx
+public/templates/EMA费用导出模板.xlsx
+```
+
+资产同步命令：
+
+```bash
+npm run prepare:fee-templates
+```
+
+该命令会读取 `outputs/mla-fee-export-template/MLA费用导出模板.xlsx` 与 `outputs/ema-fee-export-template/EMA费用导出模板.xlsx`，注入/校验隐藏 defined-name marker，并复制到 `public/templates/`。运行时导出必须以这些模板 ZIP 为母版，只修改 marker 覆盖的数据区、元数据、图表辅助区和图表缓存。
 
 正式导出的母版文件：
 
@@ -80,6 +98,26 @@ node_modules/.bin/vite-node scripts/export_mla_environment_fee_template.ts
 ```
 
 当前这个命令以 `outputs/workbook-edits/final/MLA费用导出模板_流程导出基准.xlsx` 为基底，并直接写 `outputs/mla-fee-export-template/MLA费用导出模板.xlsx`。后续不要再用旧 `.xls` 作为完整最终导出基底。
+
+浏览器侧动态导出入口：
+
+```text
+src/services/templateFeeWorkbookExport.ts
+src/services/feeWorkbookTemplateManifest.ts
+src/services/ooxmlPackage.ts
+src/services/ooxmlWorksheetTransform.ts
+src/pages/EnvironmentOutlinePage.tsx
+```
+
+关键测试：
+
+```text
+src/tests/templateFeeWorkbookExport.test.ts
+src/tests/feeWorkbookTemplateManifest.test.ts
+src/tests/ooxmlPackage.test.ts
+src/tests/ooxmlWorksheetTransform.test.ts
+src/tests/environmentOutlinePage.test.tsx
+```
 
 新增数据行如果模板里没有对应旧行，需要在保持模板样式和公式工具区的前提下追加区块。目前 `费用预估` 与 `特殊项目费用` 已在表尾追加 DV / PV 的 `Computer Fee`、`Report Fee`：
 
@@ -199,8 +237,12 @@ Group E-2 = 96-120
 - `src/tests/environmentFeeDetail.test.ts`：锁定 Group A 测试前/测试后 L1&L4 按 `1-14` 计费。
 - `src/tests/localStore.test.ts`：锁定旧草稿刷新 Group A post 评估行为 `1-14`。
 - `scripts/export_mla_environment_fee_template.ts`：从完整 `.xlsx` 基底导出，避免旧 `.xls` 删除公式工具区；自校验会确认 `费用对比` 使用原生 Excel 图表对象、隐藏图表数据源、且顶部 `最低报价` 列为空。
+- `scripts/prepare_fee_export_template_assets.mjs`：为 MLA/EMA 正式 `.xlsx` 模板注入/校验 `_PT_*` hidden defined-name marker，并同步 `public/templates/` 浏览器资产。
 - `scripts/patch_mla_fee_comparison_chart.mjs`：维护 `费用对比` 顶部图表区，删除旧 `预估费用剔除项` 表格，写入原生堆积柱状图定义 `xl/charts/chart1.xml`，并将图表绑定到隐藏数据源 `S2:T15` 和 `U2:X15`，其中空白行用于控制三组间距。
+- `src/services/templateFeeWorkbookExport.ts`：浏览器侧模板 ZIP/XML 写入器，基于 MLA/EMA 正式 `.xlsx` 模板生成下载文件；失败时抛错并阻止下载，不回退 `.xls`。
+- `src/services/ooxmlWorksheetTransform.ts`：根据 marker 动态替换 worksheet 行，并更新受影响的 row/cell、公式、merge、条件格式、筛选和相关 A1 引用。
 - `src/tests/mlaEnvironmentFeeTemplateExport.test.ts`：锁定最终 `.xlsx` 必须包含 8 个 sheet、费用计算公式列、蓝色费用工具区、`费用对比` 原生柱状图、隐藏图表数据源、`Computer Fee` / `Report Fee`。
+- `src/tests/templateFeeWorkbookExport.test.ts`：锁定浏览器导出为真实 `.xlsx` ZIP、保留 8 个 Sheet/图表/样式、支持新增 Group/测试项写入，并同步 `费用对比` 图表辅助区与 `chart1.xml` 缓存。
 
 ## 验证命令
 
@@ -208,16 +250,19 @@ Group E-2 = 96-120
 
 ```bash
 npm run test:run -- src/tests/environmentFeeDetail.test.ts src/tests/mlaEnvironmentFeeExport.test.ts src/tests/environmentOutlinePage.test.tsx src/tests/localStore.test.ts
+npm run test:run -- src/tests/ooxmlPackage.test.ts src/tests/feeWorkbookTemplateManifest.test.ts src/tests/ooxmlWorksheetTransform.test.ts src/tests/templateFeeWorkbookExport.test.ts src/tests/mlaEnvironmentFeeTemplateExport.test.ts
 npm run build
 ```
 
 如果改动只在 Excel 模板合并脚本，还需要额外检查输出文件：
 
-- 主 `.xlsx` 能被解压和 Excel/WPS 打开
+- 主 `.xlsx` 能被解压和 Excel/WPS 打开；下载文件开头应为 ZIP `PK`
 - Sheet 顺序为 8 个 sheet，包含第一页 `样品及辅助设备需求` 和隐藏的 `费用规则校验`
 - 样式、公式、合并单元格和右侧工具区仍存在
+- 动态新增/删除 Group 或测试项目后，新增行进入 marker 覆盖的数据区，公式、条件格式、筛选范围、合并单元格和图表辅助区不产生断裂
 - `费用预估` 主表仍有 `费用计算公式` 列
 - `费用预估` 右侧蓝色费用表格仍有 `Computer Fee`、`Report Fee`、`Total cost`
+- `费用对比!U2:U15` 和 `xl/charts/chart1.xml` 缓存值一致
 - `费用预估` 和 `特殊项目费用` 能搜到 `Computer Fee` / `Report Fee`，且 DV/PV 金额分别为 `12000/1950` 和 `12000/2100`
 - Group A / Group C / D 组 / 特殊项目的样品编号没有重复或断档
 
