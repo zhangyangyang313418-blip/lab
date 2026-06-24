@@ -3,8 +3,8 @@ import { copyFile, mkdir, realpath, stat } from "node:fs/promises";
 import { dirname } from "node:path";
 
 const outputDir = "outputs/mla-fee-export-template";
-const templatePath = "outputs/workbook-edits/final/MLA费用导出模板_流程导出基准.xlsx";
 const outputPath = `${outputDir}/MLA费用导出模板.xlsx`;
+const templatePath = outputPath;
 
 const expectedSheetOrder = [
   "样品及辅助设备需求",

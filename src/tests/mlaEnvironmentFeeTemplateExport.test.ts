@@ -1,8 +1,40 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const outputPath = "outputs/mla-fee-export-template/MLA费用导出模板.xlsx";
+const templatePaths = [
+  "outputs/mla-fee-export-template/MLA费用导出模板.xlsx",
+  "outputs/ema-fee-export-template/EMA费用导出模板.xlsx",
+  "public/templates/MLA费用导出模板.xlsx",
+  "public/templates/EMA费用导出模板.xlsx",
+];
+
+const requiredMarkers = [
+  "_PT_META_OEM",
+  "_PT_META_PLATFORM",
+  "_PT_META_PROJECT_CODE",
+  "_PT_META_STEERING",
+  "_PT_META_PROJECT_TYPE",
+  "_PT_META_EXPORT_SCOPE",
+  "_PT_META_FULL_REUSE",
+  "_PT_META_ENV_TEMPLATE",
+  "_PT_SAMPLE_DYNAMIC_START",
+  "_PT_SAMPLE_DYNAMIC_END",
+  "_PT_FORECAST_DYNAMIC_START",
+  "_PT_FORECAST_DYNAMIC_END",
+  "_PT_SGS_DYNAMIC_START",
+  "_PT_SGS_DYNAMIC_END",
+  "_PT_CTI_DYNAMIC_START",
+  "_PT_CTI_DYNAMIC_END",
+  "_PT_SUBO_DYNAMIC_START",
+  "_PT_SUBO_DYNAMIC_END",
+  "_PT_COMPARE_HELPER_RANGE",
+  "_PT_SPECIAL_DYNAMIC_START",
+  "_PT_SPECIAL_DYNAMIC_END",
+  "_PT_VALIDATION_DYNAMIC_START",
+  "_PT_VALIDATION_DYNAMIC_END",
+];
 
 const expectedSheetOrder = [
   "样品及辅助设备需求",
@@ -100,6 +132,23 @@ function workbookText(): string {
 }
 
 describe("MLA environment fee template export", () => {
+  it("publishes MLA and EMA browser templates with explicit dynamic-region markers", () => {
+    for (const templatePath of templatePaths) {
+      expect(existsSync(templatePath), templatePath).toBe(true);
+      const workbookXml = execFileSync("unzip", ["-p", templatePath, "xl/workbook.xml"], {
+        cwd: process.cwd(),
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+
+      for (const marker of requiredMarkers) {
+        expect(workbookXml, `${templatePath}: ${marker}`).toContain(`name="${marker}"`);
+      }
+      expect(workbookXml.match(/name="_PT_[^"]+"/g)?.length).toBeGreaterThan(requiredMarkers.length);
+      expect(workbookXml).toMatch(/<sheet\b[^>]*name="费用规则校验"[^>]*state="hidden"/);
+    }
+  });
+
   it("saves the current WPS-maintained xlsx template as the flow export workbook", () => {
     execFileSync("node_modules/.bin/vite-node", ["scripts/export_mla_environment_fee_template.ts"], {
       cwd: process.cwd(),
