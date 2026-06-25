@@ -169,68 +169,73 @@ describe("MLA environment fee workbook export", () => {
     const workbook = buildMlaEnvironmentFeeWorkbook(state.environmentPlan, state.projectSetup);
     const demandRows = bodyRows(workbook, "样品及辅助设备需求");
 
-    expect(demandRows[0]).toEqual([
-      "Phase",
-      "需求层级",
-      "组别顺序",
-      "Group",
-      "样品类型",
-      "样品编号",
-      "样品数量",
-      "测试项目数",
-      "HUD样机",
-      "PCBA",
-      "振动/冲击工装",
-      "防尘防水工装",
-      "投图板",
-      "视频源板电源线",
-      "视频源板与PC串口线",
-      "HUD电源线2m",
-      "FPD LINK线2m",
-      "HUD电源线3m",
-      "FPD LINK线3m",
-      "HUB",
-      "USB延长线",
-      "Sensor",
-      "Sensor小板",
-      "Sensor线",
-      "特殊要求",
-    ]);
+    expect(demandRows[0]?.[0]).toBe("Group A");
+    expect(demandRows[0]?.[23]).toBe("Group A");
+    expect(demandRows[0]?.[24]).toBe(14);
 
-    const pvGroupB = demandRows.find((row) => row[0] === "PV" && row[1] === "Group Max" && row[3] === "Group B Sequence Tests");
-    expect(pvGroupB?.slice(4, 18)).toEqual([
-      "HUD",
-      "15-26",
-      12,
-      7,
+    const pvGroupB = demandRows.find((row) => row[23] === "Group B");
+    expect(pvGroupB?.[24]).toBe(12);
+    expect(pvGroupB?.[28]).toBe(12);
+    expect(pvGroupB?.[29]).toBe(12);
+    expect(pvGroupB?.[30]).toBe(12);
+    expect(pvGroupB?.[31]).toBe(24);
+    expect(pvGroupB?.[33]).toBe(24);
+    expect(String(pvGroupB?.[40])).toContain("K18 线束必须为全新的");
+
+    const pvGroupBK18Detail = demandRows.find((row) => (
+      row[23] === "Group B"
+      && row[25] === "K18"
+      && String(row[26]).includes("K18 Connector and lead/lock strength")
+    ));
+    expect(pvGroupBK18Detail?.slice(28, 40)).toEqual([
       12,
       "",
       "",
       "",
-      12,
-      12,
-      12,
-      24,
+      1,
+      1,
+      1,
       24,
       "",
+      24,
+      "",
+      "",
     ]);
-    expect(String(pvGroupB?.[24])).toContain("K18 线束必须为全新的");
+    expect(String(pvGroupBK18Detail?.[44])).toContain("K18 线束必须为全新的");
 
-    const pvGroupD8 = demandRows.find((row) => row[0] === "PV" && row[1] === "Group Max" && row[3] === "Group D Parallel Tests / D-8");
-    expect(pvGroupD8?.[10]).toBe(3);
-    expect(pvGroupD8?.[17]).toBe(3);
-    expect(pvGroupD8?.[18]).toBe(3);
+    const pvGroupAK15Detail = demandRows.find((row) => (
+      row[23] === "Group A"
+      && row[25] === "K15"
+      && String(row[26]).includes("K15 Vibration")
+    ));
+    expect(pvGroupAK15Detail?.[36]).toBe(6);
+    expect(pvGroupAK15Detail?.[38]).toBe(6);
 
-    const pvGroupC = demandRows.find((row) => row[0] === "PV" && row[1] === "Group Max" && row[3] === "Group C Sequence Tests");
-    expect(pvGroupC?.slice(19, 24)).toEqual([6, 18, 18, 18, 18]);
+    const pvGroupD8 = demandRows.find((row) => row[23] === "Group D-8");
+    expect(pvGroupD8?.[28]).toBe(12);
+    expect(pvGroupD8?.[29]).toBe(12);
+    expect(pvGroupD8?.[30]).toBe(12);
+    expect(pvGroupD8?.[32]).toBe(3);
+    expect(pvGroupD8?.[34]).toBe(3);
+    const pvGroupD8K28Detail = demandRows.find((row) => (
+      row[23] === "Group D-8"
+      && row[25] === "K28"
+      && String(row[26]).includes("HALT Cold")
+    ));
+    expect(pvGroupD8K28Detail?.[32]).toBe(3);
+    expect(pvGroupD8K28Detail?.[36]).toBe(3);
+    expect(pvGroupD8K28Detail?.[38]).toBe(3);
 
-    const pvBackup = demandRows.find((row) => row[0] === "PV" && row[1] === "备样" && row[3] === "HUD 备样");
-    expect(pvBackup?.[8]).toBe(3);
+    const pvGroupC = demandRows.find((row) => row[23] === "Group C");
+    expect(pvGroupC?.slice(35, 40)).toEqual([6, 18, 18, 18, 18]);
 
-    const pvTotal = demandRows.find((row) => row[0] === "PV" && row[1] === "Phase Total");
-    expect(pvTotal?.[8]).toBe(109);
-    expect(pvTotal?.[9]).toBe(14);
-    expect(pvTotal?.[10]).toBe(6);
+    const pvBackup = demandRows.find((row) => row[23] === "备样");
+    expect(pvBackup?.[24]).toBe(3);
+
+    const pvTotal = demandRows.find((row) => row[23] === "全部组别合计");
+    expect(pvTotal?.[24]).toBe(109);
+    expect(pvTotal?.[25]).toBe(14);
+    expect(pvTotal?.[26]).toBe(6);
   });
 
   it("exports sample identifiers as continuous phase group ranges", () => {
@@ -421,5 +426,59 @@ describe("MLA environment fee workbook export", () => {
     expect(specialRows.some((row) => row[2] === "DV" && row[4] === "Report Fee" && row[9] === 1950)).toBe(true);
     expect(specialRows.some((row) => row[2] === "PV" && row[4] === "Computer Fee" && row[9] === 12000)).toBe(true);
     expect(specialRows.some((row) => row[2] === "PV" && row[4] === "Report Fee" && row[9] === 2100)).toBe(true);
+  });
+
+  it("keeps unknown outline rows and marks their fee rule as pending", () => {
+    const state = createSeedAppState();
+    const phase = state.environmentPlan.phases[0]!;
+    const group = phase.groups[0]!;
+    group.rows.splice(3, 0, {
+      id: "manual-stable-unknown-test",
+      label: "CUSTOM UNKNOWN TEST",
+      testHours: "5",
+      sampleRange: "1-4",
+    });
+
+    const workbook = buildMlaEnvironmentFeeWorkbook(state.environmentPlan, state.projectSetup);
+    const forecastRow = dataRows(workbook, "费用预估").find((row) => row[5] === "CUSTOM UNKNOWN TEST");
+    const validationRow = bodyRows(workbook, "费用规则校验").find((row) => row[5] === "CUSTOM UNKNOWN TEST");
+
+    expect(forecastRow).toBeDefined();
+    expect(forecastRow?.[2]).toBe("DV");
+    expect(forecastRow?.[9]).toBe("待确认");
+    expect(forecastRow?.[11]).toBe("");
+    expect(forecastRow?.[12]).toBe("");
+    expect(forecastRow?.[13]).toBe("");
+
+    expect(validationRow).toBeDefined();
+    expect(validationRow?.[8]).toBe("");
+    expect(validationRow?.[9]).toBe("");
+    expect(validationRow?.[10]).toBe("");
+    expect(validationRow?.[11]).toBe("规则待确认");
+  });
+
+  it("keeps groups with duplicate display names separate by stable group id", () => {
+    const state = createSeedAppState();
+    const phase = state.environmentPlan.phases[0]!;
+    const firstGroup = phase.groups[0]!;
+    phase.groups.push({
+      ...structuredClone(firstGroup),
+      id: "manual-stable-duplicate-group",
+      title: firstGroup.title,
+      rows: [{
+        id: "manual-stable-duplicate-group-k1",
+        label: "K1 Low Temperature Exposure",
+        testHours: "2",
+        sampleRange: "1-1",
+      }],
+      totalSampleQty: "1",
+    });
+
+    const workbook = buildMlaEnvironmentFeeWorkbook(state.environmentPlan, state.projectSetup);
+    const comparisonRows = dataRows(workbook, "费用对比").filter((row) => (
+      row[2] === "DV" && row[3] === "Group A Sequence Tests"
+    ));
+
+    expect(comparisonRows).toHaveLength(2);
   });
 });

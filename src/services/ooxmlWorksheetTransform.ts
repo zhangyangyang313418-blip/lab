@@ -152,6 +152,35 @@ function intersectsRows(reference: string, startRow: number, endRow: number): bo
   return rows.start <= endRow && rows.end >= startRow;
 }
 
+function parseWorksheetRows(sheetData: string): { row: number; xml: string }[] {
+  const rows: { row: number; xml: string }[] = [];
+  const rowTagPattern = /<row\b[^>]*>/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = rowTagPattern.exec(sheetData)) !== null) {
+    const startTag = match[0];
+    const row = Number(startTag.match(/\br="(\d+)"/)?.[1]);
+    if (!Number.isFinite(row)) {
+      continue;
+    }
+
+    if (startTag.endsWith("/>")) {
+      rows.push({ row, xml: startTag });
+      continue;
+    }
+
+    const closeIndex = sheetData.indexOf("</row>", rowTagPattern.lastIndex);
+    if (closeIndex === -1) {
+      throw new Error(`Worksheet row ${row} is missing closing </row>`);
+    }
+    const endIndex = closeIndex + "</row>".length;
+    rows.push({ row, xml: sheetData.slice(match.index, endIndex) });
+    rowTagPattern.lastIndex = endIndex;
+  }
+
+  return rows;
+}
+
 function rewriteMergeCellsFromOriginal(
   originalXml: string,
   rewrittenXml: string,
@@ -221,8 +250,7 @@ export function replaceMarkedWorksheetRows(
   }
 
   const sheetData = sheetDataMatch[1] ?? "";
-  const rows = [...sheetData.matchAll(/<row\b[^>]*\br="(\d+)"[^>]*>[\s\S]*?<\/row>/g)]
-    .map((match) => ({ row: Number(match[1]!), xml: match[0] }));
+  const rows = parseWorksheetRows(sheetData);
   const before = rows.filter((row) => row.row < startRow);
   const after = rows.filter((row) => row.row > endRow);
   const replacementCount = rowXml.length;

@@ -8,15 +8,23 @@
 
 ## 2026-06-25 费用导出数据丢失 Bug 交接
 
-当前状态：本问题尚未彻底修复。已经先将项目前置配置中的驾驶方向改为单选，禁止 `LHD` 与 `RHD` 同时选中，以减少混合大纲导致的样品需求和费用导出错乱；但用户确认当前费用导出仍存在数据丢失/错位情况，后续需要继续专门修复 `.xlsx` 导出链路。
+当前状态：已继续修复第一页 `样品及辅助设备需求` 被重排导致的 PV 右侧区域、汇总字段和需求细则丢失问题。当前实现恢复为母版动态区结构：DV 写在左侧 `A:V`，PV 写在右侧 `X:AS`，上方保留左右并排的 Group/备样/全部组别合计汇总，下方 `需求细则` 按左右并排 Group 区块写入每个测试项。
 
 本地 Git 状态：最新单选缓解已提交到 `main`，提交为 `886f38f fix: restrict project steering selection to one side`。截至本交接撰写时，本地 `main` 领先 `origin/main`，后续修复前先确认是否需要 push 或继续在本地 main 上修。
 
-已知现象：
+本轮继续修复记录：
+
+- 已发现并修复一类真实 OOXML 结构问题：导出写入元数据与 `费用对比` 图表辅助区时，原先通过全局正则匹配 `<row>` / `<c>`，在包含自闭合空行、静态工具区和动态替换区的 sheet 中可能把后续行的单元格错误拼入前一行，导致 row 顺序异常或单元格行号与所属 `<row>` 不一致。
+- 修复点在 `src/services/ooxmlWorksheetTransform.ts` 和 `src/services/templateFeeWorkbookExport.ts`：改为显式扫描 worksheet row，安全处理自闭合 row，并且所有 cell 写入先定位目标 row，再在该 row 内替换/插入；缺失 row 时按行号插入，避免追加到 sheetData 末尾。
+- 已在 `src/tests/templateFeeWorkbookExport.test.ts` 增加 workbook 级完整性断言：所有 worksheet 的 row 必须保持递增顺序，且 `<c r="...">` 的行号必须与所属 `<row r="...">` 一致。
+- 已通过目标回归：`templateFeeWorkbookExport`、`ooxmlWorksheetTransform`、`mlaEnvironmentFeeExport`、`environmentOutlinePage`、`localStore`、`feeWorkbookTemplateManifest`、`ooxmlPackage`、`mlaEnvironmentFeeTemplateExport`，共 71 个用例；`npm run build` 通过。浏览器插件未能暴露程序化 Blob 下载文件，因此仍建议后续用用户实际下载文件/WPS 打开做最终人工验收。
+- 修复第一页 `样品及辅助设备需求` 明细缺失与母版格式被改坏：之前把 `sampleDemandSheet()` 改成自带表头的纵向清单，导致母版首页原本的 DV 左侧、PV 右侧、汇总区和 `需求细则` 分区被破坏。现已恢复母版 45 列动态区写法：汇总行按 `A:V` / `X:AS` 左右并排写入，PV 固定在右侧；`需求细则` 下每个 Group 仍按左右并排区块输出，并写入每个测试项的样品数量、辅助设备、线束、传感器和特殊要求。测试覆盖 `PV / Group B / K18`、`PV / Group A / K15`、`PV / Group D-8 / K28`、`PV / Group C` 传感器需求和 PV `备样/全部组别合计`，模板导出测试断言第一页 XML 包含 `需求细则`、`Max` 与 `K18 Connector and lead/lock strength`。
+
+历史现象与仍需人工验收项：
 
 - WPS 打开的费用导出文件可能出现主数据区看起来为空、错位、重复或内容被模板区域遮挡。
 - 用户截图中 `样品及辅助设备需求` 出现大面积空白/黄色列、重复区块、`##`、红色汇总数字和备注文字错位。
-- 之前曾发现一类具体问题：动态区旧合并单元格被错误拉伸，造成数据虽写入 XML 但被跨行合并遮挡。该类问题已在 `2e7fe0e fix: keep xlsx fee export dynamic rows visible` 中处理，但用户确认仍有残余数据丢失/错位，不能把该提交视为最终修复。
+- 之前曾发现一类具体问题：动态区旧合并单元格被错误拉伸，造成数据虽写入 XML 但被跨行合并遮挡。该类问题已在 `2e7fe0e fix: keep xlsx fee export dynamic rows visible` 中处理；本轮继续补上第一页母版布局恢复与逐项需求细则写入，仍建议用实际浏览器下载文件在 WPS/Excel 中做最终人工验收。
 
 必须遵守的修复边界：
 

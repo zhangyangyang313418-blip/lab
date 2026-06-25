@@ -8,12 +8,19 @@ import type { EnvironmentPlanGroup, EnvironmentPlanPhase, EnvironmentPlanRow, En
 import type { EnvironmentFeeChargeBasis, EnvironmentFeeDetailRow, EnvironmentFeeLabName } from "../types/environmentFeeDetail";
 import type { PlatformCode, ProjectSetup } from "../types/project";
 import { formatSteeringSides } from "../utils/projectLabels";
+import {
+  buildFeeWorkbookExportRecords,
+  feeWorkbookSheetSchemas,
+} from "./feeWorkbookExportModel";
 
 type CellValue = string | number | boolean | null | undefined;
+export type MlaFeeRowRole = "summary" | "phase" | "group" | "header" | "data" | "last-data" | "total" | "additional" | "blank";
 
 export interface MlaFeeWorksheet {
   name: string;
   rows: CellValue[][];
+  rowRoles?: MlaFeeRowRole[];
+  businessColumnCount?: number;
 }
 
 export interface MlaFeeWorkbook {
@@ -22,6 +29,11 @@ export interface MlaFeeWorkbook {
 }
 
 interface ExportRow {
+  phaseKey: string;
+  groupKey: string;
+  rowKey: string;
+  sourceKey: string;
+  ruleKey: string | null;
   groupOrder: number;
   flowGroupTitle: string;
   rowOrder: number;
@@ -82,6 +94,17 @@ interface GroupDemandRow {
   sampleRange: string;
   sampleQuantity: number;
   testItemCount: number;
+  totals: DemandTotals;
+  notes: string;
+}
+
+interface ItemDemandRow {
+  phaseTitle: string;
+  flowGroupTitle: string;
+  testItemTitle: string;
+  sampleType: "HUD" | "PCBA";
+  sampleRange: string;
+  sampleQuantity: number;
   totals: DemandTotals;
   notes: string;
 }
@@ -149,33 +172,17 @@ const specialHeaders = [
 ];
 
 const validationHeaders = ["实验室", "Excel行号", "Phase", "Group", "测试编号", "测试项目", "样品范围", "计费基数", "当前费用", "规则费用", "差异", "校验结果", "规则/公式说明"];
-const sampleDemandHeaders = [
-  "Phase",
-  "需求层级",
-  "组别顺序",
-  "Group",
-  "样品类型",
-  "样品编号",
-  "样品数量",
-  "测试项目数",
-  "HUD样机",
-  "PCBA",
-  "振动/冲击工装",
-  "防尘防水工装",
-  "投图板",
-  "视频源板电源线",
-  "视频源板与PC串口线",
-  "HUD电源线2m",
-  "FPD LINK线2m",
-  "HUD电源线3m",
-  "FPD LINK线3m",
-  "HUB",
-  "USB延长线",
-  "Sensor",
-  "Sensor小板",
-  "Sensor线",
-  "特殊要求",
-];
+const sampleDemandSheetWidth = 45;
+const businessColumnCountBySheet: Record<string, number> = {
+  样品及辅助设备需求: feeWorkbookSheetSchemas.sampleDemandPv.businessColumns.length + 23,
+  费用预估: feeWorkbookSheetSchemas.forecast.businessColumns.length,
+  SGS: feeWorkbookSheetSchemas.sgs.businessColumns.length,
+  华测: feeWorkbookSheetSchemas.cti.businessColumns.length,
+  苏勃: feeWorkbookSheetSchemas.subo.businessColumns.length,
+  费用对比: feeWorkbookSheetSchemas.comparison.businessColumns.length,
+  特殊项目费用: feeWorkbookSheetSchemas.special.businessColumns.length,
+  费用规则校验: feeWorkbookSheetSchemas.validation.businessColumns.length,
+};
 
 function phaseScope(plan: EnvironmentPlanSheet): string {
   return plan.phases.map((phase) => phase.title).join(" + ");
@@ -199,6 +206,10 @@ function withMetadata(sheet: MlaFeeWorksheet, plan: EnvironmentPlanSheet, contex
       ...metadataRows(plan, context),
       [],
       ...sheet.rows,
+    ],
+    rowRoles: [
+      ...Array.from({ length: 7 }, () => "blank" as const),
+      ...(sheet.rowRoles ?? []),
     ],
   };
 }
@@ -423,6 +434,12 @@ function normalizeSampleIdentifierRange(sampleRange: string | undefined, scope: 
 }
 
 function buildExportRows(plan: EnvironmentPlanSheet): ExportRow[] {
+  const identitiesBySourceKey = new Map(
+    buildFeeWorkbookExportRecords(plan)
+      .filter((record) => record.sourceKey !== null)
+      .map((record) => [record.sourceKey!, record]),
+  );
+
   return plan.phases.flatMap((phase) => {
     const outlineById = getOutlineById(phase);
     const groupOrderById = new Map<string, number>(phase.groups.map((group, index) => [group.id, index + 1]));
@@ -436,11 +453,18 @@ function buildExportRows(plan: EnvironmentPlanSheet): ExportRow[] {
         const outline = outlineById.get(`${section.groupId}:${detailRow.outlineRowId}`);
         const ownership = isInternalFee(detailRow.testName) ? "内部费用" : "委外费用";
         const rowKey = `${section.groupId}:${detailRow.outlineRowId}`;
+        const sourceKey = `${phase.id}/${section.groupId}/${detailRow.outlineRowId}`;
+        const identity = identitiesBySourceKey.get(sourceKey);
 
         const groupOrder = groupOrderById.get(section.groupId) ?? 0;
         const displayTitle = displayGroupTitle(section.groupTitle, detailRow.testName);
 
         return {
+          phaseKey: phase.id,
+          groupKey: section.groupId,
+          rowKey: detailRow.outlineRowId,
+          sourceKey,
+          ruleKey: identity?.ruleKey ?? null,
           groupOrder,
           flowGroupTitle: section.groupTitle,
           rowOrder: rowOrderByKey.get(rowKey) ?? 0,
@@ -517,7 +541,7 @@ function padRow(label: string, length: number): CellValue[] {
 function phaseOrderSummary(phaseTitle: string, rows: ExportRow[], length: number): CellValue[] {
   const groupLabels = rows
     .filter((row, index, items) =>
-      items.findIndex((item) => item.phaseTitle === row.phaseTitle && item.groupTitle === row.groupTitle) === index,
+      items.findIndex((item) => item.phaseKey === row.phaseKey && item.groupKey === row.groupKey) === index,
     )
     .map((row) => row.flowGroupTitle)
     .join(" -> ");
@@ -527,31 +551,38 @@ function phaseOrderSummary(phaseTitle: string, rows: ExportRow[], length: number
 
 function appendGroupedRows(
   rows: CellValue[][],
+  rowRoles: MlaFeeRowRole[],
   sourceRows: ExportRow[],
   headers: string[],
   mapRow: (row: ExportRow) => CellValue[],
 ) {
   let currentPhase = "";
-  let currentGroup = "";
+  let currentGroupKey = "";
 
   for (const row of sourceRows) {
     if (row.phaseTitle !== currentPhase) {
       if (rows.length > 0) {
         rows.push([]);
+        rowRoles.push("blank");
       }
       rows.push(phaseOrderSummary(row.phaseTitle, sourceRows.filter((item) => item.phaseTitle === row.phaseTitle), headers.length));
+      rowRoles.push("summary");
       rows.push(padRow(`Phase: ${row.phaseTitle}`, headers.length));
+      rowRoles.push("phase");
       currentPhase = row.phaseTitle;
-      currentGroup = "";
+      currentGroupKey = "";
     }
 
-    if (row.groupTitle !== currentGroup) {
+    if (row.groupKey !== currentGroupKey) {
       rows.push(padRow(`${row.flowGroupTitle}：${row.phaseTitle} / ${row.displayGroupTitle}`, headers.length));
+      rowRoles.push("group");
       rows.push(headers);
-      currentGroup = row.groupTitle;
+      rowRoles.push("header");
+      currentGroupKey = row.groupKey;
     }
 
     rows.push(mapRow(row));
+    rowRoles.push("data");
   }
 }
 
@@ -756,37 +787,223 @@ function itemDemandTotals(row: EnvironmentPlanRow, group: EnvironmentPlanGroup):
   return { totals, notes };
 }
 
-function demandRowCells(row: GroupDemandRow | { phaseTitle: string; level: string; displayName?: string; totals: DemandTotals; sampleQuantity?: number; testItemCount?: number; notes?: string }): CellValue[] {
-  const isGroup = "flowGroupTitle" in row;
-  const totals = row.totals;
+interface DemandSummaryRow {
+  label: string;
+  totals: DemandTotals;
+  notes: string;
+}
 
-  return [
-    row.phaseTitle,
-    isGroup ? "Group Max" : row.level,
-    isGroup ? row.flowGroupTitle : "",
-    isGroup ? row.displayGroupTitle : row.displayName ?? row.level,
-    isGroup ? row.sampleType : "",
-    isGroup ? row.sampleRange : "",
-    isGroup ? row.sampleQuantity : row.sampleQuantity ?? "",
-    isGroup ? row.testItemCount : row.testItemCount ?? "",
-    demandValue(totals.hudSamples),
-    demandValue(totals.pcbaSamples),
-    demandValue(totals.vibrationFixture),
-    demandValue(totals.dustWaterFixture),
-    demandValue(totals.projectionBoard),
-    demandValue(totals.videoPowerCable),
-    demandValue(totals.serialCable),
-    demandValue(totals.hudPower2m),
-    demandValue(totals.fpdLink2m),
-    demandValue(totals.hudPower3m),
-    demandValue(totals.fpdLink3m),
-    demandValue(totals.hub),
-    demandValue(totals.usbExtension),
-    demandValue(totals.sensor),
-    demandValue(totals.sensorBoard),
-    demandValue(totals.sensorCable),
-    isGroup ? row.notes : row.notes ?? "",
-  ];
+function sampleDemandRow(): CellValue[] {
+  return Array.from({ length: sampleDemandSheetWidth }, () => "");
+}
+
+function summaryRowsForPhase(phase: EnvironmentPlanPhase): { groupRows: GroupDemandRow[]; rows: DemandSummaryRow[] } {
+  const groupRows = buildGroupDemandRows(phase);
+  const backupTotals = emptyDemandTotals();
+  backupTotals.hudSamples = 3;
+
+  const phaseTotals = sumPhaseDemandTotals(groupRows);
+  phaseTotals.hudSamples += backupTotals.hudSamples;
+
+  return {
+    groupRows,
+    rows: [
+      ...groupRows.map((row) => ({
+        label: row.flowGroupTitle,
+        totals: row.totals,
+        notes: row.notes,
+      })),
+      {
+        label: "备样",
+        totals: backupTotals,
+        notes: "DV/PV 各固定增加 3 台 HUD 备样；备样不增加辅助设备或耗材",
+      },
+      {
+        label: "全部组别合计",
+        totals: phaseTotals,
+        notes: "HUD/PCBA/耗材按 Group 合计；振动/冲击工装、防尘防水工装、3m 线束按 Phase 最大值准备",
+      },
+    ],
+  };
+}
+
+function placeSummaryCells(target: CellValue[], offset: 0 | 23, row: DemandSummaryRow): void {
+  target[offset] = row.label;
+  target[offset + 1] = demandValue(row.totals.hudSamples);
+  target[offset + 2] = demandValue(row.totals.pcbaSamples);
+  target[offset + 3] = demandValue(row.totals.vibrationFixture);
+  target[offset + 4] = demandValue(row.totals.dustWaterFixture);
+  target[offset + 5] = demandValue(row.totals.projectionBoard);
+  target[offset + 6] = demandValue(row.totals.videoPowerCable);
+  target[offset + 7] = demandValue(row.totals.serialCable);
+  target[offset + 8] = demandValue(row.totals.hudPower2m);
+  target[offset + 9] = demandValue(row.totals.hudPower3m);
+  target[offset + 10] = demandValue(row.totals.fpdLink2m);
+  target[offset + 11] = demandValue(row.totals.fpdLink3m);
+  target[offset + 12] = demandValue(row.totals.hub);
+  target[offset + 13] = demandValue(row.totals.usbExtension);
+  target[offset + 14] = demandValue(row.totals.sensor);
+  target[offset + 15] = demandValue(row.totals.sensorBoard);
+  target[offset + 16] = demandValue(row.totals.sensorCable);
+  target[offset + 17] = row.notes;
+}
+
+function detailSectionTitleRow(left: boolean, right: boolean): CellValue[] {
+  const row = sampleDemandRow();
+  if (left) {
+    row[0] = "需求细则";
+  }
+  if (right) {
+    row[23] = "需求细则";
+  }
+  return row;
+}
+
+function placeDetailGroupHeader(target: CellValue[], offset: 0 | 23, group: GroupDemandRow): void {
+  target[offset] = group.displayGroupTitle;
+  target[offset + 5] = "样品需求";
+  target[offset + 7] = "辅助设备需求";
+  target[offset + 9] = "电源线及信号线缆需求";
+  target[offset + 12] = "设备转接/通讯";
+  target[offset + 16] = "整车信号/传感器";
+  target[offset + 21] = "特殊要求";
+}
+
+function detailGroupHeaderRow(leftGroup?: GroupDemandRow, rightGroup?: GroupDemandRow): CellValue[] {
+  const row = sampleDemandRow();
+  if (leftGroup) {
+    placeDetailGroupHeader(row, 0, leftGroup);
+  }
+  if (rightGroup) {
+    placeDetailGroupHeader(row, 23, rightGroup);
+  }
+  return row;
+}
+
+function placeDetailColumnHeader(target: CellValue[], offset: 0 | 23): void {
+  target[offset] = "组别顺序";
+  target[offset + 1] = "组内顺序";
+  target[offset + 2] = "测试编号";
+  target[offset + 3] = "测试项目";
+  target[offset + 5] = "HUD样机";
+  target[offset + 6] = "PCBA";
+  target[offset + 7] = "振动/冲击工装";
+  target[offset + 8] = "防尘防水工装";
+  target[offset + 9] = "投图板";
+  target[offset + 10] = "视频源板电源线";
+  target[offset + 11] = "视频源板与PC串口线";
+  target[offset + 12] = "HUD电源线2m";
+  target[offset + 13] = "HUD电源线3m";
+  target[offset + 14] = "FPD LINK线2m";
+  target[offset + 15] = "FPD LINK线3m";
+  target[offset + 16] = "HUB";
+  target[offset + 17] = "USB延长线";
+  target[offset + 18] = "Sensor";
+  target[offset + 19] = "Sensor小板";
+  target[offset + 20] = "Sensor线";
+  target[offset + 21] = "特殊要求";
+}
+
+function detailColumnHeaderRow(left: boolean, right: boolean): CellValue[] {
+  const row = sampleDemandRow();
+  if (left) {
+    placeDetailColumnHeader(row, 0);
+  }
+  if (right) {
+    placeDetailColumnHeader(row, 23);
+  }
+  return row;
+}
+
+function demandTestCode(testItemTitle: string): string {
+  if (/^Optical Test$/i.test(testItemTitle)) {
+    return "Optical";
+  }
+  if (/^L1\s*&\s*L4/i.test(testItemTitle)) {
+    return "L1&L4";
+  }
+  if (/^L6-photo&xray/i.test(testItemTitle)) {
+    return "L6-photo&xray";
+  }
+  if (/^Particle Exposure/i.test(testItemTitle)) {
+    return "Particle";
+  }
+
+  return testItemTitle.match(/^([A-Z]\d+(?:\.\d+)?|E-\d)\b/i)?.[1] ?? testItemTitle;
+}
+
+function placeDetailDataCells(target: CellValue[], offset: 0 | 23, group: EnvironmentPlanGroup, item: ItemDemandRow, order: number): void {
+  target[offset] = group.title;
+  target[offset + 1] = order;
+  target[offset + 2] = demandTestCode(item.testItemTitle);
+  target[offset + 3] = item.testItemTitle;
+  target[offset + 5] = item.sampleType === "HUD" ? demandValue(item.sampleQuantity) : "";
+  target[offset + 6] = item.sampleType === "PCBA" ? demandValue(item.sampleQuantity) : "";
+  target[offset + 7] = demandValue(item.totals.vibrationFixture);
+  target[offset + 8] = demandValue(item.totals.dustWaterFixture);
+  target[offset + 9] = demandValue(item.totals.projectionBoard);
+  target[offset + 10] = demandValue(item.totals.videoPowerCable);
+  target[offset + 11] = demandValue(item.totals.serialCable);
+  target[offset + 12] = demandValue(item.totals.hudPower2m);
+  target[offset + 13] = demandValue(item.totals.hudPower3m);
+  target[offset + 14] = demandValue(item.totals.fpdLink2m);
+  target[offset + 15] = demandValue(item.totals.fpdLink3m);
+  target[offset + 16] = demandValue(item.totals.hub);
+  target[offset + 17] = demandValue(item.totals.usbExtension);
+  target[offset + 18] = demandValue(item.totals.sensor);
+  target[offset + 19] = demandValue(item.totals.sensorBoard);
+  target[offset + 20] = demandValue(item.totals.sensorCable);
+  target[offset + 21] = item.notes;
+}
+
+function detailDataRow(
+  leftGroup: EnvironmentPlanGroup | undefined,
+  leftItem: ItemDemandRow | undefined,
+  leftOrder: number,
+  rightGroup: EnvironmentPlanGroup | undefined,
+  rightItem: ItemDemandRow | undefined,
+  rightOrder: number,
+): CellValue[] {
+  const row = sampleDemandRow();
+  if (leftGroup && leftItem) {
+    placeDetailDataCells(row, 0, leftGroup, leftItem, leftOrder);
+  }
+  if (rightGroup && rightItem) {
+    placeDetailDataCells(row, 23, rightGroup, rightItem, rightOrder);
+  }
+  return row;
+}
+
+function placeDetailTotalCells(target: CellValue[], offset: 0 | 23, group: GroupDemandRow): void {
+  target[offset] = "Max";
+  target[offset + 5] = group.sampleType === "HUD" ? demandValue(group.sampleQuantity) : "";
+  target[offset + 6] = group.sampleType === "PCBA" ? demandValue(group.sampleQuantity) : "";
+  target[offset + 7] = demandValue(group.totals.vibrationFixture);
+  target[offset + 8] = demandValue(group.totals.dustWaterFixture);
+  target[offset + 9] = demandValue(group.totals.projectionBoard);
+  target[offset + 10] = demandValue(group.totals.videoPowerCable);
+  target[offset + 11] = demandValue(group.totals.serialCable);
+  target[offset + 12] = demandValue(group.totals.hudPower2m);
+  target[offset + 13] = demandValue(group.totals.hudPower3m);
+  target[offset + 14] = demandValue(group.totals.fpdLink2m);
+  target[offset + 15] = demandValue(group.totals.fpdLink3m);
+  target[offset + 16] = demandValue(group.totals.hub);
+  target[offset + 17] = demandValue(group.totals.usbExtension);
+  target[offset + 18] = demandValue(group.totals.sensor);
+  target[offset + 19] = demandValue(group.totals.sensorBoard);
+  target[offset + 20] = demandValue(group.totals.sensorCable);
+  target[offset + 21] = group.notes;
+}
+
+function detailTotalRow(leftGroup?: GroupDemandRow, rightGroup?: GroupDemandRow): CellValue[] {
+  const row = sampleDemandRow();
+  if (leftGroup) {
+    placeDetailTotalCells(row, 0, leftGroup);
+  }
+  if (rightGroup) {
+    placeDetailTotalCells(row, 23, rightGroup);
+  }
+  return row;
 }
 
 function buildGroupDemandRows(phase: EnvironmentPlanPhase): GroupDemandRow[] {
@@ -833,52 +1050,100 @@ function buildGroupDemandRows(phase: EnvironmentPlanPhase): GroupDemandRow[] {
   });
 }
 
+function buildItemDemandRows(phase: EnvironmentPlanPhase, group: EnvironmentPlanGroup): ItemDemandRow[] {
+  const sampleScopes = getGroupSampleIdentifierScopes(phase);
+  const scope = sampleScopes.get(group.id);
+  const sampleType = isPcbaDemandGroup(group) ? "PCBA" : "HUD";
+
+  return group.rows.map((row) => {
+    const itemDemand = itemDemandTotals(row, group);
+    const sampleRange = normalizeSampleIdentifierRange(row.sampleRange, scope);
+    const sampleQuantity = demandQuantity(row, group);
+    return {
+      phaseTitle: phase.title,
+      flowGroupTitle: group.title,
+      testItemTitle: row.label,
+      sampleType,
+      sampleRange,
+      sampleQuantity,
+      totals: itemDemand.totals,
+      notes: itemDemand.notes.join("；"),
+    };
+  });
+}
+
 function sampleDemandSheet(plan: EnvironmentPlanSheet): MlaFeeWorksheet {
-  const rows: CellValue[][] = [sampleDemandHeaders];
+  const rows: CellValue[][] = [];
+  const rowRoles: MlaFeeRowRole[] = [];
+  const leftPhase = plan.phases[0];
+  const rightPhase = plan.phases[1];
+  const left = leftPhase ? summaryRowsForPhase(leftPhase) : undefined;
+  const right = rightPhase ? summaryRowsForPhase(rightPhase) : undefined;
+  const summaryCount = Math.max(left?.rows.length ?? 0, right?.rows.length ?? 0);
 
-  for (const phase of plan.phases) {
-    const groupRows = buildGroupDemandRows(phase);
-    rows.push([]);
-    rows.push(padRow(`Phase: ${phase.title}`, sampleDemandHeaders.length));
-
-    for (const groupRow of groupRows) {
-      rows.push(demandRowCells(groupRow));
+  for (let index = 0; index < summaryCount; index += 1) {
+    const row = sampleDemandRow();
+    const leftRow = left?.rows[index];
+    const rightRow = right?.rows[index];
+    if (leftRow) {
+      placeSummaryCells(row, 0, leftRow);
     }
+    if (rightRow) {
+      placeSummaryCells(row, 23, rightRow);
+    }
+    rows.push(row);
+    rowRoles.push("summary");
+  }
 
-    const backupTotals = emptyDemandTotals();
-    backupTotals.hudSamples = 3;
-    rows.push(demandRowCells({
-      phaseTitle: phase.title,
-      level: "备样",
-      displayName: "HUD 备样",
-      totals: backupTotals,
-      sampleQuantity: 3,
-      notes: "DV/PV 各固定增加 3 台 HUD 备样；备样不增加辅助设备或耗材",
-    }));
+  rows.push(sampleDemandRow());
+  rowRoles.push("blank");
+  rows.push(detailSectionTitleRow(Boolean(leftPhase), Boolean(rightPhase)));
+  rowRoles.push("group");
 
-    const phaseTotals = sumPhaseDemandTotals(groupRows);
-    phaseTotals.hudSamples += backupTotals.hudSamples;
-    rows.push(demandRowCells({
-      phaseTitle: phase.title,
-      level: "Phase Total",
-      displayName: "Phase Total",
-      totals: phaseTotals,
-      sampleQuantity: groupRows.reduce((sum, row) => sum + row.sampleQuantity, 0) + 3,
-      testItemCount: groupRows.reduce((sum, row) => sum + row.testItemCount, 0),
-      notes: "HUD/PCBA/耗材按 Group 合计；振动/冲击工装、防尘防水工装、3m 线束按 Phase 最大值准备",
-    }));
+  const groupCount = Math.max(leftPhase?.groups.length ?? 0, rightPhase?.groups.length ?? 0);
+  for (let groupIndex = 0; groupIndex < groupCount; groupIndex += 1) {
+    const leftGroup = leftPhase?.groups[groupIndex];
+    const rightGroup = rightPhase?.groups[groupIndex];
+    const leftGroupSummary = left?.groupRows[groupIndex];
+    const rightGroupSummary = right?.groupRows[groupIndex];
+    const leftItems = leftGroup && leftPhase ? buildItemDemandRows(leftPhase, leftGroup) : [];
+    const rightItems = rightGroup && rightPhase ? buildItemDemandRows(rightPhase, rightGroup) : [];
+    const itemCount = Math.max(leftItems.length, rightItems.length);
+
+    rows.push(detailGroupHeaderRow(leftGroupSummary, rightGroupSummary));
+    rowRoles.push("group");
+    rows.push(detailColumnHeaderRow(Boolean(leftGroup), Boolean(rightGroup)));
+    rowRoles.push("header");
+    for (let itemIndex = 0; itemIndex < itemCount; itemIndex += 1) {
+      rows.push(detailDataRow(
+        leftGroup,
+        leftItems[itemIndex],
+        itemIndex + 1,
+        rightGroup,
+        rightItems[itemIndex],
+        itemIndex + 1,
+      ));
+      rowRoles.push("data");
+    }
+    rows.push(detailTotalRow(leftGroupSummary, rightGroupSummary));
+    rowRoles.push("total");
+    rows.push(sampleDemandRow());
+    rowRoles.push("blank");
   }
 
   return {
     name: "样品及辅助设备需求",
     rows,
+    rowRoles,
   };
 }
 
 function forecastSheet(rows: ExportRow[]): MlaFeeWorksheet {
   const sheetRows: CellValue[][] = [];
+  const rowRoles: MlaFeeRowRole[] = [];
   appendGroupedRows(
     sheetRows,
+    rowRoles,
     rows.filter((row) => !row.special),
     forecastHeaders,
     (row) => [
@@ -904,20 +1169,26 @@ function forecastSheet(rows: ExportRow[]): MlaFeeWorksheet {
   return {
     name: "费用预估",
     rows: sheetRows,
+    rowRoles,
   };
 }
 
-function appendForecastAdditionalFeeRows(rows: CellValue[][], additionalRows: AdditionalFeeExportRow[]) {
+function appendForecastAdditionalFeeRows(rows: CellValue[][], rowRoles: MlaFeeRowRole[], additionalRows: AdditionalFeeExportRow[]) {
   let currentPhase = "";
   for (const row of additionalRows) {
     if (row.phaseTitle !== currentPhase) {
       if (rows.length > 0) {
         rows.push([]);
+        rowRoles.push("blank");
       }
       rows.push([`${row.phaseTitle} 附加费用`, "Computer Fee -> Report Fee", ...Array.from({ length: Math.max(forecastHeaders.length - 2, 0) }, () => "")]);
+      rowRoles.push("additional");
       rows.push(padRow(`Phase: ${row.phaseTitle}`, forecastHeaders.length));
+      rowRoles.push("phase");
       rows.push(padRow(`${row.phaseTitle} / 费用汇总附加费用`, forecastHeaders.length));
+      rowRoles.push("group");
       rows.push(forecastHeaders);
+      rowRoles.push("header");
       currentPhase = row.phaseTitle;
     }
 
@@ -939,12 +1210,13 @@ function appendForecastAdditionalFeeRows(rows: CellValue[][], additionalRows: Ad
       row.formulaText,
       row.notes,
     ]);
+    rowRoles.push("additional");
   }
 }
 
 function forecastSheetWithAdditionalFees(rows: ExportRow[], additionalRows: AdditionalFeeExportRow[]): MlaFeeWorksheet {
   const sheet = forecastSheet(rows);
-  appendForecastAdditionalFeeRows(sheet.rows, additionalRows);
+  appendForecastAdditionalFeeRows(sheet.rows, sheet.rowRoles ?? [], additionalRows);
   return sheet;
 }
 
@@ -956,8 +1228,10 @@ function labFee(row: ExportRow, lab: EnvironmentFeeLabName): number | "" {
 function labSheet(rows: ExportRow[], sheetName: (typeof labSheetNames)[number]): MlaFeeWorksheet {
   const lab = labNameBySheet[sheetName];
   const sheetRows: CellValue[][] = [];
+  const rowRoles: MlaFeeRowRole[] = [];
   appendGroupedRows(
     sheetRows,
+    rowRoles,
     rows.filter((row) => row.ownership === "委外费用" && !row.special),
     labHeaders,
     (row) => [
@@ -981,18 +1255,26 @@ function labSheet(rows: ExportRow[], sheetName: (typeof labSheetNames)[number]):
   return {
     name: sheetName,
     rows: sheetRows,
+    rowRoles,
   };
 }
 
 function comparisonSheet(rows: ExportRow[]): MlaFeeWorksheet {
-  const totals = new Map<string, { flowGroupTitle: string; phaseTitle: string; groupTitle: string; SGS: number; 华测: number; 苏勃: number }>();
+  const totals = new Map<string, {
+    flowGroupTitle: string;
+    phaseTitle: string;
+    groupTitle: string;
+    SGS: number;
+    华测: number;
+    苏勃: number;
+  }>();
 
   for (const row of rows) {
     if (row.ownership !== "委外费用" || row.special) {
       continue;
     }
 
-    const key = `${row.phaseTitle}|${row.displayGroupTitle}`;
+    const key = `${row.phaseKey}|${row.groupKey}`;
     const current = totals.get(key) ?? { flowGroupTitle: row.flowGroupTitle, phaseTitle: row.phaseTitle, groupTitle: row.displayGroupTitle, SGS: 0, 华测: 0, 苏勃: 0 };
     current.SGS += Number(labFee(row, "SGS") || 0);
     current.华测 += Number(labFee(row, "华测") || 0);
@@ -1001,15 +1283,20 @@ function comparisonSheet(rows: ExportRow[]): MlaFeeWorksheet {
   }
 
   const sheetRows: CellValue[][] = [];
+  const rowRoles: MlaFeeRowRole[] = [];
   let currentPhase = "";
   for (const row of totals.values()) {
     if (row.phaseTitle !== currentPhase) {
       if (sheetRows.length > 0) {
         sheetRows.push([]);
+        rowRoles.push("blank");
       }
       sheetRows.push(phaseOrderSummary(row.phaseTitle, rows.filter((item) => item.phaseTitle === row.phaseTitle && item.ownership === "委外费用" && !item.special), comparisonHeaders.length));
+      rowRoles.push("summary");
       sheetRows.push(padRow(`Phase: ${row.phaseTitle}`, comparisonHeaders.length));
+      rowRoles.push("phase");
       sheetRows.push(comparisonHeaders);
+      rowRoles.push("header");
       currentPhase = row.phaseTitle;
     }
         const labTotals = [
@@ -1022,11 +1309,13 @@ function comparisonSheet(rows: ExportRow[]): MlaFeeWorksheet {
         const max = sorted[sorted.length - 1]!;
 
     sheetRows.push([row.flowGroupTitle, "", row.phaseTitle, row.groupTitle, row.SGS, row.华测, row.苏勃, min.lab, max.lab, max.value - min.value]);
+    rowRoles.push("data");
   }
 
   return {
     name: "费用对比",
     rows: sheetRows,
+    rowRoles,
   };
 }
 
@@ -1044,8 +1333,10 @@ function specialReference(row: ExportRow): string {
 
 function specialSheet(rows: ExportRow[], additionalRows: AdditionalFeeExportRow[]): MlaFeeWorksheet {
   const sheetRows: CellValue[][] = [];
+  const rowRoles: MlaFeeRowRole[] = [];
   appendGroupedRows(
     sheetRows,
+    rowRoles,
     rows.filter((row) => row.special),
     specialHeaders,
     (row) => [
@@ -1064,25 +1355,31 @@ function specialSheet(rows: ExportRow[], additionalRows: AdditionalFeeExportRow[
       row.notes,
     ],
   );
-  appendSpecialAdditionalFeeRows(sheetRows, additionalRows);
+  appendSpecialAdditionalFeeRows(sheetRows, rowRoles, additionalRows);
 
   return {
     name: "特殊项目费用",
     rows: sheetRows,
+    rowRoles,
   };
 }
 
-function appendSpecialAdditionalFeeRows(rows: CellValue[][], additionalRows: AdditionalFeeExportRow[]) {
+function appendSpecialAdditionalFeeRows(rows: CellValue[][], rowRoles: MlaFeeRowRole[], additionalRows: AdditionalFeeExportRow[]) {
   let currentPhase = "";
   for (const row of additionalRows) {
     if (row.phaseTitle !== currentPhase) {
       if (rows.length > 0) {
         rows.push([]);
+        rowRoles.push("blank");
       }
       rows.push([`${row.phaseTitle} 附加费用`, "Computer Fee -> Report Fee", ...Array.from({ length: Math.max(specialHeaders.length - 2, 0) }, () => "")]);
+      rowRoles.push("additional");
       rows.push(padRow(`Phase: ${row.phaseTitle}`, specialHeaders.length));
+      rowRoles.push("phase");
       rows.push(padRow(`${row.phaseTitle} / 费用汇总附加费用`, specialHeaders.length));
+      rowRoles.push("group");
       rows.push(specialHeaders);
+      rowRoles.push("header");
       currentPhase = row.phaseTitle;
     }
 
@@ -1101,14 +1398,32 @@ function appendSpecialAdditionalFeeRows(rows: CellValue[][], additionalRows: Add
       row.formulaText,
       row.notes,
     ]);
+    rowRoles.push("additional");
   }
 }
 
 function validationSheet(rows: ExportRow[], additionalRows: AdditionalFeeExportRow[]): MlaFeeWorksheet {
   const sheetRows: CellValue[][] = [validationHeaders];
+  const rowRoles: MlaFeeRowRole[] = ["header"];
 
   for (const row of rows) {
     if (row.estimatedItemFee === null) {
+      sheetRows.push([
+        row.ownership === "内部费用" ? "内部" : "预估规则",
+        "",
+        row.phaseTitle,
+        row.displayGroupTitle,
+        row.testCode,
+        row.testName,
+        row.sampleRange,
+        row.basisText,
+        "",
+        "",
+        "",
+        "规则待确认",
+        row.formulaText || row.notes || "未匹配费用规则",
+      ]);
+      rowRoles.push("data");
       continue;
     }
 
@@ -1127,6 +1442,7 @@ function validationSheet(rows: ExportRow[], additionalRows: AdditionalFeeExportR
       "一致",
       row.formulaText || row.notes,
     ]);
+    rowRoles.push("data");
   }
 
   for (const row of additionalRows) {
@@ -1145,11 +1461,13 @@ function validationSheet(rows: ExportRow[], additionalRows: AdditionalFeeExportR
       "一致",
       row.formulaText,
     ]);
+    rowRoles.push("data");
   }
 
   return {
     name: "费用规则校验",
     rows: sheetRows,
+    rowRoles,
   };
 }
 
@@ -1192,7 +1510,10 @@ export function buildMlaEnvironmentFeeWorkbook(plan: EnvironmentPlanSheet, conte
     comparisonSheet(rows),
     specialSheet(rows, additionalFeeRows),
     validationSheet(rows, additionalFeeRows),
-  ].map((sheet) => withMetadata(sheet, plan, exportContext));
+  ].map((sheet) => withMetadata({
+    ...sheet,
+    businessColumnCount: businessColumnCountBySheet[sheet.name] ?? sheet.rows[0]?.length ?? 0,
+  }, plan, exportContext));
 
   return {
     filename: workbookFilename(exportContext.platform),

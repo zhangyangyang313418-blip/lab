@@ -1,4 +1,8 @@
-import { buildMlaEnvironmentFeeWorkbook, type MlaFeeWorksheet } from "./mlaEnvironmentFeeExport";
+import {
+  buildMlaEnvironmentFeeWorkbook,
+  type MlaFeeRowRole,
+  type MlaFeeWorksheet,
+} from "./mlaEnvironmentFeeExport";
 import { OoxmlPackage } from "./ooxmlPackage";
 import { replaceMarkedWorksheetRows } from "./ooxmlWorksheetTransform";
 import {
@@ -27,7 +31,7 @@ interface CellStyleTemplate {
   styleAttributes: string;
 }
 
-type PrototypeRole = "summary" | "phase" | "group" | "header" | "data" | "last-data" | "total" | "additional" | "blank";
+type PrototypeRole = MlaFeeRowRole;
 
 interface PrototypeRowTemplate {
   row: number;
@@ -186,6 +190,41 @@ function rowByNumber(worksheetXml: string, row: number): string {
   return match[0];
 }
 
+function optionalRowByNumber(worksheetXml: string, row: number): string | undefined {
+  const openPattern = new RegExp(`<row\\b[^>]*\\br="${row}"[^>]*>`);
+  const match = openPattern.exec(worksheetXml);
+  if (!match) {
+    return undefined;
+  }
+  if (match[0].endsWith("/>")) {
+    return match[0];
+  }
+  const closeIndex = worksheetXml.indexOf("</row>", match.index + match[0].length);
+  if (closeIndex === -1) {
+    throw new Error(`Worksheet row ${row} is missing closing </row>`);
+  }
+  return worksheetXml.slice(match.index, closeIndex + "</row>".length);
+}
+
+function columnIndex(column: string): number {
+  return [...column].reduce((value, character) => value * 26 + character.charCodeAt(0) - 64, 0);
+}
+
+function cellsAfterBusinessColumns(rowXml: string | undefined, businessColumnCount: number | undefined): string {
+  if (!rowXml || !businessColumnCount) {
+    return "";
+  }
+
+  return [...rowXml.matchAll(/<c\b([^>]*)\/>|<c\b([^>]*)>[\s\S]*?<\/c>/g)]
+    .filter((match) => {
+      const attrs = match[1] ?? match[2] ?? "";
+      const column = attrs.match(/\br="([A-Z]{1,3})\d+"/)?.[1];
+      return column ? columnIndex(column) > businessColumnCount : false;
+    })
+    .map((match) => match[0])
+    .join("");
+}
+
 function parseCellStyles(rowXml: string): CellStyleTemplate[] {
   const styles: CellStyleTemplate[] = [];
   for (const match of rowXml.matchAll(/<c\b([^>]*)\/>|<c\b([^>]*)>[\s\S]*?<\/c>/g)) {
@@ -248,6 +287,16 @@ function rowRole(row: TemplateCellValue[], sheetName: string): PrototypeRole {
   if (row.every((cell) => cell === null || cell === undefined || cell === "")) {
     return "blank";
   }
+
+  if (sheetName === "样品及辅助设备需求") {
+    if (row[0] === "Max" || row[23] === "Max") {
+      return "total";
+    }
+    if (row[0] === "需求细则" || row[23] === "需求细则" || row[5] === "样品需求" || row[28] === "样品需求") {
+      return "group";
+    }
+  }
+
   if (isHeaderRow(row)) {
     return "header";
   }
@@ -262,7 +311,7 @@ function rowRole(row: TemplateCellValue[], sheetName: string): PrototypeRole {
   if (/Phase Total|合计|Total/i.test(label) || row.includes("Phase Total")) {
     return "total";
   }
-  if (sheetName === "样品及辅助设备需求" && (/组别顺序|->/.test(label))) {
+  if (sheetName === "样品及辅助设备需求" && (/组别顺序|->/.test(label) || (!row[3] && !row[26]))) {
     return "summary";
   }
   if (/：/.test(label) || (/->/.test(label) && row.slice(1).every((cell) => cell === "" || cell === null || cell === undefined))) {
@@ -291,6 +340,8 @@ function buildRowXml(
   row: TemplateCellValue[],
   rowNumber: number,
   prototypeXml: string | undefined,
+  existingRowXml: string | undefined,
+  businessColumnCount: number | undefined,
 ): string {
   if (!prototypeXml && row.every((cell) => cell === null || cell === undefined || cell === "")) {
     return `<row r="${rowNumber}"/>`;
@@ -302,13 +353,14 @@ function buildRowXml(
     .replace(/\br="\d+"/, `r="${rowNumber}"`)
     .replace(/\bspans="[^"]*"/, "");
   const styles = prototypeXml ? parseCellStyles(prototypeXml) : [];
-  const columnCount = Math.max(row.length, styles.length);
+  const stylesByColumn = new Map(styles.map((style) => [style.column, style.styleAttributes]));
+  const columnCount = businessColumnCount ?? Math.max(row.length, styles.length);
   const cells = Array.from({ length: columnCount }, (_, index) => {
-    const style = styles[index];
-    const column = style?.column ?? columnName(index + 1);
-    return cellXml(row[index], column, rowNumber, style?.styleAttributes ?? "");
+    const column = columnName(index + 1);
+    return cellXml(row[index], column, rowNumber, stylesByColumn.get(column) ?? "");
   }).join("");
-  return `<row${rowAttrs ? rowAttrs : ` r="${rowNumber}"`}>${cells}</row>`;
+  const preservedCells = cellsAfterBusinessColumns(existingRowXml, businessColumnCount);
+  return `<row${rowAttrs ? rowAttrs : ` r="${rowNumber}"`}>${cells}${preservedCells}</row>`;
 }
 
 function sheetBodyRows(sheet: MlaFeeWorksheet): TemplateCellValue[][] {
@@ -355,29 +407,10 @@ function assertRequiredSheets(sheetParts: Map<string, string>, template: FeeTemp
 
 function updateMetadataCell(worksheetXml: string, marker: ResolvedTemplateMarker, value: TemplateCellValue): string {
   const cellRef = marker.ref.replace(/\$/g, "").split(":")[0]!;
-  const row = Number(cellRef.match(/\d+/)?.[0]);
-  const column = cellRef.match(/[A-Z]{1,3}/)?.[0];
-  if (!row || !column) {
+  if (!cellRef.match(/^[A-Z]{1,3}\d+$/)) {
     throw new Error(`Invalid metadata marker reference: ${marker.ref}`);
   }
-
-  const currentCell = worksheetXml.match(new RegExp(`<c\\b[^>]*\\br="${cellRef}"[^>]*(?:\\/>|>[\\s\\S]*?<\\/c>)`))?.[0];
-  const styleAttrs = currentCell ? [
-    currentCell.match(/\bs="[^"]*"/)?.[0],
-    currentCell.match(/\bcm="[^"]*"/)?.[0],
-    currentCell.match(/\bvm="[^"]*"/)?.[0],
-    currentCell.match(/\bph="[^"]*"/)?.[0],
-  ].filter(Boolean).join(" ") : "";
-  const nextCell = cellXml(value, column, row, styleAttrs);
-
-  if (currentCell) {
-    return worksheetXml.replace(currentCell, nextCell);
-  }
-
-  return worksheetXml.replace(
-    new RegExp(`(<row\\b[^>]*\\br="${row}"[^>]*>)`),
-    `$1${nextCell}`,
-  );
+  return upsertWorksheetCell(worksheetXml, cellRef, value);
 }
 
 function applyMetadata(
@@ -486,6 +519,97 @@ function styleAttributesFromCell(cellXmlText: string | undefined): string {
   ].filter(Boolean).join(" ");
 }
 
+interface WorksheetRowLocation {
+  row: number;
+  xml: string;
+  start: number;
+  end: number;
+  selfClosing: boolean;
+}
+
+function findWorksheetRowLocation(worksheetXml: string, rowNumber: number): WorksheetRowLocation | undefined {
+  const sheetDataMatch = worksheetXml.match(/<sheetData>([\s\S]*?)<\/sheetData>/);
+  if (!sheetDataMatch || sheetDataMatch.index === undefined) {
+    return undefined;
+  }
+
+  const sheetData = sheetDataMatch[1] ?? "";
+  const sheetDataStart = sheetDataMatch.index + "<sheetData>".length;
+  const rowTagPattern = /<row\b[^>]*>/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = rowTagPattern.exec(sheetData)) !== null) {
+    const startTag = match[0];
+    const row = Number(startTag.match(/\br="(\d+)"/)?.[1]);
+    if (!Number.isFinite(row)) {
+      continue;
+    }
+
+    const start = sheetDataStart + match.index;
+    if (startTag.endsWith("/>")) {
+      const end = start + startTag.length;
+      if (row === rowNumber) {
+        return { row, xml: startTag, start, end, selfClosing: true };
+      }
+      continue;
+    }
+
+    const closeIndex = sheetData.indexOf("</row>", rowTagPattern.lastIndex);
+    if (closeIndex === -1) {
+      throw new Error(`Worksheet row ${row} is missing closing </row>`);
+    }
+    const end = sheetDataStart + closeIndex + "</row>".length;
+    if (row === rowNumber) {
+      return {
+        row,
+        xml: worksheetXml.slice(start, end),
+        start,
+        end,
+        selfClosing: false,
+      };
+    }
+    rowTagPattern.lastIndex = closeIndex + "</row>".length;
+  }
+
+  return undefined;
+}
+
+function insertWorksheetRow(worksheetXml: string, rowNumber: number, rowXml: string): string {
+  const sheetDataMatch = worksheetXml.match(/<sheetData>([\s\S]*?)<\/sheetData>/);
+  if (!sheetDataMatch || sheetDataMatch.index === undefined) {
+    throw new Error("Worksheet is missing sheetData");
+  }
+
+  const sheetData = sheetDataMatch[1] ?? "";
+  const sheetDataStart = sheetDataMatch.index + "<sheetData>".length;
+  const rowTagPattern = /<row\b[^>]*>/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = rowTagPattern.exec(sheetData)) !== null) {
+    const startTag = match[0];
+    const row = Number(startTag.match(/\br="(\d+)"/)?.[1]);
+    if (Number.isFinite(row) && row > rowNumber) {
+      const insertAt = sheetDataStart + match.index;
+      return `${worksheetXml.slice(0, insertAt)}${rowXml}${worksheetXml.slice(insertAt)}`;
+    }
+
+    if (!startTag.endsWith("/>")) {
+      const closeIndex = sheetData.indexOf("</row>", rowTagPattern.lastIndex);
+      if (closeIndex === -1) {
+        throw new Error(`Worksheet row ${row} is missing closing </row>`);
+      }
+      rowTagPattern.lastIndex = closeIndex + "</row>".length;
+    }
+  }
+
+  const insertAt = sheetDataMatch.index + sheetDataMatch[0].length - "</sheetData>".length;
+  return `${worksheetXml.slice(0, insertAt)}${rowXml}${worksheetXml.slice(insertAt)}`;
+}
+
+function cellXmlInRow(rowXml: string, ref: string): string | undefined {
+  return rowXml.match(new RegExp(`<c\\b(?=[^>]*\\br="${ref}")[^>]*(?:\\/>|>[\\s\\S]*?<\\/c>)`))?.[0];
+}
+
 function upsertWorksheetCell(
   worksheetXml: string,
   ref: string,
@@ -497,24 +621,22 @@ function upsertWorksheetCell(
     throw new Error(`Invalid worksheet cell reference: ${ref}`);
   }
 
-  const existingCell = worksheetXml.match(new RegExp(`<c\\b[^>]*\\br="${ref}"[^>]*(?:\\/>|>[\\s\\S]*?<\\/c>)`))?.[0];
+  const existingRow = findWorksheetRowLocation(worksheetXml, rowNumber);
+  const existingCell = existingRow ? cellXmlInRow(existingRow.xml, ref) : undefined;
   const nextCell = cellXml(value, column, rowNumber, styleAttributesFromCell(existingCell));
   if (existingCell) {
-    return worksheetXml.replace(existingCell, nextCell);
+    const nextRow = existingRow!.xml.replace(existingCell, nextCell);
+    return `${worksheetXml.slice(0, existingRow!.start)}${nextRow}${worksheetXml.slice(existingRow!.end)}`;
   }
 
-  const selfClosingRow = worksheetXml.match(new RegExp(`<row\\b([^>]*)\\br="${rowNumber}"([^>]*)\\/>`))?.[0];
-  if (selfClosingRow) {
-    const attrs = selfClosingRow.replace(/^<row\b/, "").replace(/\/>$/, "");
-    return worksheetXml.replace(selfClosingRow, `<row${attrs}>${nextCell}</row>`);
+  if (existingRow) {
+    const nextRow = existingRow.selfClosing
+      ? existingRow.xml.replace(/\/>$/, `>${nextCell}</row>`)
+      : existingRow.xml.replace("</row>", `${nextCell}</row>`);
+    return `${worksheetXml.slice(0, existingRow.start)}${nextRow}${worksheetXml.slice(existingRow.end)}`;
   }
 
-  const fullRow = worksheetXml.match(new RegExp(`<row\\b[^>]*\\br="${rowNumber}"[^>]*>[\\s\\S]*?<\\/row>`))?.[0];
-  if (fullRow) {
-    return worksheetXml.replace(fullRow, fullRow.replace("</row>", `${nextCell}</row>`));
-  }
-
-  return worksheetXml.replace("</sheetData>", `<row r="${rowNumber}">${nextCell}</row></sheetData>`);
+  return insertWorksheetRow(worksheetXml, rowNumber, `<row r="${rowNumber}">${nextCell}</row>`);
 }
 
 function chartStringCache(labels: string[]): string {
@@ -592,9 +714,10 @@ function replaceSheetRows(
   const worksheetXml = packageFile.readText(part);
   const prototypes = prototypeRows(worksheetXml, markers, contract);
   const rows = sheetBodyRows(sheet);
+  const explicitRoles = sheet.rowRoles?.slice(7);
   const mergeCellRefs: string[] = [];
   const rowXml = rows.map((row, index) => {
-    const role = rowRole(row, sheet.name);
+    const role = explicitRoles?.[index] ?? rowRole(row, sheet.name);
     const prototype = role === "blank"
       ? undefined
       : prototypes[role] ?? prototypes.data ?? prototypes.header ?? prototypes.phase;
@@ -602,7 +725,13 @@ function replaceSheetRows(
     if (prototype) {
       mergeCellRefs.push(...prototypeMergeRefs(worksheetXml, prototype.row, targetRow));
     }
-    return buildRowXml(row, targetRow, prototype?.xml);
+    return buildRowXml(
+      row,
+      targetRow,
+      prototype?.xml,
+      optionalRowByNumber(worksheetXml, targetRow),
+      sheet.businessColumnCount,
+    );
   });
 
   const result = replaceMarkedWorksheetRows({

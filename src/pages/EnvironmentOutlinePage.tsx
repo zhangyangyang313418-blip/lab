@@ -138,6 +138,14 @@ function isBaselineManualRow(row: EnvironmentPlanRow) {
   return row.id.startsWith("manual-baseline-");
 }
 
+function isOpticalTestRow(row: EnvironmentPlanRow) {
+  return row.id.includes("optical") || /Optical Test/i.test(row.label);
+}
+
+function isL1L4TestRow(row: EnvironmentPlanRow) {
+  return row.id.includes("l1l4") || /L1\s*&?\s*L4|Performance Evaluation.*Functional Evaluation/i.test(row.label);
+}
+
 function isPreTestRow(row: EnvironmentPlanRow) {
   return isBaselineRow(row) || isBaselineManualRow(row);
 }
@@ -224,14 +232,24 @@ function createBaselineManualRow(
 }
 
 type EnvironmentGroupSection = "sequence" | "d" | "e";
+type RenderedFee = {
+  button: ReactNode;
+  editor: ReactNode;
+};
 type FeeRenderer = (
   group: EnvironmentPlanGroup,
   row: EnvironmentPlanRow,
   className: string,
-) => {
-  button: ReactNode;
-  editor: ReactNode;
-};
+) => RenderedFee;
+
+interface BaselineFeeEntry {
+  group: EnvironmentPlanGroup;
+  row: EnvironmentPlanRow;
+  detailRow: EnvironmentFeeDetailRow | undefined;
+  breakdown: ReturnType<typeof getEnvironmentSpecialFeeBreakdown>;
+  quantity: number | null;
+  total: number;
+}
 
 const chargeBasisLabels: Record<EnvironmentFeeChargeBasis, string> = {
   hour: "按 h",
@@ -514,6 +532,53 @@ function OpticalFeeCalculationEditor({
           </div>
         ))}
         <div className="fee-calculation-editor__total">{`合计 ${formatCurrencyAmount(breakdown.total, 0)}`}</div>
+      </div>
+    </div>
+  );
+}
+
+function BaselineFeeCalculationEditor({
+  row,
+  entries,
+  total,
+  onClose,
+}: {
+  row: EnvironmentPlanRow;
+  entries: BaselineFeeEntry[];
+  total: number;
+  onClose: () => void;
+}) {
+  function formula(entry: BaselineFeeEntry) {
+    if (entry.breakdown?.chargeBasis === "optical-split") {
+      return entry.breakdown.lines
+        .map((line) => `${line.quantity} × ${line.label === "51 点位样品" ? "51点位" : "19点位"}`)
+        .join(" + ");
+    }
+
+    const unitPrice = entry.detailRow?.medianUnitPrice;
+    return entry.quantity !== null && unitPrice !== null && unitPrice !== undefined
+      ? `${entry.quantity} × ${unitPrice}`
+      : "按本组已确认规则";
+  }
+
+  return (
+    <div className="fee-calculation-editor fee-calculation-editor--compact">
+      <div className="fee-calculation-editor__header">
+        <h3>{row.label} 费用计算</h3>
+        <button type="button" className="fee-calculation-editor__close" aria-label={`关闭 ${row.label} 费用计算`} onClick={onClose}>
+          ×
+        </button>
+      </div>
+      <div className="fee-calculation-editor__stack">
+        {entries.map((entry) => (
+          <div key={entry.group.id} className="fee-calculation-editor__split-line">
+            <span className="fee-calculation-editor__split-item">{entry.group.title}</span>
+            <span className="fee-calculation-editor__split-value">{`${entry.quantity ?? "-"} 样品`}</span>
+            <span className="fee-calculation-editor__split-meta">{formula(entry)}</span>
+            <strong>{formatCurrencyAmount(entry.total, 0)}</strong>
+          </div>
+        ))}
+        <div className="fee-calculation-editor__total">{`合计 ${formatCurrencyAmount(total, 0)}`}</div>
       </div>
     </div>
   );
@@ -866,6 +931,7 @@ function BaselineTestCard({
   row,
   defaultSample,
   renderFee,
+  baselineFee,
 }: {
   editable: boolean;
   phase: EnvironmentPlanPhase;
@@ -873,6 +939,7 @@ function BaselineTestCard({
   row: EnvironmentPlanRow | undefined;
   defaultSample: string;
   renderFee: FeeRenderer;
+  baselineFee?: RenderedFee;
 }) {
   const { dispatch } = useAppState();
 
@@ -884,7 +951,7 @@ function BaselineTestCard({
   const safeRow = row;
   const kind = isBaselineManualRow(safeRow)
     ? safeRow.label
-    : safeRow.id.includes("optical")
+    : isOpticalTestRow(safeRow)
       ? "Optical Test"
       : safeRow.id.includes("l1l4")
         ? "L1&L4"
@@ -902,7 +969,7 @@ function BaselineTestCard({
     });
   }
 
-  const fee = renderFee(safeGroup, safeRow, "fee-box");
+  const fee = baselineFee ?? renderFee(safeGroup, safeRow, "fee-box");
 
   return (
     <div className="test">
@@ -928,7 +995,7 @@ function BaselineTestCard({
                 value={defaultSample}
                 onChange={() => undefined}
               />
-              {safeRow.id.includes("optical") ? (
+              {isOpticalTestRow(safeRow) ? (
                 <span className="test-metric__note">PCBA 样品无需进行光学测试</span>
               ) : null}
             </span>
@@ -1379,7 +1446,65 @@ function PhaseSection({ phase, editable }: { phase: EnvironmentPlanPhase; editab
               onClose={() => setExpandedFeeKey(null)}
             />
           )
-        ) : null,
+      ) : null,
+    };
+  };
+  const renderBaselineFee = (row: EnvironmentPlanRow, className: string): RenderedFee => {
+    if (!isOpticalTestRow(row) && !isL1L4TestRow(row)) {
+      return baselineSource.group
+        ? renderFee(baselineSource.group, row, className)
+        : { button: null, editor: null };
+    }
+
+    const entries = phase.groups.flatMap((group): BaselineFeeEntry[] => {
+      const matchingRow = getPreTestRows(group.rows).find((candidate) =>
+        isOpticalTestRow(row) ? isOpticalTestRow(candidate) : isL1L4TestRow(candidate),
+      );
+
+      if (!matchingRow) {
+        return [];
+      }
+
+      const detailRow = feeDetailsByRowId.get(`${group.id}:${matchingRow.id}`);
+      const breakdown = getEnvironmentSpecialFeeBreakdown(phase, group, matchingRow);
+      const total = breakdown?.total ?? detailRow?.estimatedItemFee;
+
+      if (total === null || total === undefined) {
+        return [];
+      }
+
+      return [{
+        group,
+        row: matchingRow,
+        detailRow,
+        breakdown,
+        quantity: detailRow?.quantity ?? null,
+        total,
+      }];
+    });
+    const total = entries.reduce((sum, entry) => sum + entry.total, 0);
+    const feeKey = `baseline:${phase.id}:${row.id}`;
+    const displayedFee = formatCurrencyAmount(total);
+
+    return {
+      button: (
+        <button
+          type="button"
+          className={`${className} fee-display-button`}
+          aria-label={`${phase.title} / Baseline / ${row.label} 费用 ${displayedFee}`}
+          onDoubleClick={() => setExpandedFeeKey(feeKey)}
+        >
+          {displayedFee}
+        </button>
+      ),
+      editor: expandedFeeKey === feeKey ? (
+        <BaselineFeeCalculationEditor
+          row={row}
+          entries={entries}
+          total={total}
+          onClose={() => setExpandedFeeKey(null)}
+        />
+      ) : null,
     };
   };
 
@@ -1598,8 +1723,9 @@ function PhaseSection({ phase, editable }: { phase: EnvironmentPlanPhase; editab
                     phase={phase}
                     group={baselineSource.group}
                     row={row}
-                    defaultSample={row.id.includes("optical") ? baselineOpticalSample : baselineSample}
+                    defaultSample={isOpticalTestRow(row) ? baselineOpticalSample : baselineSample}
                     renderFee={renderFee}
+                    baselineFee={renderBaselineFee(row, "fee-box")}
                   />
                 ))}
               </div>
