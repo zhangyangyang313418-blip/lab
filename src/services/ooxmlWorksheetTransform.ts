@@ -3,6 +3,7 @@ export interface ReplaceMarkedWorksheetRowsOptions {
   startRow: number;
   endRow: number;
   rowXml: string[];
+  mergeCellRefs?: string[];
 }
 
 export interface WorksheetTransformResult {
@@ -132,6 +133,59 @@ function rewriteWorksheetOutsideSheetData(
     );
 }
 
+function rangeRows(reference: string): { start: number; end: number } | null {
+  const rows = [...reference.matchAll(/\$?[A-Z]{1,3}\$?(\d+)/g)].map((match) => Number(match[1]));
+  if (rows.length === 0 || rows.some((row) => !Number.isFinite(row))) {
+    return null;
+  }
+  return {
+    start: Math.min(...rows),
+    end: Math.max(...rows),
+  };
+}
+
+function intersectsRows(reference: string, startRow: number, endRow: number): boolean {
+  const rows = rangeRows(reference);
+  if (!rows) {
+    return false;
+  }
+  return rows.start <= endRow && rows.end >= startRow;
+}
+
+function rewriteMergeCellsFromOriginal(
+  originalXml: string,
+  rewrittenXml: string,
+  startRow: number,
+  endRow: number,
+  replacementCount: number,
+  dynamicMergeCellRefs: string[],
+): string {
+  const originalBlock = originalXml.match(/<mergeCells\b[^>]*>[\s\S]*?<\/mergeCells>/)?.[0];
+  const existingBlock = rewrittenXml.match(/<mergeCells\b[^>]*>[\s\S]*?<\/mergeCells>/)?.[0];
+  const sourceMergeRefs = originalBlock
+    ? [...originalBlock.matchAll(/<mergeCell ref="([^"]+)"\/>/g)].map((match) => match[1] ?? "")
+    : [];
+
+  const nextRefs = [
+    ...sourceMergeRefs
+      .filter((ref) => !intersectsRows(ref, startRow, endRow))
+      .map((ref) => rewriteA1References(ref, startRow, endRow, replacementCount)),
+    ...dynamicMergeCellRefs,
+  ];
+  const uniqueRefs = [...new Set(nextRefs)];
+  const nextBlock = uniqueRefs.length > 0
+    ? `<mergeCells count="${uniqueRefs.length}">${uniqueRefs.map((ref) => `<mergeCell ref="${ref}"/>`).join("")}</mergeCells>`
+    : "";
+
+  if (existingBlock) {
+    return rewrittenXml.replace(existingBlock, nextBlock);
+  }
+  if (!nextBlock) {
+    return rewrittenXml;
+  }
+  return rewrittenXml.replace(/(<pageMargins\b)/, `${nextBlock}$1`);
+}
+
 export function rewriteDependentRowReferences(
   xml: string,
   startRow: number,
@@ -156,7 +210,7 @@ export function rewriteDependentRowReferences(
 export function replaceMarkedWorksheetRows(
   options: ReplaceMarkedWorksheetRowsOptions,
 ): WorksheetTransformResult {
-  const { worksheetXml, startRow, endRow, rowXml } = options;
+  const { worksheetXml, startRow, endRow, rowXml, mergeCellRefs = [] } = options;
   if (startRow < 1 || endRow < startRow) {
     throw new Error(`Invalid marked row range: ${startRow}-${endRow}`);
   }
@@ -215,8 +269,18 @@ export function replaceMarkedWorksheetRows(
     replacementCount,
   );
 
+  const rewrittenWorksheetXml = `${rewrittenBefore}${nextSheetData}${rewrittenAfter}`;
+  const worksheetXmlWithMergedCells = rewriteMergeCellsFromOriginal(
+    worksheetXml,
+    rewrittenWorksheetXml,
+    startRow,
+    endRow,
+    replacementCount,
+    mergeCellRefs,
+  );
+
   return {
-    worksheetXml: `${rewrittenBefore}${nextSheetData}${rewrittenAfter}`,
+    worksheetXml: worksheetXmlWithMergedCells,
     delta,
     newEndRow,
   };

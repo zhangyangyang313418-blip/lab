@@ -29,6 +29,11 @@ interface CellStyleTemplate {
 
 type PrototypeRole = "summary" | "phase" | "group" | "header" | "data" | "last-data" | "total" | "additional" | "blank";
 
+interface PrototypeRowTemplate {
+  row: number;
+  xml: string;
+}
+
 interface SheetMarkerContract {
   start: TemplateMarkerName;
   end: TemplateMarkerName;
@@ -204,13 +209,30 @@ function prototypeRows(
   worksheetXml: string,
   markers: ResolvedTemplateMarkers,
   contract: SheetMarkerContract,
-): Record<PrototypeRole, string | undefined> {
+): Record<PrototypeRole, PrototypeRowTemplate | undefined> {
   return Object.fromEntries(
-    Object.entries(contract.prototypes).map(([role, markerName]) => [
-      role,
-      rowByNumber(worksheetXml, markerRow(markers[markerName])),
-    ]),
-  ) as Record<PrototypeRole, string | undefined>;
+    Object.entries(contract.prototypes).map(([role, markerName]) => {
+      const row = markerRow(markers[markerName]);
+      return [role, { row, xml: rowByNumber(worksheetXml, row) }];
+    }),
+  ) as Record<PrototypeRole, PrototypeRowTemplate | undefined>;
+}
+
+function prototypeMergeRefs(worksheetXml: string, prototypeRow: number, targetRow: number): string[] {
+  return [...worksheetXml.matchAll(/<mergeCell ref="([^"]+)"\/>/g)]
+    .map((match) => match[1] ?? "")
+    .flatMap((ref) => {
+      const match = ref.match(/^(\$?[A-Z]{1,3}\$?)(\d+):(\$?[A-Z]{1,3}\$?)(\d+)$/);
+      if (!match) {
+        return [];
+      }
+      const startRow = Number(match[2]);
+      const endRow = Number(match[4]);
+      if (startRow !== prototypeRow || endRow !== prototypeRow) {
+        return [];
+      }
+      return [`${match[1]}${targetRow}:${match[3]}${targetRow}`];
+    });
 }
 
 function firstText(row: TemplateCellValue[]): string {
@@ -570,12 +592,17 @@ function replaceSheetRows(
   const worksheetXml = packageFile.readText(part);
   const prototypes = prototypeRows(worksheetXml, markers, contract);
   const rows = sheetBodyRows(sheet);
+  const mergeCellRefs: string[] = [];
   const rowXml = rows.map((row, index) => {
     const role = rowRole(row, sheet.name);
     const prototype = role === "blank"
       ? undefined
       : prototypes[role] ?? prototypes.data ?? prototypes.header ?? prototypes.phase;
-    return buildRowXml(row, startRow + index, prototype);
+    const targetRow = startRow + index;
+    if (prototype) {
+      mergeCellRefs.push(...prototypeMergeRefs(worksheetXml, prototype.row, targetRow));
+    }
+    return buildRowXml(row, targetRow, prototype?.xml);
   });
 
   const result = replaceMarkedWorksheetRows({
@@ -583,6 +610,7 @@ function replaceSheetRows(
     startRow,
     endRow,
     rowXml,
+    mergeCellRefs,
   });
   packageFile.writeText(part, result.worksheetXml);
 }

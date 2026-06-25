@@ -27,6 +27,27 @@ function firstChartNumericCacheValues(chartXml: string): string[] {
   return [...cache.matchAll(/<c:pt idx="\d+"><c:v>([\s\S]*?)<\/c:v><\/c:pt>/g)].map((match) => match[1] ?? "");
 }
 
+function worksheetXmlBySheetName(workbook: OoxmlPackage, sheetName: string): string {
+  const workbookXml = workbook.readText("xl/workbook.xml");
+  const relsXml = workbook.readText("xl/_rels/workbook.xml.rels");
+  const sheetTag = workbookXml.match(new RegExp(`<sheet\\b[^>]*name="${sheetName}"[^>]*/>`))?.[0];
+  const relId = sheetTag?.match(/r:id="([^"]+)"/)?.[1];
+  const target = relId ? relsXml.match(new RegExp(`<Relationship\\b[^>]*Id="${relId}"[^>]*Target="([^"]+)"`))?.[1] : undefined;
+  if (!target) {
+    throw new Error(`Missing worksheet target for ${sheetName}`);
+  }
+  return workbook.readText(`xl/${target.replace(/^xl\//, "")}`);
+}
+
+function dynamicMergeRefs(xml: string, startRow: number): string[] {
+  return [...xml.matchAll(/<mergeCell ref="([^"]+)"\/>/g)]
+    .map((match) => match[1] ?? "")
+    .filter((ref) => {
+      const rows = [...ref.matchAll(/\$?[A-Z]{1,3}\$?(\d+)/g)].map((match) => Number(match[1]));
+      return rows.some((row) => row >= startRow);
+    });
+}
+
 describe("template fee workbook export", () => {
   it.each(["MLA", "EMA"] as const)("builds a real %s xlsx from its formal template", async (platform) => {
     const state = createSeedAppState();
@@ -108,6 +129,36 @@ describe("template fee workbook export", () => {
     expect(text).toContain("CUSTOM ADDED TEST");
     expect(text).toContain("CUSTOM GROUP Z TEST");
     expect(text).toContain("Group Z");
+  });
+
+  it("does not keep old template merges stretched across generated dynamic rows", async () => {
+    const state = createSeedAppState();
+    const file = await buildTemplateFeeWorkbook(
+      state.environmentPlan,
+      state.projectSetup,
+      templateFetcher,
+    );
+    const workbook = await OoxmlPackage.load(file.bytes);
+
+    const sampleXml = worksheetXmlBySheetName(workbook, "样品及辅助设备需求");
+    const forecastXml = worksheetXmlBySheetName(workbook, "费用预估");
+    const sgsXml = worksheetXmlBySheetName(workbook, "SGS");
+
+    expect(sampleXml).toContain("Group Max");
+    expect(sampleXml).toContain("Group A Sequence Tests");
+    expect(forecastXml).toContain("K1 Low Temperature Exposure");
+    expect(sgsXml).toContain("Particle Exposure");
+
+    const stretchedDynamicMerges = [
+      ...dynamicMergeRefs(sampleXml, 6),
+      ...dynamicMergeRefs(forecastXml, 10),
+      ...dynamicMergeRefs(sgsXml, 6),
+    ].filter((ref) => {
+      const rows = [...ref.matchAll(/\$?[A-Z]{1,3}\$?(\d+)/g)].map((match) => Number(match[1]));
+      return rows.length === 2 && rows[0] !== rows[1];
+    });
+
+    expect(stretchedDynamicMerges).toEqual([]);
   });
 
   it("rejects missing templates and never returns a legacy xls fallback", async () => {
