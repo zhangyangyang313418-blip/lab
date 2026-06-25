@@ -1,10 +1,72 @@
 # MLA 测试项目及费用 Excel 导出交接
 
-更新时间：2026-06-24
+更新时间：2026-06-25
 
 ## 当前结论
 
 本交接用于继续处理 `/Users/clytia/Desktop/Codex/产品测试流程自动化` 中的 MLA 测试项目及费用 Excel 导出。
+
+## 2026-06-25 费用导出数据丢失 Bug 交接
+
+当前状态：本问题尚未彻底修复。已经先将项目前置配置中的驾驶方向改为单选，禁止 `LHD` 与 `RHD` 同时选中，以减少混合大纲导致的样品需求和费用导出错乱；但用户确认当前费用导出仍存在数据丢失/错位情况，后续需要继续专门修复 `.xlsx` 导出链路。
+
+本地 Git 状态：最新单选缓解已提交到 `main`，提交为 `886f38f fix: restrict project steering selection to one side`。截至本交接撰写时，本地 `main` 领先 `origin/main`，后续修复前先确认是否需要 push 或继续在本地 main 上修。
+
+已知现象：
+
+- WPS 打开的费用导出文件可能出现主数据区看起来为空、错位、重复或内容被模板区域遮挡。
+- 用户截图中 `样品及辅助设备需求` 出现大面积空白/黄色列、重复区块、`##`、红色汇总数字和备注文字错位。
+- 之前曾发现一类具体问题：动态区旧合并单元格被错误拉伸，造成数据虽写入 XML 但被跨行合并遮挡。该类问题已在 `2e7fe0e fix: keep xlsx fee export dynamic rows visible` 中处理，但用户确认仍有残余数据丢失/错位，不能把该提交视为最终修复。
+
+必须遵守的修复边界：
+
+- 不允许恢复旧 SpreadsheetML `.xls`。
+- 不允许在模板加载失败、Sheet 缺失、图表缺失、公式错误时回退旧导出。
+- 不允许生成全新 workbook 替代正式模板；必须基于 MLA/EMA 正式 `.xlsx` 模板 ZIP 层 XML 修改。
+- 必须保留 8 个 Sheet、隐藏的 `费用规则校验`、样式、公式、合并单元格、条件格式、筛选、图表、图表辅助区和 `chart1.xml` 缓存。
+- 修复前必须用用户实际下载文件或同路径真实浏览器导出文件验证，不要只检查内部模型或测试生成的临时文件。
+
+优先排查入口：
+
+```text
+src/services/templateFeeWorkbookExport.ts
+src/services/ooxmlWorksheetTransform.ts
+src/services/ooxmlPackage.ts
+src/services/feeWorkbookTemplateManifest.ts
+src/services/mlaEnvironmentFeeExport.ts
+scripts/prepare_fee_export_template_assets.mjs
+public/templates/MLA费用导出模板.xlsx
+public/templates/EMA费用导出模板.xlsx
+outputs/mla-fee-export-template/MLA费用导出模板.xlsx
+outputs/ema-fee-export-template/EMA费用导出模板.xlsx
+```
+
+建议修复路线：
+
+1. 先复现用户实际下载文件：从 `http://127.0.0.1:5173/environment-outline` 重新导出 MLA/EMA `.xlsx`，保留下载文件路径。
+2. 用 `openpyxl` 或 ZIP/XML 直接检查 8 个 Sheet 的关键单元格是否可读，尤其是：
+   - `样品及辅助设备需求`：A9/B9/C9/D9/G9、PV 段首行、Phase Total 行；
+   - `费用预估`：Group 标题、表头、K1/Optical/L1&L4 明细、Computer Fee/Report Fee；
+   - `SGS`、`华测`、`苏勃`：首个 Group 明细、实验室费用列；
+   - `费用对比`：S:X 图表辅助区和 `xl/charts/chart1.xml` 缓存；
+   - `特殊项目费用`、`费用规则校验`：特殊项目和校验行数量。
+3. 检查 `mergeCells`、`dimension`、`row r` 顺序、重复 row、缺失 row、`sheetViews`、`autoFilter`、`conditionalFormatting`、`dataValidations`、`drawing` anchor、`table`/`definedName` 范围是否与动态行数一致。
+4. 针对发现的具体丢失点先补红灯测试，再改 XML 转换逻辑；不要只靠人工打开 WPS 判定。
+5. 修复后必须用真实导出文件重开验证，而不仅是测试内存中的 `Uint8Array`。
+
+建议新增/加强测试：
+
+- 在 `src/tests/templateFeeWorkbookExport.test.ts` 中补充“主 Sheet 关键动态单元格可被 OpenXML 解析器读出”的断言，不只检查 XML 字符串包含文本。
+- 增加针对 `样品及辅助设备需求` 和 `费用预估` 的合并范围断言：动态区内不得存在跨多行大合并遮挡明细。
+- 增加下载文件级检查：8 个 Sheet 的非空行数量、关键费用行数量、Computer Fee/Report Fee 是否同时出现在 `费用预估` 与 `特殊项目费用`。
+- 增加 chart helper/cache 一致性断言：`费用对比!U2:X15` 与 `xl/charts/chart1.xml` 的缓存值一致。
+
+完成标准：
+
+- 用户重新导出的 MLA 与 EMA `.xlsx` 均能在 WPS 中看到完整动态数据，不再出现主数据区空白、错位、重复块或 `##` 异常。
+- `openpyxl`/ZIP 检查能读出关键动态单元格，而不是只在 raw XML 中能搜到字符串。
+- `npm run test:run -- src/tests/templateFeeWorkbookExport.test.ts src/tests/ooxmlWorksheetTransform.test.ts src/tests/mlaEnvironmentFeeExport.test.ts src/tests/environmentOutlinePage.test.tsx src/tests/localStore.test.ts` 通过。
+- `npm run build` 通过；build 造成的模板二进制副作用需确认是否只是同步副作用，非业务改动则恢复。
 
 当前用户已确认：
 
