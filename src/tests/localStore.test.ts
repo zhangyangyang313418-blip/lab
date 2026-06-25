@@ -1061,7 +1061,7 @@ describe("app state reducer", () => {
     expect(rebuilt.domainItems.environment.find((item) => item.code === "F1")).toBeUndefined();
   });
 
-  it("builds separate environment outline phases when both steering directions are selected", () => {
+  it("normalizes legacy dual steering selection to one environment outline", () => {
     const state = createSeedAppState();
 
     const rebuilt = appReducer(state, {
@@ -1076,18 +1076,14 @@ describe("app state reducer", () => {
       },
     });
 
-    const phaseIds = rebuilt.environmentPlan.phases.map((phase) => phase.id);
-
-    expect(phaseIds).toEqual(["dv-lhd", "pv-lhd", "dv-rhd", "pv-rhd"]);
+    expect(rebuilt.projectSetup.steeringSides).toEqual(["LHD"]);
+    expect(rebuilt.environmentPlan.phases.map((phase) => phase.id)).toEqual(["dv", "pv"]);
     expect(rebuilt.environmentPlan.phases.map((phase) => phase.summary.projectCode)).toEqual([
       "L463 LHD",
       "L463 LHD",
-      "L463 RHD",
-      "L463 RHD",
     ]);
-    expect(rebuilt.environmentPlan.phases.find((phase) => phase.id === "dv-lhd")?.groups.some((group) => group.id === "ema-group-b")).toBe(true);
-    expect(rebuilt.environmentPlan.phases.find((phase) => phase.id === "dv-rhd")?.groups.some((group) => group.id === "ema-group-b")).toBe(false);
-    expect(rebuilt.environmentPlan.phases.find((phase) => phase.id === "dv-rhd")?.groups.some((group) => group.id === "ema-rhd-group-f2")).toBe(true);
+    expect(rebuilt.environmentPlan.phases[0]?.groups.some((group) => group.id === "ema-group-b")).toBe(true);
+    expect(rebuilt.environmentPlan.phases[0]?.groups.some((group) => group.id === "ema-rhd-group-f2")).toBe(false);
   });
 
   it("fills manual environment rows from an existing full test label", () => {

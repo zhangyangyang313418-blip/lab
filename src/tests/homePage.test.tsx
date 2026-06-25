@@ -70,7 +70,7 @@ describe("app bootstrap", () => {
     expect(screen.queryByRole("heading", { name: "添加测试项", level: 2 })).not.toBeInTheDocument();
   });
 
-  it("requires at least one steering side before starting the flow", async () => {
+  it("keeps LHD and RHD mutually exclusive before starting the flow", async () => {
     const user = userEvent.setup();
 
     render(
@@ -79,31 +79,24 @@ describe("app bootstrap", () => {
       </MemoryRouter>,
     );
 
-    await user.click(screen.getByLabelText("LHD"));
-    await user.click(screen.getByRole("button", { name: "开始评估" }));
-
-    expect(screen.getByRole("heading", { name: "创建 HUD 评估项目", level: 2 })).toBeInTheDocument();
-    expect(screen.getByText("请至少选择一个驾驶方向配置。")).toBeInTheDocument();
-  });
-
-  it("allows selecting both LHD and RHD for one platform", async () => {
-    const user = userEvent.setup();
-
-    render(
-      <MemoryRouter initialEntries={["/"]}>
-        <App />
-      </MemoryRouter>,
-    );
+    expect(screen.getByLabelText("LHD")).toBeChecked();
+    expect(screen.getByLabelText("RHD")).not.toBeChecked();
 
     await user.click(screen.getByLabelText("RHD"));
+
+    expect(screen.getByLabelText("LHD")).not.toBeChecked();
+    expect(screen.getByLabelText("RHD")).toBeChecked();
+
     await user.click(screen.getByRole("button", { name: "开始评估" }));
 
     expect(screen.getByRole("heading", { name: "项目输入", level: 1 })).toBeInTheDocument();
-    expect(screen.getByText("LHD / RHD")).toBeInTheDocument();
-    expect(screen.getByText("环境可靠性将使用 MLA 平台 LHD / RHD 完整大纲作为推荐基础。")).toBeInTheDocument();
+    expect(screen.getByText("RHD")).toBeInTheDocument();
+    expect(screen.queryByText("LHD / RHD")).not.toBeInTheDocument();
+    expect(screen.getByText("环境可靠性将使用 MLA 平台 RHD 完整大纲作为推荐基础。"))
+      .toBeInTheDocument();
   });
 
-  it("splits the environment outline by steering direction when both LHD and RHD are selected", async () => {
+  it("builds one environment outline for the selected steering direction", async () => {
     const user = userEvent.setup();
 
     render(
@@ -117,10 +110,10 @@ describe("app bootstrap", () => {
     await user.click(screen.getByRole("button", { name: "开始评估" }));
     await user.click(screen.getByRole("button", { name: "查看环境测试大纲" }));
 
-    expect(screen.getAllByDisplayValue("L463 LHD").length).toBeGreaterThan(0);
     expect(screen.getAllByDisplayValue("L463 RHD").length).toBeGreaterThan(0);
+    expect(screen.queryAllByDisplayValue("L463 LHD")).toHaveLength(0);
     expect(screen.queryAllByDisplayValue("L463 LHD / RHD")).toHaveLength(0);
-    expect(screen.getAllByDisplayValue("K22 Chemical Resistance").length).toBeGreaterThan(0);
+    expect(screen.queryAllByDisplayValue("K22 Chemical Resistance")).toHaveLength(0);
     expect(screen.getAllByDisplayValue("Operating Noise & Transient Noise").length).toBeGreaterThan(0);
   });
 
@@ -133,7 +126,6 @@ describe("app bootstrap", () => {
       </MemoryRouter>,
     );
 
-    await user.click(screen.getByLabelText("LHD"));
     await user.click(screen.getByLabelText("RHD"));
     await user.click(screen.getByRole("button", { name: "开始评估" }));
     await user.click(screen.getByRole("button", { name: "查看环境测试大纲" }));
@@ -162,7 +154,6 @@ describe("app bootstrap", () => {
     );
 
     await user.click(screen.getByLabelText("EMA"));
-    await user.click(screen.getByLabelText("LHD"));
     await user.click(screen.getByLabelText("RHD"));
     await user.click(screen.getByRole("button", { name: "开始评估" }));
     await user.click(screen.getByRole("button", { name: "查看环境测试大纲" }));

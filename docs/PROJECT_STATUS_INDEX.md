@@ -1,6 +1,6 @@
 # Product Test Evaluation Tool Status Index
 
-更新时间：2026-06-24
+更新时间：2026-06-25
 
 ## 目的
 
@@ -31,6 +31,7 @@ npm run build
 - 本地草稿迁移版本当前为 `ENVIRONMENT_PLAN_TEMPLATE_VERSION = 40`。
 - `/environment-outline` 顶部新增独立费用汇总行：`TOTAL COST` 后跟各组费用、`Computer Fee`、`Report Fee`；总费用口径为各组测试费用合计 + 电脑费用 + 报告费用。
 - `/environment-outline` 费用 Excel 导出已改为基于 MLA/EMA 正式 `.xlsx` 模板的 ZIP/XML 写入；禁止回退 SpreadsheetML `.xls`。动态增删 Group/测试项目时通过模板 `_PT_*` marker 扩展行、公式、图表辅助区和 `chart1.xml` 缓存。
+- 项目前置配置中驾驶方向改为单选：不允许同时选择 `LHD` 与 `RHD`；旧草稿或旧状态若包含双方向，会规整为单一方向后再生成环境大纲和费用导出。
 - EMA 费用已按 `outputs/ema-fee-detail-export/JLR- EMA 费用规则.xlsx` 导回专属规则；MLA 锁定费用不变。
 - MLA RHD 右舵费用已补齐使用锁定 MLA 费用规则：`mla-rhd-group-*` 会参与 Optical、Particle Exposure、L1&L4、L6、E-2 及 K 系列费用计算。
 - MLA/LHD/RHD 导出和费用明细中，baseline `Optical Test` 与 `L1&L4` 按各自 Group 样本量计算与展示，不再使用跨组汇总样本量。
@@ -39,6 +40,10 @@ npm run build
 - MLA Group D-3 已确认按 `8` 个 PCBA 样品：`L1&L4` 和 `L6-photo&xray` 计费基数为 `8 个样品`；`L6-SEM&SECTION` 仍按 `33 个点位`。
 - MLA Group D-8 PV 总样本量已从 `15` 改为 `12`；前置 `Optical Test` / HALT 前 `L1&L4` 按 `12 个样品`；HALT 五项仍为 `8h × 800/h = 6400`；后置 `L1&L4` / `Optical Test` / `L6-photo&xray` 仍按 `9 个样品`。
 - 流程图维护以 `docs/*.drawio` 和对应 `scripts/generate_*drawio*.mjs` 为准。
+
+## 已知 Bug
+
+- 2026-06-25：费用导出仍存在数据丢失/错位风险；当前已先禁止 `LHD` 与 `RHD` 同时选中以减少混合大纲导致的导出错乱，但 `.xlsx` 费用导出链路仍需后续继续排查和修复，修复前不得将费用导出视为完全可靠交付。
 
 ## 关键文件入口
 

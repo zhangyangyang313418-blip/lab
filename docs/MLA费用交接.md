@@ -48,6 +48,7 @@ Git 状态：
 - 当前工作重点已经从“逐条试错确认”切到“文档化、交接、后续小范围维护”。
 - 页面中涉及 LHD 的默认环境大纲、费用按钮、费用弹窗、本地草稿迁移已经一致。
 - `/environment-outline` 顶部新增独立费用汇总行：`TOTAL COST` 后跟各组费用、`Computer Fee`、`Report Fee`；总费用口径为各组测试费用合计 + 电脑费用 + 报告费用。
+- 项目前置配置中 `LHD` 与 `RHD` 不允许同时选择；驾驶方向按单选进入环境大纲、费用计算和 Excel 导出，避免 LHD/RHD 大纲混合导致样品需求和费用导出错乱。
 - 页面中涉及 RHD 右舵的费用计算已补齐使用锁定 MLA 费用规则；`mla-rhd-group-*` 会参与 Optical、Particle Exposure、L1&L4、L6、E-2 及 K 系列费用计算。
 - baseline `Optical Test` 与 `L1&L4 Performance Evaluation & Functional Evaluation` 已改为按各自 Group 样本量计算和导出；例如 Group A 使用 `1-14 / 14 个样品`，Group C 使用 `1-6 / 6 个样品`，不再导出跨组汇总样本量。
 - Group A 样品范围已确认：普通 sequence rows 为 `1-12`；`K7 Thermal Shock in Air` 完成后、`K15 Vibration` 开始前需要一项中间 `L1&L4 Performance Evaluation & Functional Evaluation`，样本量 `12`，费用 `4800`；只有 `K16.1 Mechanical Shock Package Drop`、测试前评估、测试后 `L1&L4 / Optical / L6-photo&xray` 使用 `1-14` 全部样品。

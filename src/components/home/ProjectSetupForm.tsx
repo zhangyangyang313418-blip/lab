@@ -28,24 +28,13 @@ export function ProjectSetupForm() {
   );
   const [projectCode, setProjectCode] = useState(state.projectSetup.projectCode);
   const [isFullyReused, setIsFullyReused] = useState(state.projectSetup.isFullyReused);
-  const [steeringError, setSteeringError] = useState("");
 
-  function toggleSteeringSide(side: SteeringSide) {
-    setSteeringError("");
-    setSteeringSides((currentSides) =>
-      currentSides.includes(side)
-        ? currentSides.filter((currentSide) => currentSide !== side)
-        : [...currentSides, side],
-    );
+  function selectSteeringSide(side: SteeringSide) {
+    setSteeringSides([side]);
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    if (steeringSides.length === 0) {
-      setSteeringError("请至少选择一个驾驶方向配置。");
-      return;
-    }
 
     dispatch({
       type: "applyProjectSetup",
@@ -123,27 +112,22 @@ export function ProjectSetupForm() {
           </div>
         </fieldset>
 
-        <fieldset className="field-group" aria-describedby={steeringError ? "steering-error" : undefined}>
+        <fieldset className="field-group">
           <legend>驾驶方向</legend>
           <div className="choice-row">
             {steeringOptions.map((option) => (
               <label key={option.value} className="choice-pill">
                 <input
-                  type="checkbox"
+                  type="radio"
                   name="steeringSides"
                   value={option.value}
-                  checked={steeringSides.includes(option.value)}
-                  onChange={() => toggleSteeringSide(option.value)}
+                  checked={steeringSides[0] === option.value}
+                  onChange={() => selectSteeringSide(option.value)}
                 />
                 <span>{option.label}</span>
               </label>
             ))}
           </div>
-          {steeringError ? (
-            <p id="steering-error" className="helper-text" role="alert" style={{ marginTop: 12 }}>
-              {steeringError}
-            </p>
-          ) : null}
         </fieldset>
 
         <label className="field">
